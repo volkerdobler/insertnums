@@ -234,9 +234,11 @@ function InsertNumsCommand() {
             value = vscode.window.activeTextEditor.document.getText(range);
           }
           try {
+// @ts-ignore
             value = casttable[cast](value);
           }
           catch(e) {
+// @ts-ignore
             vscode.window.showErrorMessage(`[${value}] could not be cast to ${casttable[cast]}`);
             return null;
           }
