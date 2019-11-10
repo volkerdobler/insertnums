@@ -1,6 +1,25 @@
+/* 
+The extension "InsertNums" is an adoption of a wonderful plugin for
+Sublimecode from James Brooks.
+https://github.com/jbrooksuk/InsertNums
+
+All errors are in my own responsibility and are solley done by
+myself.
+
+If you want to contact me, send an E-Mail to 
+insertnums.extension@volker-dobler.de
+
+Volker Dobler
+November 2019
+ */
+
+
+
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+
+var sprintf = require('sprintf-js').sprintf;
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -35,7 +54,7 @@ function numToAlpha(num : number, len : number = 0) : string {
   let res: string = "";
   
   if (len > 0) {
-    num = (num - 1) % (Math.pow(26, len) + 1);
+    num = (num - 1) % Math.pow(26, len) + 1;
   }
   
   while (num > 0) {
@@ -106,6 +125,17 @@ function status(msg: any) {
 function InsertNumsCommand() {
   let document = vscode.window;
   
+  if (vscode === undefined || vscode.window === undefined || vscode.window.activeTextEditor === undefined) {
+    vscode.window.showErrorMessage("Extension only available with active Texteditor");
+    return null;
+  }
+
+  let selections = vscode.window.activeTextEditor !== undefined ? vscode.window.activeTextEditor.selections : null;
+
+  if (selections === null) { return null; }
+
+  let selLen = selections.length;
+  
   document.showInputBox({ prompt: "Enter format string (default: '1:1')", placeHolder: "1:1"})
     .then((result) => {
       
@@ -116,23 +146,29 @@ function InsertNumsCommand() {
       let {insertnum, insertalpha, exprmode} = getRegexps();
       const numreg = new RegExp(insertnum,"gi");
       const alphareg = new RegExp(insertalpha,"gi");
-      const modereg = new RegExp(exprmode,"gi");
+      const exprreg = new RegExp(exprmode,"gi");
 
-      let matches = null;
+      let matchNum = numreg.exec(eingabe);
+      let matchAlpha = alphareg.exec(eingabe);
+      let matchExpr = exprreg.exec(eingabe);
       
-      matches = numreg.exec(eingabe) || alphareg.exec(eingabe) || modereg.exec(eingabe);
+      let groups;
       
-      if (matches === null) {
+      if (matchNum) {
+        groups = matchNum.groups;
+      } else if (matchAlpha) {
+        groups = matchAlpha.groups;
+      } else if (matchExpr) {
+        groups = matchExpr.groups;
+      } else {
         vscode.window.showErrorMessage("Format string not valid" + result);
         return null;
       }
-
-      let groups = matches.groups;
       
       const EXPRMODE = ((groups as any).start === undefined);
       const ALPHA = ((groups as any).wrap !== undefined);
       const REVERSE = (groups as any).reverse === "!";
-      const step = (groups as any).step !== undefined ? intOrFloat((groups as any).step) : 1;
+      const step = (groups as any).step !== undefined ? intOrFloat((groups as any).step) : "";
       const format = (groups as any).format !== undefined ? (groups as any).format : "";
       const expr = (! ALPHA) && (groups as any).expr !== undefined;
       const stop_expr = (groups as any).stopexpr;
@@ -140,7 +176,167 @@ function InsertNumsCommand() {
       const UPPER = ALPHA && (groups as any).start[0] === (groups as any).start[0].toUpperCase();
       const WRAP = ALPHA && (groups as any).wrap === "w";
       
-      let vd = 1;
+      const decimals = ((groups as any).step && (groups as any).step.indexOf(".") > -1) ? (((groups as any).step.length - (groups as any).step.indexOf(".") - 1) <= 20 ? (groups as any).step.length - (groups as any).step.indexOf(".") - 1 : 20) : 0;
+      
+      let values:any = [];
+      let value:any = 0;
+      let lenVal:number = 0;
+      
+      if (EXPRMODE) {
+      } else if (! ALPHA) {
+        if ((groups as any).start !== undefined) {
+          if (matchNum) {
+            value = Number((groups as any).start);
+          } else if (matchAlpha) {
+            value = alphaToNum((groups as any).start);
+          } else { // jetzt kann es nur noch ein EXPR sein
+            // TODO: fehlt noch - also erstmal so tun, als ob es numerisch wäre
+            value = 1;
+          }
+        } else {
+          value = 1;
+        }
+      } else {
+        value = alphaToNum(String((groups as any).start).toLocaleLowerCase());
+        lenVal = WRAP ? value.toString().length : 0;
+      }
+      
+      let evalValue:any = 0;
+      let replace:any;
+      
+      let i:number = 0;
+      let skip:boolean = false;
+      let evalStr:string = "";
+      
+      let startTime = Date.now();
+      let timeLimit = 1000;  // max. 1 second in the while loop
+      
+      let casttable = {
+        s: function(value:any) { return String(value); },
+        b: function(value:any) { return Boolean(value); },
+        i: function(value:any) { return (Number(value) === (Number(value)|0)) ? Number(value) : null; },
+        f: function(value:any) { return (Number(value) !== (Number(value)|0)) ? Number(value) : null; }
+      };
+
+      let WSP = new vscode.WorkspaceEdit();
+
+      while (true) {
+        if ((EXPRMODE || (stop_expr === undefined)) && (vscode.window.activeTextEditor !== undefined && vscode.window.activeTextEditor.selections.length === i)) {
+          break;
+        }
+        if (Date.now() > startTime + timeLimit) {
+          vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
+          break;
+        }
+        if (EXPRMODE) {
+          let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections.slice(-i-1).pop()) : null) as vscode.Range;
+          if (vscode.window.activeTextEditor !== undefined) {
+            value = vscode.window.activeTextEditor.document.getText(range);
+          }
+          try {
+            value = casttable[cast](value);
+          }
+          catch(e) {
+            vscode.window.showErrorMessage(`[${value}] could not be cast to ${casttable[cast]}`);
+            return null;
+          }
+        }
+        if (! skip) {
+          if (expr || (stop_expr !== undefined)) {
+            (groups as any).step = "";
+          }
+          if (ALPHA) {
+            evalValue = numToAlpha(value, lenVal);
+            if (UPPER) {
+              String(evalValue).toLocaleUpperCase();
+            }
+          } else {
+            if (expr) {
+              value = value !== null ? value : "";
+              evalStr = (groups as any).expr.replace(/_/g,value).replace(/s/gi,step).replace(/n/gi,selLen).replace(/p/gi,evalValue).replace(/c/gi,evalValue);
+              try {
+                evalValue = eval(evalStr);
+                if (parseFloat(evalValue)) {
+                  evalValue = decimals > 0 ? evalValue.toFixed(decimals) : evalValue;
+                }
+              }
+              catch(e) {
+                vscode.window.showErrorMessage(`[${(groups as any).expr}] Invalid Expression. Exception is: ` + e);
+                return null;
+              }
+            } else {
+              if (matchNum) {
+                evalValue = value;
+              } else if (matchAlpha) {
+                evalValue = numToAlpha(value, lenVal);
+              } else {
+                evalValue = value;
+              }
+            }
+          }
+          
+          if (stop_expr !== undefined) {
+            evalStr = stop_expr.replace(/_/g,value).replace(/s/gi,step).replace(/n/gi,selLen).replace(/p/gi,evalValue).replace(/c/gi,evalValue);
+            try {
+              if (eval(evalStr)) { break; }
+            }
+            catch(e) {
+              vscode.window.showErrorMessage(`[${stop_expr}] Invalid Stop Expression. Exception is: ` + e);
+              return null;
+            }
+          }
+          if (format) {
+            replace = `${evalValue}`;
+          } else {
+            replace = String(decimals > 0 ? evalValue.toFixed(decimals) : evalValue);
+          }
+        }
+        
+        values.push((! skip) ? replace : String(value));
+        
+        if (! EXPRMODE) {
+          value += step;
+          value.toFixed(decimals);
+        }
+        i += 1;
+        skip = false;
+      }
+      
+      if (EXPRMODE) {
+        if (selections !== null) {
+          if (REVERSE) {
+            selections.reverse();
+          }
+          selections.forEach(function(element, index) {
+            if (index === values.length) {
+              return;
+            }
+             if (vscode.window.activeTextEditor !== undefined) {
+              WSP.replace(vscode.window.activeTextEditor.document.uri,element,values[index]);
+            }
+          });
+          vscode.workspace.applyEdit(WSP);
+        }
+      } else {
+        let text:string = "";
+        
+        if (selections !== null) {
+          selections.forEach(function (element, index) {
+            if (index >= values.length) {
+              text = "";
+            } else if ((index === selLen) && (values.length > selLen)) {
+              let other = (! REVERSE) ? values.slice(index) : values.slice(0,-index-1);
+              text = other.join("\n");
+            } else {
+              text = REVERSE ? values.slice(-index-1).pop() : values[index];
+            }
+            if (vscode.window.activeTextEditor !== undefined) {
+              WSP.replace(vscode.window.activeTextEditor.document.uri,element,text);
+            }
+          });
+          vscode.workspace.applyEdit(WSP);
+        }
+      }
       
       // vscode.window.showInformationMessage("Eingegeben: " + eingabe);
     });

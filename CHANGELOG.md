@@ -1,9 +1,29 @@
 # Change Log
 
-All notable changes to the "insertnums" extension will be documented in this file.
+All notable changes to this extension:
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+- 0.0.1
+Initial upload
 
-## [Unreleased]
+- 0.0.2
+Currently, it's a first running version of InsertNums.
+You will find a command (CTRL-SHIFT P in windows) "Insert Numbers"
 
-- Initial release
+Current feature list (compared to the original python script - see README file):
+* Usage with numbers
+  * start and step is supported
+  * stopexpr is supported
+  * format is _not_ supported at the moment
+  * expr is still in _test mode_
+  
+* Usage with the alphabet
+  * start and step is supported
+  * wrap is supported
+  * format is _not_ supported at the moment
+  
+* Usage with Expressions
+  * cast is supported
+  * expr is supported
+  * stopexpr is supported
+  * format is _not_ supported at the moment
+  

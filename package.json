@@ -38,5 +38,8 @@
 		"typescript": "^3.3.1",
 		"tslint": "^5.12.1",
 		"vscode-test": "^1.2.0"
+	},
+	"dependencies": {
+		"sprintf-js": "^1.1.2"
 	}
 }
