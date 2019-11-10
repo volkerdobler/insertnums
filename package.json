@@ -4,6 +4,10 @@
 	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
 	"version": "0.0.2",
 	"publisher": "volkerdobler",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/volkerdobler/insertnums.git"
+	},
 	"engines": {
 		"vscode": "^1.40.0"
 	},
@@ -41,6 +45,7 @@
 		"vscode-test": "^1.2.0"
 	},
 	"dependencies": {
+		"npm": "^6.13.0",
 		"sprintf-js": "^1.1.2"
 	}
 }
