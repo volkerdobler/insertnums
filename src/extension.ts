@@ -168,7 +168,7 @@ function InsertNumsCommand() {
       const EXPRMODE = ((groups as any).start === undefined);
       const ALPHA = ((groups as any).wrap !== undefined);
       const REVERSE = (groups as any).reverse === "!";
-      const step = (groups as any).step !== undefined ? intOrFloat((groups as any).step) : "";
+      const step = (groups as any).step !== undefined ? intOrFloat((groups as any).step) : 1;
       const format = (groups as any).format !== undefined ? (groups as any).format : "";
       const expr = (! ALPHA) && (groups as any).expr !== undefined;
       const stop_expr = (groups as any).stopexpr;
@@ -297,7 +297,7 @@ function InsertNumsCommand() {
         values.push((! skip) ? replace : String(value));
         
         if (! EXPRMODE) {
-          value += step;
+          value += +step;
           value.toFixed(decimals);
         }
         i += 1;
