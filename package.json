@@ -2,7 +2,7 @@
 	"name": "insertnums",
 	"displayName": "Insert Nums",
 	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"publisher": "volkerdobler",
 	"repository": {
 		"type": "git",
