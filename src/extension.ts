@@ -176,7 +176,7 @@ function InsertNumsCommand() {
       const UPPER = ALPHA && (groups as any).start[0] === (groups as any).start[0].toUpperCase();
       const WRAP = ALPHA && (groups as any).wrap === "w";
       
-      const decimals = ((groups as any).step && (groups as any).step.indexOf(".") > -1) ? (((groups as any).step.length - (groups as any).step.indexOf(".") - 1) <= 20 ? (groups as any).step.length - (groups as any).step.indexOf(".") - 1 : 20) : 0;
+      let decimals = ((groups as any).step && (groups as any).step.indexOf(".") > -1) ? (((groups as any).step.length - (groups as any).step.indexOf(".") - 1) <= 20 ? (groups as any).step.length - (groups as any).step.indexOf(".") - 1 : 20) : 0;
       
       let values:any = [];
       let value:any = 0;
@@ -189,12 +189,10 @@ function InsertNumsCommand() {
             value = Number((groups as any).start);
           } else if (matchAlpha) {
             value = alphaToNum((groups as any).start);
-          } else { // jetzt kann es nur noch ein EXPR sein
-            // TODO: fehlt noch - also erstmal so tun, als ob es numerisch wäre
-            value = 1;
           }
-        } else {
-          value = 1;
+        }
+        if ((format && format.indexOf('.')) || (Number(step) !== (Number(step)|0))) {
+          decimals = Math.max((format.length - format.indexOf('.') - 1), (step.toString().length - step.toString().indexOf('.') - 1),0)
         }
       } else {
         value = alphaToNum(String((groups as any).start).toLocaleLowerCase());
@@ -288,7 +286,7 @@ function InsertNumsCommand() {
             }
           }
           if (format) {
-            replace = `${evalValue}`;
+            replace = sprintf(format, evalValue);
           } else {
             replace = String(decimals > 0 ? evalValue.toFixed(decimals) : evalValue);
           }
