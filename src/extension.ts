@@ -137,7 +137,7 @@ function InsertNumsCommand() {
   let selLen = selections.length;
   
   document.showInputBox({ prompt: "Enter format string (default: '1:1')", placeHolder: "1:1"})
-    .then((result) => {
+    .then((result:any) => {
       
       if (result === undefined) { return null; }
       
@@ -155,10 +155,13 @@ function InsertNumsCommand() {
       let groups;
       
       if (matchNum) {
+// @ts-ignore
         groups = matchNum.groups;
       } else if (matchAlpha) {
+// @ts-ignore
         groups = matchAlpha.groups;
       } else if (matchExpr) {
+// @ts-ignore
         groups = matchExpr.groups;
       } else {
         vscode.window.showErrorMessage("Format string not valid" + result);
