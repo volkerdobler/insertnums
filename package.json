@@ -1,9 +1,20 @@
 {
 	"name": "insertnums",
-	"displayName": "Insert Nums",
-	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
 	"version": "0.0.3",
 	"publisher": "volkerdobler",
+	"displayName": "Insert Nums",
+	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
+	"keywords": [
+		"sequences",
+		"numbers",
+		"insert",
+		"alphachars"
+	],
+	"bugs": {
+		"url": "https://github.com/volkerdobler/insertnums/issues",
+		"email": "vscode.insertnums.ext@volker-dobler.de"
+	},
+	"homepage": "https://github.com/volkerdobler/insertnums/blob/master/README.md",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/volkerdobler/insertnums.git"
@@ -45,7 +56,13 @@
 		"vscode-test": "^1.2.0"
 	},
 	"dependencies": {
+		"d3-format": "^1.4.1",
 		"npm": "^6.13.0",
 		"sprintf-js": "^1.1.2"
+	},
+	"icon": "./insertnums.png",
+	"galleryBanner": {
+		"color": "#5757ff",
+		"theme": "dark"
 	}
 }
