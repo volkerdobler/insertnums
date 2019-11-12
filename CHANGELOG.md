@@ -26,4 +26,8 @@ Current feature list (compared to the original python script - see README file):
   * expr is supported
   * stopexpr is supported
   * format is _not_ supported at the moment
-  
+
+- 0.0.3
+Fixed bug while default step was 0 - is now 1
+Additionally add first format options - integers and floats can be formated
+now.
