@@ -18,6 +18,9 @@ November 2019
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+// import * as d3 from 'd3-format';
+
+var d3 = require('d3-format');
 
 var sprintf = require('sprintf-js').sprintf;
 
@@ -87,7 +90,7 @@ function getRegexps() {
     float: "{pointfloat} | {exponentfloat}",
     numeric: "{integer} | {float}",
     signednum: "[+-]? {numeric}",
-    format: "((?<format_padding> [^}])?(?<format_align> [<>]))?(?<format_sign> [-+])?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
+    format: "((?<format_padding> [^}}])?(?<format_align> [<>=^]))?(?<format_sign> [-+ ])?\#?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
     alphastart: "[a-z]+ | [A-Z]+",
     alphaformat: "([^}}]?[<>=^])?({integer})?",
     cast: "[ifsb]",
@@ -200,6 +203,7 @@ function InsertNumsCommand() {
             value = Number((groups as any).start);
           } else if (matchAlpha) {
             value = alphaToNum((groups as any).start);
+            lenVal = (groups as any).start.length;
           }
         }
         if ((format && format.indexOf('.')) || (+step !== (+step|0))) {
@@ -234,8 +238,8 @@ function InsertNumsCommand() {
           break;
         }
         if (Date.now() > startTime + timeLimit) {
-          vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
-          break;
+          // vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
+          // break;
         }
         if (EXPRMODE) {
           let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections.slice(-i-1).pop()) : null) as vscode.Range;
@@ -317,7 +321,13 @@ function InsertNumsCommand() {
               }
             }
 
-            replace = sprintf(preFormat, evalValue.toFixed(decimals));
+            if (matchAlpha) {
+              replace = sprintf(preFormat, evalValue.toFixed(decimals)); 
+            };
+            if (matchNum) {
+              replace = d3.format(format)(evalValue);
+            }
+
           } else {
             replace = String(decimals > 0 ? evalValue.toFixed(decimals) : evalValue);
           }
