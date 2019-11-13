@@ -168,10 +168,10 @@ function InsertNumsCommand() {
         return null;
       }
       
-      const EXPRMODE = ((groups as any).start === undefined);
-      const ALPHA = ((groups as any).wrap !== undefined);
+      const EXPRMODE = ! groups.hasOwnProperty('start');
+      const ALPHA = groups.hasOwnProperty('wrap');
       const REVERSE = (groups as any).reverse === "!";
-      const step = (groups as any).step !== undefined ? intOrFloat((groups as any).step) : 1;
+      const step = groups.hasOwnProperty('step') && (groups as any).step !== undefined ? intOrFloat((groups as any).step) : 1;
       const expr = (! ALPHA) && (groups as any).expr !== undefined;
       const stop_expr = (groups as any).stopexpr;
       const cast = EXPRMODE && (groups as any).cast !== undefined ? (groups as any).cast : "s";
