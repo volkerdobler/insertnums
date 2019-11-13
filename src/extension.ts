@@ -87,7 +87,7 @@ function getRegexps() {
     float: "{pointfloat} | {exponentfloat}",
     numeric: "{integer} | {float}",
     signednum: "[+-]? {numeric}",
-    format: "((?<format_padding> [^}])?(?<format_align> [<>]))?(?<format_sign> [-+])?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
+    format: "((?<format_padding> [^}}])?(?<format_align> [<>=^]))?(?<format_sign> [-+ ])?\#?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
     alphastart: "[a-z]+ | [A-Z]+",
     alphaformat: "([^}}]?[<>=^])?({integer})?",
     cast: "[ifsb]",
@@ -168,10 +168,10 @@ function InsertNumsCommand() {
         return null;
       }
       
-      const EXPRMODE = ! groups.hasOwnProperty('start');
-      const ALPHA = groups.hasOwnProperty('wrap');
+      const EXPRMODE = groups !== undefined && (! Object.prototype.hasOwnProperty.call(groups,'start'));
+      const ALPHA = groups !== undefined && Object.prototype.hasOwnProperty.call(groups,'wrap');
       const REVERSE = (groups as any).reverse === "!";
-      const step = groups.hasOwnProperty('step') && (groups as any).step !== undefined ? intOrFloat((groups as any).step) : 1;
+      const step = groups !== undefined && Object.prototype.hasOwnProperty.call(groups,'step') && (groups as any).step !== undefined ? intOrFloat((groups as any).step) : 1;
       const expr = (! ALPHA) && (groups as any).expr !== undefined;
       const stop_expr = (groups as any).stopexpr;
       const cast = EXPRMODE && (groups as any).cast !== undefined ? (groups as any).cast : "s";
@@ -234,11 +234,11 @@ function InsertNumsCommand() {
           break;
         }
         if (Date.now() > startTime + timeLimit) {
-          vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
-          break;
+          // vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
+          // break;
         }
         if (EXPRMODE) {
-          let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections.slice(-i-1).pop()) : null) as vscode.Range;
+          let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections.pop()) : null) as vscode.Range;
           if (vscode.window.activeTextEditor !== undefined) {
             value = vscode.window.activeTextEditor.document.getText(range);
           }
@@ -359,7 +359,7 @@ function InsertNumsCommand() {
               let other = (! REVERSE) ? values.slice(index) : values.slice(0,-index-1);
               text = other.join("\n");
             } else {
-              text = REVERSE ? values.slice(-index-1).pop() : values[index];
+              text = REVERSE ? values.pop() : values[index];
             }
             if (vscode.window.activeTextEditor !== undefined) {
               WSP.replace(vscode.window.activeTextEditor.document.uri,element,text);
