@@ -81,6 +81,34 @@ function alphaToNum(alpha: string) : number {
   return res;
 }
 
+function formatString(format: object, text: string) : string {
+  // To-Do (String formatieren)
+  let str: string = text;
+  
+//@ts-ignore
+  let padding = (format.padding !== undefined) ? format.padding : " ";
+//@ts-ignore
+  let align = (format.align !== undefined) ? format.align : "<";
+//@ts-ignore
+  let lenStr = (format.integer !== undefined) ? format.integer : 0;
+  
+  while (str.length < lenStr) {
+    if (align === "<") { str += padding; }
+    if (align === ">") { str = padding + str; }
+    if (align === "^") { 
+      if (str.length % 2 === 0) {
+        str = padding + str + padding; 
+      } else {
+        str += padding;
+      }
+    }
+  }
+  
+  text = str.substr(0,lenStr);
+  
+  return text;
+}
+
 function getRegexps() {
   let ruleTemplate = {
     integer: "[1-9]\\d* | 0",
@@ -92,7 +120,7 @@ function getRegexps() {
     signednum: "[+-]? {numeric}",
     format: "((?<format_padding> [^}}])?(?<format_align> [<>=^]))?(?<format_sign> [-+ ])?\#?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
     alphastart: "[a-z]+ | [A-Z]+",
-    alphaformat: "([^}}]?[<>=^])?({integer})?",
+    alphaformat: "((?<alphaformat_padding>[^}}])?(?<alphaformat_align>[<>=^]))?((?<alphaformat_integer>{integer}))?",
     cast: "[ifsb]",
     expr: ".+?",
     stopexpr: ".+?",
@@ -190,10 +218,14 @@ function InsertNumsCommand() {
       const format_precision = (groups as any).format_precision;
       const format_type = (groups as any).format_type;
       
+      const alphaformat_padding = (groups as any).alphaformat_padding;
+      const alphaformat_align = (groups as any).alphaformat_align;
+      const alphaformat_integer = (groups as any).alphaformat_integer;
+      
       // let decimals = ((groups as any).step && (groups as any).step.indexOf(".") > -1) ? (((groups as any).step.length - (groups as any).step.indexOf(".") - 1) <= 20 ? (groups as any).step.length - (groups as any).step.indexOf(".") - 1 : 20) : 0;
       
       let values:any = [];
-      let value:any = 0;
+      let value:any = 1;
       let lenVal:number = 0;
       
       if (EXPRMODE) {
@@ -206,7 +238,7 @@ function InsertNumsCommand() {
         // }
       } else {
         value = alphaToNum(String((groups as any).start).toLocaleLowerCase());
-        lenVal = WRAP ? value.toString().length : 0;
+        lenVal = WRAP ? (groups as any).start.toString().length : 0;
       }
       
       let evalValue:any = 0;
@@ -249,6 +281,11 @@ function InsertNumsCommand() {
 // @ts-ignore
             vscode.window.showErrorMessage(`[${value}] could not be cast to ${casttable[cast]}`);
             return null;
+          }
+        } else {
+          let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections.pop()) : null) as vscode.Range;
+          if (! range.isEmpty && vscode.window.activeTextEditor !== undefined) {
+            value = vscode.window.activeTextEditor.document.getText(range);
           }
         }
         if (! skip) {
@@ -297,30 +334,36 @@ function InsertNumsCommand() {
           }
           if (format) {
             let preFormat = "%";
-            if (format_sign !== undefined) { preFormat += format_sign; }
-            if (format_padding !== undefined) { preFormat += "'" + format_padding; }
-            if (format_align !== undefined) { if (format_align === "<") { preFormat += "-"; } }
-            if (format_filled !== undefined) { preFormat += format_filled; }
-            if (format_integer !== undefined) { preFormat += format_integer; }
-            if (format_precision !== undefined) { 
-              preFormat += "." + format_precision; 
-              // decimals = format_precision; 
-            }
-            if (format_type !== undefined) { 
-              preFormat += format_type; 
-            } else { 
-              if (format_precision !== undefined) { // || decimals > 0) {
-                preFormat += "g";
-              } else {
-                preFormat += "d"; 
+            replace = "";
+            if (! ALPHA) {
+              if (format_sign !== undefined) { preFormat += format_sign; }
+              if (format_padding !== undefined) { preFormat += "'" + format_padding; }
+              if (format_align !== undefined) { if (format_align === "<") { preFormat += "-"; } }
+              if (format_filled !== undefined) { preFormat += format_filled; }
+              if (format_integer !== undefined) { preFormat += format_integer; }
+              if (format_precision !== undefined) { 
+                preFormat += "." + format_precision; 
+                // decimals = format_precision; 
               }
-            }
-
-            // if (matchAlpha) {
-              // replace = sprintf(preFormat, evalValue.toFixed(decimals)); 
-            // };
-            if (matchNum) {
+              if (format_type !== undefined) { 
+                preFormat += format_type; 
+              } else { 
+                if (format_precision !== undefined) { // || decimals > 0) {
+                  preFormat += "g";
+                } else {
+                  preFormat += "d"; 
+                }
+              }
               replace = d3.format(format)(evalValue);
+            } else {
+              let alphaFormat:object = {};
+// @ts-ignore
+              alphaFormat.padding = alphaformat_padding;
+// @ts-ignore
+              alphaFormat.align = alphaformat_align;
+// @ts-ignore
+              alphaFormat.integer = alphaformat_integer;
+              replace = formatString(alphaFormat, evalValue); 
             }
 
           } else {
@@ -364,7 +407,7 @@ function InsertNumsCommand() {
               let other = (! REVERSE) ? values.slice(index) : values.slice(0,-index-1);
               text = other.join("\n");
             } else {
-              text = REVERSE ? values[values.length-index-1] : values[index];
+              text = REVERSE ? values[values.length-index-1].toString() : values[index].toString();
             }
             if (vscode.window.activeTextEditor !== undefined) {
               WSP.replace(vscode.window.activeTextEditor.document.uri,element,text);
