@@ -171,7 +171,7 @@ function InsertNumsCommand() {
         return null;
       }
       
-      const EXPRMODE = groups !== undefined && (! Object.prototype.hasOwnProperty.call(groups,'start'));
+      const EXPRMODE = groups !== undefined && (Object.prototype.hasOwnProperty.call(groups,'cast'));
       const ALPHA = groups !== undefined && Object.prototype.hasOwnProperty.call(groups,'wrap');
       const REVERSE = (groups as any).reverse === "!";
       const step = groups !== undefined && Object.prototype.hasOwnProperty.call(groups,'step') && (groups as any).step !== undefined ? intOrFloat((groups as any).step) : 1;
