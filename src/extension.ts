@@ -96,7 +96,7 @@ function getRegexps() {
     cast: "[ifsb]",
     expr: ".+?",
     stopexpr: ".+?",
-    exprmode: "^(?<cast> {cast})?\\|(~ (?<format> {format}))? (?::<expr> {expr}) (@(?<stopexpr> {stopexpr}))?(?<reverse> !)? $",
+    exprmode: "^(?<cast> {cast})?\\|(~ (?<format> {format} ::))? (?<expr> {expr}) (@(?<stopexpr> {stopexpr}))?(?<reverse> !)? $",
     insertnum: "^(?<start> {signednum})? (:(?<step> {signednum}))? (~(?<format> {format}))?(::(?<expr> {expr}))? (@ (?<stopexpr> {stopexpr}) )? (?<reverse> !)? $",
     insertalpha: "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopexpr> {stopexpr}) )?(?<reverse> !)?$"
   };
@@ -190,7 +190,7 @@ function InsertNumsCommand() {
       const format_precision = (groups as any).format_precision;
       const format_type = (groups as any).format_type;
       
-      let decimals = ((groups as any).step && (groups as any).step.indexOf(".") > -1) ? (((groups as any).step.length - (groups as any).step.indexOf(".") - 1) <= 20 ? (groups as any).step.length - (groups as any).step.indexOf(".") - 1 : 20) : 0;
+      // let decimals = ((groups as any).step && (groups as any).step.indexOf(".") > -1) ? (((groups as any).step.length - (groups as any).step.indexOf(".") - 1) <= 20 ? (groups as any).step.length - (groups as any).step.indexOf(".") - 1 : 20) : 0;
       
       let values:any = [];
       let value:any = 0;
@@ -199,16 +199,11 @@ function InsertNumsCommand() {
       if (EXPRMODE) {
       } else if (! ALPHA) {
         if ((groups as any).start !== undefined) {
-          if (matchNum) {
-            value = Number((groups as any).start);
-          } else if (matchAlpha) {
-            value = alphaToNum((groups as any).start);
-            lenVal = (groups as any).start.length;
-          }
+          value = Number((groups as any).start);
         }
-        if ((format && format.indexOf('.')) || (+step !== (+step|0))) {
-          decimals = Math.max((format.length - format.indexOf('.') - 1), (step.toString().length - step.toString().indexOf('.') - 1),decimals);
-        }
+        // if ((format && format.indexOf('.')) || (+step !== (+step|0))) {
+          // decimals = Math.max((format.length - format.indexOf('.') - 1), (step.toString().length - step.toString().indexOf('.') - 1),decimals);
+        // }
       } else {
         value = alphaToNum(String((groups as any).start).toLocaleLowerCase());
         lenVal = WRAP ? value.toString().length : 0;
@@ -271,9 +266,9 @@ function InsertNumsCommand() {
               evalStr = (groups as any).expr.replace(/_/g,value).replace(/s/gi,step).replace(/n/gi,selLen).replace(/p/gi,evalValue).replace(/c/gi,evalValue).replace(/i/gi,i+1);
               try {
                 evalValue = eval(evalStr);
-                if (parseFloat(evalValue)) {
-                  evalValue = decimals > 0 ? evalValue.toFixed(decimals) : evalValue;
-                }
+                // if (parseFloat(evalValue)) {
+                  // evalValue = decimals > 0 ? evalValue.toFixed(decimals) : evalValue;
+                // }
               }
               catch(e) {
                 vscode.window.showErrorMessage(`[${(groups as any).expr}] Invalid Expression. Exception is: ` + e);
@@ -309,27 +304,27 @@ function InsertNumsCommand() {
             if (format_integer !== undefined) { preFormat += format_integer; }
             if (format_precision !== undefined) { 
               preFormat += "." + format_precision; 
-              decimals = format_precision; 
+              // decimals = format_precision; 
             }
             if (format_type !== undefined) { 
               preFormat += format_type; 
             } else { 
-              if (format_precision !== undefined || decimals > 0) {
+              if (format_precision !== undefined) { // || decimals > 0) {
                 preFormat += "g";
               } else {
                 preFormat += "d"; 
               }
             }
 
-            if (matchAlpha) {
-              replace = sprintf(preFormat, evalValue.toFixed(decimals)); 
-            };
+            // if (matchAlpha) {
+              // replace = sprintf(preFormat, evalValue.toFixed(decimals)); 
+            // };
             if (matchNum) {
               replace = d3.format(format)(evalValue);
             }
 
           } else {
-            replace = String(decimals > 0 ? evalValue.toFixed(decimals) : evalValue);
+            replace = evalValue; // String(decimals > 0 ? evalValue.toFixed(decimals) : evalValue);
           }
         }
         
@@ -337,7 +332,7 @@ function InsertNumsCommand() {
         
         if (! EXPRMODE) {
           value += +step;
-          value.toFixed(decimals);
+          // value.toFixed(decimals);
         }
         i += 1;
         skip = false;
@@ -369,7 +364,7 @@ function InsertNumsCommand() {
               let other = (! REVERSE) ? values.slice(index) : values.slice(0,-index-1);
               text = other.join("\n");
             } else {
-              text = REVERSE ? values.pop() : values[index];
+              text = REVERSE ? values[values.length-index-1] : values[index];
             }
             if (vscode.window.activeTextEditor !== undefined) {
               WSP.replace(vscode.window.activeTextEditor.document.uri,element,text);
