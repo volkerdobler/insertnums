@@ -104,9 +104,8 @@ function formatString(format: object, text: string) : string {
     }
   }
   
-  text = str.substr(0,lenStr);
+  return lenStr === 0 ? text : str.substr(0,lenStr);
   
-  return text;
 }
 
 function getRegexps() {
@@ -120,11 +119,11 @@ function getRegexps() {
     signednum: "[+-]? {numeric}",
     format: "((?<format_padding> [^}}])?(?<format_align> [<>=^]))?(?<format_sign> [-+ ])?\#?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
     alphastart: "[a-z]+ | [A-Z]+",
-    alphaformat: "((?<alphaformat_padding>[^}}])?(?<alphaformat_align>[<>=^]))?((?<alphaformat_integer>{integer}))?",
+    alphaformat: "((?<alphaformat_padding>[^}}])?(?<alphaformat_align>[<>^]))?((?<alphaformat_integer>{integer}))?",
     cast: "[ifsb]",
     expr: ".+?",
     stopexpr: ".+?",
-    exprmode: "^(?<cast> {cast})?\\|(~ (?<format> {format} ::))? (?<expr> {expr}) (@(?<stopexpr> {stopexpr}))?(?<reverse> !)? $",
+    exprmode: "^(?<cast> {cast})?\|(~ (?<format> {format} ::))? (?<expr> {expr}) (@(?<stopexpr> {stopexpr}))?(?<reverse> !)? $",
     insertnum: "^(?<start> {signednum})? (:(?<step> {signednum}))? (~(?<format> {format}))?(::(?<expr> {expr}))? (@ (?<stopexpr> {stopexpr}) )? (?<reverse> !)? $",
     insertalpha: "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopexpr> {stopexpr}) )?(?<reverse> !)?$"
   };
@@ -147,10 +146,6 @@ function getRegexps() {
   }
   
   return result;
-}
-
-function status(msg: any) {
-  console.log("Meldung: " + msg);
 }
 
 function InsertNumsCommand() {
@@ -251,13 +246,13 @@ function InsertNumsCommand() {
       let startTime = Date.now();
       let timeLimit = 1000;  // max. 1 second in the while loop
       
-      let casttable = {
-        s: function(value:any) { return String(value); },
-        b: function(value:any) { return Boolean(value); },
+      let castTable = {
         i: function(value:any) { return (Number(value) === (Number(value)|0)) ? Number(value) : null; },
-        f: function(value:any) { return (Number(value) !== (Number(value)|0)) ? Number(value) : null; }
+        f: function(value:any) { return (Number(value) !== (Number(value)|0)) ? Number(value) : null; },
+        s: function(value:any) { return String(value); },
+        b: function(value:any) { return Boolean(value); }
       };
-
+      
       let WSP = new vscode.WorkspaceEdit();
 
       while (true) {
@@ -269,7 +264,7 @@ function InsertNumsCommand() {
           // break;
         }
         if (EXPRMODE) {
-          let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections.pop()) : null) as vscode.Range;
+          let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections[selections.length -1 - i]) : null) as vscode.Range;
           if (vscode.window.activeTextEditor !== undefined) {
             value = vscode.window.activeTextEditor.document.getText(range);
           }
@@ -400,11 +395,11 @@ function InsertNumsCommand() {
         let text:string = "";
         
         if (selections !== null) {
-          selections.forEach(function (element, index) {
+          selections.forEach(function (element:vscode.Range, index:number) {
             if (index >= values.length) {
               text = "";
             } else if ((index === selLen) && (values.length > selLen)) {
-              let other = (! REVERSE) ? values.slice(index) : values.slice(0,-index-1);
+              let other = (! REVERSE) ? values.slice(index,values.length) : values.slice(0,-index-1);
               text = other.join("\n");
             } else {
               text = REVERSE ? values[values.length-index-1].toString() : values[index].toString();
