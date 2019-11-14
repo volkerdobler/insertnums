@@ -60,7 +60,7 @@
 		"npm": "^6.13.0",
 		"sprintf-js": "^1.1.2"
 	},
-	"icon": "./insertnums.png",
+	"icon": "insertnums.png",
 	"galleryBanner": {
 		"color": "#5757ff",
 		"theme": "dark"
