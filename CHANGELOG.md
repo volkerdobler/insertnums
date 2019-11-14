@@ -31,3 +31,8 @@ Current feature list (compared to the original python script - see README file):
 Fixed bug while default step was 0 - is now 1
 Additionally add first format options - integers and floats can be formated
 now.
+
+- 0.1.0
+Added full formatting for integers and strings.
+Added Expression evaluation.
+Added icon and additional information about project to package.json
