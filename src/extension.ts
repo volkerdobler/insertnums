@@ -251,7 +251,7 @@ function InsertNumsCommand() {
       let castTable = {
         i: function(value:any):any { return (Number(value) === (Number(value)|0)) ? Number(value) : null; },
         f: function(value:any):any { return (Number(value) !== (Number(value)|0)) ? Number(value) : null; },
-        s: function(value:any):string { let x = String(value); return x; },
+        s: function(value:any):string { return String(value); },
         b: function(value:any):boolean { return Boolean(value); }
       };
       
@@ -262,8 +262,8 @@ function InsertNumsCommand() {
           break;
         }
         if (Date.now() > startTime + timeLimit) {
-          // vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
-          // break;
+          vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
+          break;
         }
         if (EXPRMODE) {
           let range = ((selections !== null) ? ((! REVERSE) ? selections[i] : selections[selections.length -1 - i]) : null) as vscode.Range;
