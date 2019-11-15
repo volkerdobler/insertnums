@@ -35,7 +35,15 @@
 				"command": "extension.insertNums",
 				"title": "Insert Numbers"
 			}
-		]
+		],
+    "keybindings": [
+      {
+        "command": "extension.insertNums",
+        "key": "ctrl+alt+.",
+        "mac": "cmd+alt+.",
+        "when": "editorTextFocus"
+      }
+    ]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
