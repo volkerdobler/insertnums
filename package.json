@@ -1,6 +1,6 @@
 {
 	"name": "insertnums",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"publisher": "volkerdobler",
 	"displayName": "Insert Nums",
 	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
@@ -36,14 +36,14 @@
 				"title": "Insert Numbers"
 			}
 		],
-    "keybindings": [
-      {
-        "command": "extension.insertNums",
-        "key": "ctrl+alt+.",
-        "mac": "cmd+alt+.",
-        "when": "editorTextFocus"
-      }
-    ]
+		"keybindings": [
+			{
+				"command": "extension.insertNums",
+				"key": "ctrl+alt+.",
+				"mac": "cmd+alt+.",
+				"when": "editorTextFocus"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
