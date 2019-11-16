@@ -126,14 +126,21 @@ AFTER typing: `|if (i+1<=3) {_+100} else {_+200}`, results between numbers 1 to 
 
 ## Features
 
-The easiest way of using 
-To read the features, please look at the original extension 
-[here](https://github.com/jbrooksuk/InsertNums).
+To read all possible features, please look at the original extension 
+[here](https://github.com/jbrooksuk/InsertNums). For correct "expressions", the Python syntax  (e.g. "`_+1 if _<5 else _`") needs to be changed to Javascript syntax ("`if (_<5) {_+1} else {_}`").
 
 If I have the time, I will write more in the future.
 
 ## Release Notes
 
 All release notes are in the Changelog file
+
+## Special thanks!
+
+This project would not be possible without the original Python code [insertnums](https://github.com/jbrooksuk/InsertNums) from James Brooks .
+I also used the [sprintf-js](https://github.com/jbrooksuk/InsertNums) implementation from Alexandru Mărășteanu and [d3-format](https://github.com/d3/d3-format) from the d3 group.
+
+Thanks a lot!
+Volker
 
 **Enjoy!**
