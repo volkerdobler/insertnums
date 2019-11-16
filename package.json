@@ -25,6 +25,24 @@
 	"categories": [
 		"Other"
 	],
+	"license": "AFL-3.0",
+	"licenses": [
+		{ "type" : "AFLv2.1/BSD" },
+		{ "type" : "Apache-2.0" },
+		{ "type" : "Artistic-2.0" },
+		{ "type" : "BSD" },
+		{ "type" : "BSD-2-Clause" },
+		{ "type" : "BSD-3-Clause" },
+		{ "type" : "CC-BY-3.0" },
+		{ "type" : "CC-BY-4.0" },
+		{ "type" : "CC0-1.0" },
+		{ "type" : "GPL" },
+		{ "type" : "ISC" },
+		{ "type" : "LGPL" },
+		{ "type" : "MIT" },
+		{ "type" : "Public Domain" },
+		{ "type" : "WTFPL" }
+	],
 	"activationEvents": [
 		"onCommand:extension.insertNums"
 	],
@@ -87,6 +105,7 @@
 	},
 	"dependencies": {
 		"d3-format": "^1.4.1",
+		"nlf": "^2.1.1",
 		"node": "^13.1.0",
 		"npm": "^6.13.0",
 		"sprintf-js": "^1.1.2"
