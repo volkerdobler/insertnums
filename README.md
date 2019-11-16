@@ -55,7 +55,7 @@ so an input with "`1~05d`" will result in:
 00005
 ```
 
-or for alpha: `z~<6` (the : are just because to underline the folling spaces)
+or for alpha: `z~<6` (the : are just because to underline the following spaces)
 ```
 :z     :
 :aa    :
