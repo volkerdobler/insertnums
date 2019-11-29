@@ -1,6 +1,6 @@
 {
 	"name": "insertnums",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"publisher": "volkerdobler",
 	"displayName": "Insert Nums",
 	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
@@ -25,6 +25,24 @@
 	"categories": [
 		"Other"
 	],
+	"license": "AFL-3.0",
+	"licenses": [
+		{ "type" : "AFLv2.1/BSD" },
+		{ "type" : "Apache-2.0" },
+		{ "type" : "Artistic-2.0" },
+		{ "type" : "BSD" },
+		{ "type" : "BSD-2-Clause" },
+		{ "type" : "BSD-3-Clause" },
+		{ "type" : "CC-BY-3.0" },
+		{ "type" : "CC-BY-4.0" },
+		{ "type" : "CC0-1.0" },
+		{ "type" : "GPL" },
+		{ "type" : "ISC" },
+		{ "type" : "LGPL" },
+		{ "type" : "MIT" },
+		{ "type" : "Public Domain" },
+		{ "type" : "WTFPL" }
+	],
 	"activationEvents": [
 		"onCommand:extension.insertNums"
 	],
@@ -36,35 +54,59 @@
 				"title": "Insert Numbers"
 			}
 		],
-    "keybindings": [
-      {
-        "command": "extension.insertNums",
-        "key": "ctrl+alt+.",
-        "mac": "cmd+alt+.",
-        "when": "editorTextFocus"
-      }
-    ]
+		"keybindings": [
+			{
+				"command": "extension.insertNums",
+				"key": "ctrl+alt+.",
+				"mac": "cmd+alt+.",
+				"when": "editorTextFocus"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile",
-		"test": "node ./out/test/runTest.js"
+		"type-check": "tsc --noEmit",
+		"type-check:watch": "npm run type-check -- --watch",
+		"build": "npm run build:types && npm run build:js",
+		"build:types": "tsc --emitDeclarationOnly",
+		"build:js": "babel src --out-dir out --extensions \".ts,.tsx\" --source-maps inline",
+		"webpack": "webpack --mode development",
+		"webpack-dev": "webpack --mode development --watch"
 	},
 	"devDependencies": {
+		"@babel/cli": "^7.7.0",
+		"@babel/core": "^7.7.2",
+		"@babel/plugin-proposal-class-properties": "^7.7.0",
+		"@babel/plugin-proposal-numeric-separator": "^7.2.0",
+		"@babel/plugin-proposal-object-rest-spread": "^7.6.2",
+		"@babel/preset-env": "^7.7.1",
+		"@babel/preset-typescript": "^7.7.2",
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^5.2.6",
-		"@types/node": "^10.12.21",
+		"@types/node": "^12.12.8",
 		"@types/vscode": "^1.40.0",
+		"@typescript-eslint/eslint-plugin": "^2.7.0",
+		"@typescript-eslint/eslint-plugin-tslint": "^2.7.0",
+		"@typescript-eslint/parser": "^2.7.0",
+		"@typescript-eslint/typescript-estree": "^2.7.0",
+		"babel-eslint": "^10.0.3",
+		"babel-loader": "^8.0.6",
+		"eslint": "^6.6.0",
 		"glob": "^7.1.4",
 		"mocha": "^6.1.4",
-		"typescript": "^3.3.1",
 		"tslint": "^5.12.1",
-		"vscode-test": "^1.2.0"
+		"typescript": "^3.3.1",
+		"vscode-test": "^1.2.0",
+		"webpack": "^4.41.2",
+		"webpack-cli": "^3.3.10"
 	},
 	"dependencies": {
 		"d3-format": "^1.4.1",
+		"nlf": "^2.1.1",
+		"node": "^13.1.0",
 		"npm": "^6.13.0",
 		"sprintf-js": "^1.1.2"
 	},

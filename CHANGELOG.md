@@ -36,3 +36,6 @@ now.
 Added full formatting for integers and strings.
 Added Expression evaluation.
 Added icon and additional information about project to package.json
+
+- 0.1.1
+Buxfix: expressions will no longer end in an end-less loop
