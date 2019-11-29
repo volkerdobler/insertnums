@@ -389,7 +389,7 @@ function InsertNumsCommand() {
             if (index === values.length) {
               return;
             }
-             if (vscode.window.activeTextEditor !== undefined) {
+            if (vscode.window.activeTextEditor !== undefined) {
               WSP.replace(vscode.window.activeTextEditor.document.uri,element,values[index]);
             }
           });
