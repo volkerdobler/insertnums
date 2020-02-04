@@ -385,7 +385,7 @@ function InsertNumsCommand() {
           if (REVERSE) {
             selections.reverse();
           }
-          selections.forEach(function(element, index) {
+          selections.forEach(function(element:any, index:any) {
             if (index === values.length) {
               return;
             }
