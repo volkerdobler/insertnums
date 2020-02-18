@@ -18,11 +18,12 @@ November 2019
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-// import * as d3 from 'd3-format';
 
-var d3 = require('d3-format');
+// var d3 = require('d3-format');
+import * as d3 from 'd3-format';
 
-var sprintf = require('sprintf-js').sprintf;
+// var sprintf = require('sprintf-js').sprintf;
+import sprintf from 'sprintf-js';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
