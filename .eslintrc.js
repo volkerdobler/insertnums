@@ -3,8 +3,12 @@ module.exports = {
         "es6": true
     },
     "parser": "@typescript-eslint/parser",
+    "extends": [
+        'plugin:@typescript-eslint/recommended',
+        'prettier/@typescript-eslint',
+        'plugin:prettier/recommended',
+               ],
     "parserOptions": {
-        "project": "tsconfig.json",
         "sourceType": "module"
     },
     "plugins": [
@@ -25,15 +29,12 @@ module.exports = {
                 }
             }
         ],
+        "@typescript-eslint/no-use-before-define": "off",
         "@typescript-eslint/semi": [
             "warn",
             "always"
         ],
         "curly": "warn",
-        "eqeqeq": [
-            "warn",
-            "always"
-        ],
         "no-redeclare": "warn",
         "no-throw-literal": "warn",
         "no-unused-expressions": "warn"

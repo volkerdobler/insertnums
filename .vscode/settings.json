@@ -3,9 +3,12 @@
         "Alexandru",
         "Mărășteanu",
         "Nums",
+        "dobler",
         "insertnums",
         "sprintf",
-        "sublimetext"
+        "sublimecode",
+        "sublimetext",
+        "volker"
     ],
     "files.exclude": {
         "out": false
