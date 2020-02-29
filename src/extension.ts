@@ -497,16 +497,13 @@ function InsertNumsCommand(): void {
           if (REVERSE) {
             selections.reverse();
           }
-          selections.forEach(function(element, index) {
+          selections.forEach(function(element:any, index:any) {
             if (index === values.length) {
               return;
             }
             if (vscode.window.activeTextEditor !== undefined) {
-              WSP.replace(
-                vscode.window.activeTextEditor.document.uri,
-                element,
-                values[index]
-              );
+
+              WSP.replace(vscode.window.activeTextEditor.document.uri,element,values[index]);
             }
           });
           vscode.workspace.applyEdit(WSP);
