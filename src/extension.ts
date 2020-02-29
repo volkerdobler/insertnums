@@ -170,7 +170,6 @@ function InsertNumsCommand(): void {
     vscode.window.showErrorMessage(
       "Extension only available with active Texteditor"
     );
-    return null;
   }
 
   const selections =
@@ -179,7 +178,7 @@ function InsertNumsCommand(): void {
       : null;
 
   if (selections === null) {
-    return null;
+    return;
   }
 
   const selLen = selections.length;
@@ -308,11 +307,11 @@ function InsertNumsCommand(): void {
       const timeLimit = 1000; // max. 1 second in the while loop
 
       const castTable = {
-        i: function(value: any): any {
-          return Number(value) === (Number(value) | 0) ? Number(value) : null;
+        i: function(value: any): number {
+          return Number(value) === (Number(value) | 0) ? Number(value) : 0;
         },
-        f: function(value: any): any {
-          return Number(value) !== (Number(value) | 0) ? Number(value) : null;
+        f: function(value: any): number {
+          return Number(value) !== (Number(value) | 0) ? Number(value) : 0;
         },
         s: function(value: any): string {
           return String(value);
@@ -352,8 +351,8 @@ function InsertNumsCommand(): void {
             // @ts-ignore
             value = castTable[cast](original);
           } catch (e) {
-            // @ts-ignore
             vscode.window.showErrorMessage(
+            // @ts-ignore
               `[${value}] could not be cast to ${castTable[cast]}`
             );
             return null;

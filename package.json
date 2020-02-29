@@ -1,149 +1,136 @@
 {
-	"name": "insertnums",
-	"version": "0.1.1",
-	"publisher": "volkerdobler",
-	"displayName": "Insert Nums",
-	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
-	"keywords": [
-		"sequences",
-		"numbers",
-		"insert",
-		"alphachars"
-	],
-	"bugs": {
-		"url": "https://github.com/volkerdobler/insertnums/issues",
-		"email": "vscode.insertnums.ext@volker-dobler.de"
-	},
-	"homepage": "https://github.com/volkerdobler/insertnums/blob/master/README.md",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/volkerdobler/insertnums.git"
-	},
-	"engines": {
-		"vscode": "^1.40.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"license": "AFL-3.0",
-	"licenses": [
-		{
-			"type": "AFLv2.1/BSD"
-		},
-		{
-			"type": "Apache-2.0"
-		},
-		{
-			"type": "Artistic-2.0"
-		},
-		{
-			"type": "BSD"
-		},
-		{
-			"type": "BSD-2-Clause"
-		},
-		{
-			"type": "BSD-3-Clause"
-		},
-		{
-			"type": "CC-BY-3.0"
-		},
-		{
-			"type": "CC-BY-4.0"
-		},
-		{
-			"type": "CC0-1.0"
-		},
-		{
-			"type": "GPL"
-		},
-		{
-			"type": "ISC"
-		},
-		{
-			"type": "LGPL"
-		},
-		{
-			"type": "MIT"
-		},
-		{
-			"type": "Public Domain"
-		},
-		{
-			"type": "WTFPL"
-		}
-	],
-	"activationEvents": [
-		"onCommand:extension.insertNums"
-	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "extension.insertNums",
-				"title": "Insert Numbers"
-			}
-		],
-		"keybindings": [
-			{
-				"command": "extension.insertNums",
-				"key": "ctrl+alt+.",
-				"mac": "cmd+alt+.",
-				"when": "editorTextFocus"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "npm run compile",
-		"type-check": "tsc --noEmit",
-		"type-check:watch": "npm run type-check -- --watch",
-		"build": "npm run build:types && npm run build:js",
-		"build:types": "tsc --emitDeclarationOnly",
-		"build:js": "babel src --out-dir out --extensions \".ts,.tsx\" --source-maps inline",
-		"webpack": "webpack --mode development",
-		"webpack-dev": "webpack --mode development --watch",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix"
-	},
-	"devDependencies": {
-		"@babel/cli": "^7.8.4",
-		"@babel/core": "^7.8.4",
-		"@babel/plugin-proposal-class-properties": "^7.8.3",
-		"@babel/plugin-proposal-object-rest-spread": "^7.8.3",
-		"@babel/preset-env": "^7.8.4",
-		"@babel/preset-typescript": "^7.8.3",
-		"@types/vscode": "^1.42.0",
-		"@typescript-eslint/eslint-plugin": "^2.21.0",
-		"@typescript-eslint/parser": "^2.21.0",
-		"babel-eslint": "^9.0.0",
-		"babel-loader": "*",
-		"eslint": "^5.16.0",
-		"eslint-config-airbnb": "^17.1.1",
-		"eslint-config-prettier": "^4.3.0",
-		"eslint-config-wesbos": "0.0.19",
-		"eslint-plugin-html": "^5.0.5",
-		"eslint-plugin-import": "^2.20.1",
-		"eslint-plugin-jsx-a11y": "^6.2.3",
-		"eslint-plugin-prettier": "^3.1.2",
-		"eslint-plugin-react": "^7.18.3",
-		"eslint-plugin-react-hooks": "^1.7.0",
-		"prettier": "^1.19.1",
-		"typescript": "^3.8.2",
-		"webpack": "^4.41.6"
-	},
-	"dependencies": {
-		"@types/d3-format": "^1.3.1",
-		"@types/sprintf-js": "^1.1.2",
-		"d3-format": "^1.4.3",
-		"npm": "^6.13.7",
-		"sprintf-js": "*"
-	},
-	"icon": "insertnums.png",
-	"galleryBanner": {
-		"color": "#5757ff",
-		"theme": "dark"
-	}
+  "name": "insertnums",
+  "version": "0.1.1",
+  "publisher": "volkerdobler",
+  "displayName": "Insert Nums",
+  "description": "Insert Numbers or Alphacharts to VSCode textdocuments",
+  "keywords": [
+    "sequences",
+    "numbers",
+    "insert",
+    "alphachars"
+  ],
+  "bugs": {
+    "url": "https://github.com/volkerdobler/insertnums/issues",
+    "email": "vscode.insertnums.ext@volker-dobler.de"
+  },
+  "homepage": "https://github.com/volkerdobler/insertnums/blob/master/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/volkerdobler/insertnums.git"
+  },
+  "engines": {
+    "vscode": "^1.40.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "license": "AFL-3.0",
+  "licenses": [
+    {
+      "type": "AFLv2.1/BSD"
+    },
+    {
+      "type": "Apache-2.0"
+    },
+    {
+      "type": "Artistic-2.0"
+    },
+    {
+      "type": "BSD"
+    },
+    {
+      "type": "BSD-2-Clause"
+    },
+    {
+      "type": "BSD-3-Clause"
+    },
+    {
+      "type": "CC-BY-3.0"
+    },
+    {
+      "type": "CC-BY-4.0"
+    },
+    {
+      "type": "CC0-1.0"
+    },
+    {
+      "type": "GPL"
+    },
+    {
+      "type": "ISC"
+    },
+    {
+      "type": "LGPL"
+    },
+    {
+      "type": "MIT"
+    },
+    {
+      "type": "Public Domain"
+    }
+  ],
+  "activationEvents": [
+    "onCommand:extension.insertNums"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.insertNums",
+        "title": "Insert Numbers"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "extension.insertNums",
+        "key": "ctrl+alt+.",
+        "mac": "cmd+alt+.",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "npm run type-check -- --watch",
+    "build": "npm run build:types && npm run build:js",
+    "build:types": "tsc --emitDeclarationOnly",
+    "build:js": "babel src --out-dir out --extensions \".ts,.tsx\" --source-maps inline",
+    "webpack": "webpack --mode development",
+    "webpack-dev": "webpack --mode development --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.6",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-proposal-object-rest-spread": "^7.8.3",
+    "@babel/preset-env": "^7.8.6",
+    "@babel/preset-typescript": "^7.8.3",
+    "@types/vscode": "^1.42.0",
+    "@typescript-eslint/eslint-plugin": "^2.21.0",
+    "@typescript-eslint/parser": "^2.21.0",
+    "babel-loader": "*",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^4.3.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "prettier": "^1.19.1",
+    "typescript": "^3.8.3",
+    "webpack": "^4.41.6"
+  },
+  "dependencies": {
+    "@types/d3-format": "^1.3.1",
+    "d3-format": "^1.4.3",
+    "npm": "^6.13.7"
+  },
+  "icon": "insertnums.png",
+  "galleryBanner": {
+    "color": "#5757ff",
+    "theme": "dark"
+  }
 }
