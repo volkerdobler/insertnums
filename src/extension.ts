@@ -164,7 +164,7 @@ function InsertNumsCommand() {
 
   let selLen = selections.length;
   
-  document.showInputBox({ prompt: "Enter format string (default: '1:1')", placeHolder: "1:1"})
+  document.showInputBox({ prompt: "Enter format string (default: '1:1[~FORMAT][@STOPEXPR][::EXPR]')", placeHolder: "1:1"})
     .then((result:any) => {
       
       if (result === undefined) { return null; }
