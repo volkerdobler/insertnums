@@ -36,6 +36,13 @@
       "script": "build:js",
       "group": "build",
       "problemMatcher": []
+    },
+    {
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": [
+        "$eslint-compact"
+      ]
     }
   ]
 }
