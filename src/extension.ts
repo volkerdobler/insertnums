@@ -48,15 +48,17 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate(): void { return; }
+export function deactivate(): void {
+  return;
+}
 
 function intOrFloat(value: string): number {
-  let num = parseInt(value);
+  const num = parseInt(value);
   return Number.isInteger(num) ? parseInt(value) : parseFloat(value);
 }
 
-function numToAlpha(num: number, len: number = 0): string {
-  let res: string = "";
+function numToAlpha(num: number, len = 0): string {
+  let res = "";
 
   if (len > 0) {
     num = ((num - 1) % Math.pow(26, len)) + 1;
@@ -72,9 +74,9 @@ function numToAlpha(num: number, len: number = 0): string {
 }
 
 function alphaToNum(alpha: string): number {
-  let res: number = 0;
+  let res = 0;
 
-  for (let i: number = 0; i < alpha.length; i++) {
+  for (let i = 0; i < alpha.length; i++) {
     res *= 26;
     res += alpha.charCodeAt(i) - 96;
   }
@@ -112,7 +114,7 @@ function formatString(format: object, text: string): string {
   return lenStr === 0 ? text : str.substr(0, lenStr);
 }
 
-function getRegexps() {
+function getRegexps(): any {
   const ruleTemplate = {
     integer: "[1-9]\\d* | 0",
     signedint: "[+-]? {integer}",
@@ -134,13 +136,13 @@ function getRegexps() {
     insertnum:
       "^(?<start> {signednum})? (:(?<step> {signednum}))? (~(?<format> {format}))?(::(?<expr> {expr}))? (@ (?<stopexpr> {stopexpr}) )? (?<reverse> !)? $",
     insertalpha:
-      "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopexpr> {stopexpr}) )?(?<reverse> !)?$"
+      "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopexpr> {stopexpr}) )?(?<reverse> !)?$",
   };
 
   const result = {
     exprmode: "",
     insertnum: "",
-    insertalpha: ""
+    insertalpha: "",
   };
 
   for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -152,6 +154,35 @@ function getRegexps() {
       value = value.replace(replace, (ruleTemplate as any)[rule]);
     }
     (result as any)[key] = value.replace(/\s/gi, "");
+  }
+
+  return result;
+}
+
+function sortSelections(
+  sel1: vscode.Selection,
+  sel2: vscode.Selection
+): number {
+  let result = 0;
+
+  if (sel1.anchor.line < sel2.anchor.line) {
+    result = -1;
+  }
+
+  if (sel1.anchor.line > sel2.anchor.line) {
+    result = 1;
+  }
+
+  if (sel1.anchor.line === sel2.anchor.line) {
+    if (sel1.anchor.character < sel2.anchor.character) {
+      result = -1;
+    }
+    if (sel1.anchor.character > sel2.anchor.character) {
+      result = 1;
+    }
+    if (sel1.anchor.character === sel2.anchor.character) {
+      result = 0;
+    }
   }
 
   return result;
@@ -181,12 +212,14 @@ function InsertNumsCommand(): void {
     return;
   }
 
+  selections.sort(sortSelections);
+
   const selLen = selections.length;
 
   document
     .showInputBox({
       prompt: "Enter format string (default: '1:1')",
-      placeHolder: "1:1"
+      placeHolder: "1:1",
     })
     .then((result: any) => {
       if (result === undefined) {
@@ -234,7 +267,7 @@ function InsertNumsCommand(): void {
           ? intOrFloat((groups as any).step)
           : 1;
       const expr = !ALPHA && (groups as any).expr !== undefined;
-      const stop_expr = (groups as any).stopexpr;
+      const stopExpr = (groups as any).stopexpr;
       const cast =
         EXPRMODE && (groups as any).cast !== undefined
           ? (groups as any).cast
@@ -307,25 +340,25 @@ function InsertNumsCommand(): void {
       const timeLimit = 1000; // max. 1 second in the while loop
 
       const castTable = {
-        i: function(value: any): number {
+        i: function (value: any): number {
           return Number(value) === (Number(value) | 0) ? Number(value) : 0;
         },
-        f: function(value: any): number {
+        f: function (value: any): number {
           return Number(value) !== (Number(value) | 0) ? Number(value) : 0;
         },
-        s: function(value: any): string {
+        s: function (value: any): string {
           return String(value);
         },
-        b: function(value: any): boolean {
+        b: function (value: any): boolean {
           return Boolean(value);
-        }
+        },
       };
 
       const WSP = new vscode.WorkspaceEdit();
 
       while (true) {
         if (
-          (EXPRMODE || stop_expr === undefined) &&
+          (EXPRMODE || stopExpr === undefined) &&
           vscode.window.activeTextEditor !== undefined &&
           vscode.window.activeTextEditor.selections.length === i
         ) {
@@ -352,7 +385,7 @@ function InsertNumsCommand(): void {
             value = castTable[cast](original);
           } catch (e) {
             vscode.window.showErrorMessage(
-            // @ts-ignore
+              // @ts-ignore
               `[${value}] could not be cast to ${castTable[cast]}`
             );
             return null;
@@ -375,7 +408,7 @@ function InsertNumsCommand(): void {
           }
         }
         if (!skip) {
-          if (expr || stop_expr !== undefined) {
+          if (expr || stopExpr !== undefined) {
             if (EXPRMODE) {
               (groups as any).step = "";
             }
@@ -410,8 +443,8 @@ function InsertNumsCommand(): void {
             }
           }
 
-          if (stop_expr !== undefined) {
-            evalStr = stop_expr
+          if (stopExpr !== undefined) {
+            evalStr = stopExpr
               .replace(/\b_\b/g, value)
               .replace(/\bs\b/gi, step)
               .replace(/\bn\b/gi, selLen)
@@ -424,7 +457,7 @@ function InsertNumsCommand(): void {
               }
             } catch (e) {
               vscode.window.showErrorMessage(
-                `[${stop_expr}] Invalid Stop Expression. Exception is: ` + e
+                `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e
               );
               return null;
             }
@@ -496,13 +529,16 @@ function InsertNumsCommand(): void {
           if (REVERSE) {
             selections.reverse();
           }
-          selections.forEach(function(element:any, index:any) {
+          selections.forEach(function (element: any, index: any) {
             if (index === values.length) {
               return;
             }
             if (vscode.window.activeTextEditor !== undefined) {
-
-              WSP.replace(vscode.window.activeTextEditor.document.uri,element,values[index]);
+              WSP.replace(
+                vscode.window.activeTextEditor.document.uri,
+                element,
+                values[index]
+              );
             }
           });
           vscode.workspace.applyEdit(WSP);
@@ -511,7 +547,7 @@ function InsertNumsCommand(): void {
         let text = "";
 
         if (selections !== null) {
-          selections.forEach(function(element: vscode.Range, index: number) {
+          selections.forEach(function (element: vscode.Range, index: number) {
             if (index >= values.length) {
               text = "";
             } else if (index + 1 === selLen && values.length > selLen) {

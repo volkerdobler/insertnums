@@ -5,7 +5,6 @@ module.exports = {
     "root": true,
     "parser": "@typescript-eslint/parser",
     "extends": [
-        'eslint.recommended',
         'plugin:@typescript-eslint/eslint-recommended',
         'plugin:@typescript-eslint/recommended',
         'prettier/@typescript-eslint',
@@ -40,6 +39,10 @@ module.exports = {
         "curly": "warn",
         "no-redeclare": "warn",
         "no-throw-literal": "warn",
-        "no-unused-expressions": "warn"
+        "no-unused-expressions": "warn",
+        "@typescript-eslint/ban-ts-ignore": "off",
+        "@typescript-eslint/camelcase": "off",
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unused-vars": "off"
     }
 };
