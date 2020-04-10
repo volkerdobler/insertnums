@@ -114,6 +114,18 @@ function formatString(format: object, text: string): string {
   return lenStr === 0 ? text : str.substr(0, lenStr);
 }
 
+if (!Object.entries) {
+  Object.entries = function( obj: any ){
+    var ownProps = Object.keys( obj ),
+        i = ownProps.length,
+        resArray = new Array(i); // preallocate the Array
+    while (i--)
+      resArray[i] = [ownProps[i], obj[ownProps[i]]];
+    
+    return resArray;
+  };
+}
+
 function getRegexps(): any {
   const ruleTemplate = {
     integer: "[1-9]\\d* | 0",
@@ -259,46 +271,45 @@ function InsertNumsCommand(): void {
       const ALPHA =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, "wrap");
-      const REVERSE = (groups as any).reverse === "!";
+      const REVERSE = groups !== undefined && groups.reverse === "!";
       const step =
         groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, "step") &&
-        (groups as any).step !== undefined
-          ? intOrFloat((groups as any).step)
+        Object.prototype.hasOwnProperty.call(groups, "step")
+          ? intOrFloat(groups.step)
           : 1;
-      const expr = !ALPHA && (groups as any).expr !== undefined;
-      const stopExpr = (groups as any).stopexpr;
+      const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
+      const stopExpr = groups !== undefined && groups.stopexpr;
       const cast =
-        EXPRMODE && (groups as any).cast !== undefined
-          ? (groups as any).cast
+        EXPRMODE && groups !== undefined && groups.cast !== undefined
+          ? groups.cast
           : "s";
       const UPPER =
         ALPHA &&
-        (groups as any).start[0] === (groups as any).start[0].toUpperCase();
-      const WRAP = ALPHA && (groups as any).wrap === "w";
+        groups !== undefined && groups.start[0] === groups.start[0].toUpperCase();
+      const WRAP = ALPHA && groups !== undefined && groups.wrap === "w";
       const format =
-        (groups as any).format !== undefined ? (groups as any).format : "";
+        groups !== undefined && groups.format !== undefined ? groups.format : "";
 
-      const format_padding = (groups as any).format_padding;
-      const format_align = (groups as any).format_align;
-      const format_sign = (groups as any).format_sign;
-      const format_filled = (groups as any).format_filled;
-      const format_integer = (groups as any).format_integer;
-      const format_precision = (groups as any).format_precision;
-      const format_type = (groups as any).format_type;
+      const format_padding = groups !== undefined && groups.format_padding;
+      const format_align = groups !== undefined && groups.format_align;
+      const format_sign = groups !== undefined && groups.format_sign;
+      const format_filled = groups !== undefined && groups.format_filled;
+      const format_integer = groups !== undefined && groups.format_integer;
+      const format_precision = groups !== undefined && groups.format_precision;
+      const format_type = groups !== undefined && groups.format_type;
 
-      const alphaformat_padding = (groups as any).alphaformat_padding;
-      const alphaformat_align = (groups as any).alphaformat_align;
-      const alphaformat_integer = (groups as any).alphaformat_integer;
+      const alphaformat_padding = groups !== undefined && groups.alphaformat_padding;
+      const alphaformat_align = groups !== undefined && groups.alphaformat_align;
+      const alphaformat_integer = groups !== undefined && groups.alphaformat_integer;
 
       let decimals =
-        (groups as any).step && (groups as any).step.indexOf(".") > -1
-          ? (groups as any).step.length -
-              (groups as any).step.indexOf(".") -
+        groups !== undefined && groups.step && groups.step.indexOf(".") > -1
+          ? groups.step.length -
+              groups.step.indexOf(".") -
               1 <=
             maxDecimals
-            ? (groups as any).step.length -
-              (groups as any).step.indexOf(".") -
+            ? groups.step.length -
+              groups.step.indexOf(".") -
               1
             : maxDecimals
           : 0;
@@ -317,15 +328,15 @@ function InsertNumsCommand(): void {
       if (EXPRMODE) {
       } else if (!ALPHA) {
         value =
-          (groups as any).start !== undefined
-            ? Number((groups as any).start)
+          groups !== undefined && groups.start !== undefined
+            ? Number(groups.start)
             : 1;
       } else {
         value =
-          (groups as any).start !== undefined
-            ? alphaToNum(String((groups as any).start).toLocaleLowerCase())
+          groups !== undefined && groups.start !== undefined
+            ? alphaToNum(String(groups.start).toLocaleLowerCase())
             : 1;
-        lenVal = WRAP ? (groups as any).start.toString().length : 0;
+        lenVal = groups !== undefined && WRAP ? groups.start.toString().length : 0;
       }
 
       let evalValue: any = 0;
@@ -371,14 +382,14 @@ function InsertNumsCommand(): void {
           break;
         }
         if (EXPRMODE) {
-          const range = (selections !== null
+          const rangeSel = (selections !== null
             ? !REVERSE
               ? selections[i]
               : selections[selections.length - 1 - i]
-            : null) as vscode.Range;
+            : undefined);
           let original = "";
           if (vscode.window.activeTextEditor !== undefined) {
-            original = vscode.window.activeTextEditor.document.getText(range);
+            original = vscode.window.activeTextEditor.document.getText(rangeSel);
           }
           try {
             // @ts-ignore
@@ -391,26 +402,26 @@ function InsertNumsCommand(): void {
             return null;
           }
         } else {
-          const range = (selections !== null && i < selections.length
+          const rangeSel = (selections !== null && i < selections.length
             ? !REVERSE
               ? selections[i]
               : selections[selections.length - 1 - i]
-            : null) as vscode.Range;
+            : null);
           if (
-            range !== null &&
-            !range.isEmpty &&
+            rangeSel !== null &&
+            !rangeSel.isEmpty &&
             vscode.window.activeTextEditor !== undefined
           ) {
             const original = vscode.window.activeTextEditor.document.getText(
-              range
+              rangeSel
             );
             value = Number.isNaN(+original) ? value : +original;
           }
         }
         if (!skip) {
           if (expr || stopExpr !== undefined) {
-            if (EXPRMODE) {
-              (groups as any).step = "";
+            if (groups !== undefined && EXPRMODE) {
+              groups.step = "";
             }
           }
           if (ALPHA) {
@@ -419,21 +430,21 @@ function InsertNumsCommand(): void {
               String(evalValue).toLocaleUpperCase();
             }
           } else {
-            if (expr) {
+            if (groups !== undefined && expr) {
               value = value !== null ? value : 0;
-              evalStr = (groups as any).expr
+              evalStr = groups.expr
                 .replace(/\b_\b/g, value)
-                .replace(/\bs\b/gi, step)
-                .replace(/\bn\b/gi, selLen)
-                .replace(/\bp\b/gi, prevValue)
+                .replace(/\bs\b/gi, step.toString())
+                .replace(/\bn\b/gi, selLen.toString())
+                .replace(/\bp\b/gi, prevValue.toString())
                 .replace(/\bc\b/gi, evalValue)
-                .replace(/\bi\b/gi, i);
+                .replace(/\bi\b/gi, i.toString());
               try {
                 evalValue = eval(evalStr);
               } catch (e) {
                 vscode.window.showErrorMessage(
                   `[${
-                    (groups as any).expr
+                    groups.expr
                   }] Invalid Expression. Exception is: ` + e
                 );
                 return null;
@@ -443,14 +454,14 @@ function InsertNumsCommand(): void {
             }
           }
 
-          if (stopExpr !== undefined) {
+          if (stopExpr !== undefined && stopExpr) {
             evalStr = stopExpr
               .replace(/\b_\b/g, value)
-              .replace(/\bs\b/gi, step)
-              .replace(/\bn\b/gi, selLen)
-              .replace(/\bp\b/gi, prevValue)
+              .replace(/\bs\b/gi, step.toString())
+              .replace(/\bn\b/gi, selLen.toString())
+              .replace(/\bp\b/gi, prevValue.toString())
               .replace(/\bc\b/gi, evalValue)
-              .replace(/\bi\b/gi, i);
+              .replace(/\bi\b/gi, i.toString());
             try {
               if (eval(evalStr)) {
                 break;
@@ -475,7 +486,7 @@ function InsertNumsCommand(): void {
  */
               if (format_precision !== undefined) {
                 preFormat += "." + format_precision;
-                decimals = format_precision;
+                decimals = format_precision ? parseInt(format_precision) : 0;
               }
               /* 
               if (format_type !== undefined) { 
