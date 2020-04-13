@@ -12,10 +12,10 @@ python extension to javascript to use it within VSCode.
 
 ## Usage
 
-The extension implements the command "insertNums" and has a default keybinding of CTRL-ALT-.
-(or CMD-ALT-. on Mac). The keybinding can be changed anytime.
+The extension implements the command "insertNums" and has a default keybinding of `CTRL ALT .`
+(or `CMD ALT .` on Mac). Don't forget the DOT at the end.
 
-The easiest usage is to insert a sequence of numbers at given selections:
+The easiest usage is to insert a sequence of integers, starting with "1" when selecting multiple cursors:
 
 Select multi-cursors
 ```
@@ -26,13 +26,63 @@ Select multi-cursors
 |
 ```
 
-`CTRL-ALT-DOT` and `RETURN`
+Press `CTRL ALT DOT` and `RETURN`
 ```
 1
 2
 3
 4
 5
+```
+
+But the standard behaviour can be changed anytime, as a pop-up window shows up after pressing `CTRL ALT DOT`.
+
+If you want to start with the integer 10 instead of 1 at the same cursors, you can do:
+`CTRL ALT DOT` and type 10 in the pop-up and press `RETURN` and the result will be:
+```
+10
+11
+12
+13
+14
+```
+
+If you add a second number in the pop-up windows after a colon (:), you define the steps between the integers.
+To include only every 5th integer, starting from 5, you can do:
+`CTRL ALT DOT 5:5 RETURN` and the result will be:
+```
+5
+10
+15
+20
+25
+```
+
+And you can format the values before including them with **~{FORMAT}**,
+so an input "`1~05d`" will result in (starting with 1, default step is 1 and format is 5 digits with leading zeros - without the leading zero, blanks will be included):
+```
+00001
+00002
+00003
+00004
+00005
+```
+
+If this does not fit your needs, there is an even more complex feature called "expressions" you can use to define each integer.
+To define an expression, you can use the following (internal) "variables":
+`s`: The value of step (specified in the format query and defaults to 1)
+`n`: The number of selections
+`i`: Just an integer holding the counter for the iteration; starts at 0 and is increased by 1 in every loop
+`_`: The current value before the expression (start + i * step)
+`p`: The result of the previously evaluated value (without formatting); 0 for the first value
+
+To insert numbers depending of the previous selection (double the last integer), you can type `CTRL ALT DOT 1::p>0?2*p:1` (anything after :: is treated as a javascript expression)
+```
+1
+2
+4
+8
+16
 ```
 
 It can also include alpha chars, so same selection as above but
@@ -45,17 +95,7 @@ d
 e
 ```
 
-The values, which are inserted, can be formated with **~{FORMAT}**,
-so an input with "`1~05d`" will result in:
-```
-00001
-00002
-00003
-00004
-00005
-```
-
-or for alpha: `z~<6` (the : are just because to underline the following spaces)
+or for alpha: `z~<6` (the : just underline the following spaces and are not visible)
 ```
 :z     :
 :aa    :
@@ -64,7 +104,7 @@ or for alpha: `z~<6` (the : are just because to underline the following spaces)
 :ad    :
 ```
 
-Beside formatting, it is also possible to have a stop criteria.
+Beside formatting, it is also possible to have a stop criteria with **@{STOPCRITERIA}**.
 With the stop criteria, you can stop before filling all selections or (which might be more helpful) to extend the extension. 
 
 Example: we only have one selection:
