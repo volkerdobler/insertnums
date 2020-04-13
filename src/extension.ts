@@ -127,6 +127,11 @@ if (!Object.entries) {
 }
 
 function getRegexps(): any {
+  
+  function hasKey<O>(obj: O, key: keyof any): key is keyof O {
+    return key in obj
+  }
+
   const ruleTemplate = {
     integer: "[1-9]\\d* | 0",
     signedint: "[+-]? {integer}",
@@ -134,7 +139,7 @@ function getRegexps(): any {
     exponentfloat: "(?:{integer} | {pointfloat}) [eE] [+-]? \\d+",
     float: "{pointfloat} | {exponentfloat}",
     numeric: "{integer} | {float}",
-    signednum: "[+-]? {numeric}",
+    signedNum: "[+-]? {numeric}",
     format:
       "((?<format_padding> [^}}])?(?<format_align> [<>=^]))?(?<format_sign> [-+ ])?#?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
     alphastart: "[a-z]+ | [A-Z]+",
@@ -142,19 +147,19 @@ function getRegexps(): any {
       "((?<alphaformat_padding>[^}}])?(?<alphaformat_align>[<>^]))?((?<alphaformat_integer>{integer}))?",
     cast: "[ifsb]",
     expr: ".+?",
-    stopexpr: ".+?",
-    exprmode:
-      "^(?<cast> {cast})?\\|(~ (?<format> {format}) ::)? (?<expr> {expr}) (@(?<stopexpr> {stopexpr}))?(?<reverse> !)?$",
-    insertnum:
-      "^(?<start> {signednum})? (:(?<step> {signednum}))? (~(?<format> {format}))?(::(?<expr> {expr}))? (@ (?<stopexpr> {stopexpr}) )? (?<reverse> !)? $",
-    insertalpha:
-      "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopexpr> {stopexpr}) )?(?<reverse> !)?$",
+    stopExpr: ".+?",
+    exprMode:
+      "^(?<cast> {cast})?\\|(~ (?<format> {format}) ::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))?(?<reverse> !)?$",
+    insertNum:
+      "^(?<start> {signedNum})? (:(?<step> {signedNum}))? (~(?<format> {format}))?(::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}) )? (?<reverse> !)? $",
+    insertAlpha:
+      "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$",
   };
 
   const result = {
-    exprmode: "",
-    insertnum: "",
-    insertalpha: "",
+    exprMode: "",
+    insertNum: "",
+    insertAlpha: "",
   };
 
   for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -163,37 +168,12 @@ function getRegexps(): any {
       const ende: number = value.indexOf("}", start + 1) + 1;
       const replace: string = value.slice(start, ende);
       const rule: string = replace.slice(1, replace.length - 1);
-      value = value.replace(replace, (ruleTemplate as any)[rule]);
+      if (hasKey(ruleTemplate, rule)) {
+        value = value.replace(replace, ruleTemplate[rule]); // works fine!
+      }
     }
-    (result as any)[key] = value.replace(/\s/gi, "");
-  }
-
-  return result;
-}
-
-function sortSelections(
-  sel1: vscode.Selection,
-  sel2: vscode.Selection
-): number {
-  let result = 0;
-
-  if (sel1.anchor.line < sel2.anchor.line) {
-    result = -1;
-  }
-
-  if (sel1.anchor.line > sel2.anchor.line) {
-    result = 1;
-  }
-
-  if (sel1.anchor.line === sel2.anchor.line) {
-    if (sel1.anchor.character < sel2.anchor.character) {
-      result = -1;
-    }
-    if (sel1.anchor.character > sel2.anchor.character) {
-      result = 1;
-    }
-    if (sel1.anchor.character === sel2.anchor.character) {
-      result = 0;
+    if (hasKey(result,key)) {
+      result[key] = value.replace(/\s/gi, "");
     }
   }
 
@@ -224,8 +204,6 @@ function InsertNumsCommand(): void {
     return;
   }
 
-  selections.sort(sortSelections);
-
   const selLen = selections.length;
 
   document
@@ -240,14 +218,14 @@ function InsertNumsCommand(): void {
 
       const eingabe = result.length > 0 ? result : "1:1";
 
-      const { insertnum, insertalpha, exprmode } = getRegexps();
-      const numreg = new RegExp(insertnum, "gi");
-      const alphareg = new RegExp(insertalpha, "gi");
-      const exprreg = new RegExp(exprmode, "gi");
+      const { insertNum, insertAlpha, exprMode } = getRegexps();
+      const numReg = new RegExp(insertNum, "gi");
+      const alphaReg = new RegExp(insertAlpha, "gi");
+      const exprReg = new RegExp(exprMode, "gi");
 
-      const matchNum = numreg.exec(eingabe);
-      const matchAlpha = alphareg.exec(eingabe);
-      const matchExpr = exprreg.exec(eingabe);
+      const matchNum = numReg.exec(eingabe);
+      const matchAlpha = alphaReg.exec(eingabe);
+      const matchExpr = exprReg.exec(eingabe);
 
       let groups;
 
@@ -274,11 +252,12 @@ function InsertNumsCommand(): void {
       const REVERSE = groups !== undefined && groups.reverse === "!";
       const step =
         groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, "step")
+        Object.prototype.hasOwnProperty.call(groups, "step") &&
+        groups.step != undefined
           ? intOrFloat(groups.step)
           : 1;
       const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
-      const stopExpr = groups !== undefined && groups.stopexpr;
+      const stopExpr = groups !== undefined && groups.stopExpr;
       const cast =
         EXPRMODE && groups !== undefined && groups.cast !== undefined
           ? groups.cast
