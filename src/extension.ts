@@ -151,7 +151,7 @@ function getRegexps(): any {
     exprMode:
       "^(?<cast> {cast})?\\|(~ (?<format> {format}) ::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))?(?<reverse> !)?$",
     insertNum:
-      "^(?<start> {signedNum})? (:(?<step> {signedNum}))? (~(?<format> {format}))?(::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}) )? (?<reverse> !)? $",
+      "^(?<start> {signedNum})? (:(?<step> {signedNum}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$",
     insertAlpha:
       "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$",
   };
