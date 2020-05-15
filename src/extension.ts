@@ -10,18 +10,14 @@ If you want to contact me, send an E-Mail to
 insertnums.extension@volker-dobler.de
 
 Volker Dobler
-November 2019
+May 2020
  */
 
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
 
-// var d3 = require('d3-format');
 import * as d3 from "d3-format";
-
-// var sprintf = require('sprintf-js').sprintf;
-// import sprintf from 'sprintf-js';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -52,135 +48,139 @@ export function deactivate(): void {
   return;
 }
 
-function intOrFloat(value: string): number {
-  const num = parseInt(value);
-  return Number.isInteger(num) ? parseInt(value) : parseFloat(value);
-}
+function InsertNumsCommand(): void {
 
-function numToAlpha(num: number, len = 0): string {
-  let res = "";
-
-  if (len > 0) {
-    num = ((num - 1) % Math.pow(26, len)) + 1;
+  interface IntAlphaFormat {
+    padding: string | false,
+    align: string | false,
+    integer: number | false
+  };
+  
+  function intOrFloat(value: string): number {
+    const num = parseInt(value);
+    return Number.isInteger(num) ? parseInt(value) : parseFloat(value);
   }
-
-  while (num > 0) {
-    --num;
-    res = String.fromCharCode(97 + (num % 26)) + res;
-    num = Math.floor(num / 26);
-  }
-
-  return res;
-}
-
-function alphaToNum(alpha: string): number {
-  let res = 0;
-
-  for (let i = 0; i < alpha.length; i++) {
-    res *= 26;
-    res += alpha.charCodeAt(i) - 96;
-  }
-
-  return res;
-}
-
-function formatString(format: object, text: string): string {
-  // To-Do (String formatieren)
-  let str: string = text;
-
-  //@ts-ignore
-  const padding = format.padding !== undefined ? format.padding : " ";
-  //@ts-ignore
-  const align = format.align !== undefined ? format.align : "<";
-  //@ts-ignore
-  const lenStr = format.integer !== undefined ? format.integer : 0;
-
-  while (str.length < lenStr) {
-    if (align === "<") {
-      str += padding;
+  
+  function numToAlpha(num: number, len = 0): string {
+    let res = "";
+  
+    if (len > 0) {
+      num = ((num - 1) % Math.pow(26, len)) + 1;
     }
-    if (align === ">") {
-      str = padding + str;
+  
+    while (num > 0) {
+      --num;
+      res = String.fromCharCode(97 + (num % 26)) + res;
+      num = Math.floor(num / 26);
     }
-    if (align === "^") {
-      if (str.length % 2 === 0) {
-        str = padding + str + padding;
-      } else {
+  
+    return res;
+  }
+  
+  function alphaToNum(alpha: string): number {
+    let res = 0;
+  
+    for (let i = 0; i < alpha.length; i++) {
+      res *= 26;
+      res += alpha.charCodeAt(i) - 96;
+    }
+  
+    return res;
+  }
+  
+  function formatString(format: IntAlphaFormat, text: string): string {
+    // To-Do (String formatieren)
+    let str: string = text;
+  
+    const padding = format.padding !== undefined && format.padding ? format.padding : " ";
+    const align = format.align !== undefined && format.align ? format.align : "<";
+    const lenStr = format.integer !== undefined && format.integer ? format.integer : 0;
+  
+    while (str.length < lenStr) {
+      if (align === "<") {
         str += padding;
       }
-    }
-  }
-
-  return lenStr === 0 ? text : str.substr(0, lenStr);
-}
-
-if (!Object.entries) {
-  Object.entries = function(obj: any): any {
-    const ownProps = Object.keys(obj);
-    let i = ownProps.length;
-    const resArray = new Array(i); // preallocate the Array
-    while (i--){
-      resArray[i] = [ownProps[i], obj[ownProps[i]]];
-    };
-    return resArray;
-  };
-}
-
-function getRegexps(): any {
-  
-  function hasKey<O>(obj: O, key: keyof any): key is keyof O {
-    return key in obj
-  }
-
-  const ruleTemplate = {
-    integer: "[1-9]\\d* | 0",
-    signedint: "[+-]? {integer}",
-    pointfloat: "({integer})? \\. \\d+ | {integer} \\.",
-    exponentfloat: "(?:{integer} | {pointfloat}) [eE] [+-]? \\d+",
-    float: "{pointfloat} | {exponentfloat}",
-    numeric: "{integer} | {float}",
-    signedNum: "[+-]? {numeric}",
-    format:
-      "((?<format_padding> [^}}])?(?<format_align> [<>=^]))?(?<format_sign> [-+ ])?#?(?<format_filled> 0)?(?<format_integer> {integer})?(\\.(?<format_precision> \\d+))?(?<format_type> [bcdeEfFgGnoxX%])?",
-    alphastart: "[a-z]+ | [A-Z]+",
-    alphaformat:
-      "((?<alphaformat_padding>[^}}])?(?<alphaformat_align>[<>^]))?((?<alphaformat_integer>{integer}))?",
-    cast: "[ifsb]",
-    expr: ".+?",
-    stopExpr: ".+?",
-    exprMode:
-      "^(?<cast> {cast})?\\|(~ (?<format> {format}) ::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))?(?<reverse> !)?$",
-    insertNum:
-      "^(?<start> {signedNum})? (:(?<step> {signedNum}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$",
-    insertAlpha:
-      "^(?<start> {alphastart})(: (?<step> {signedint}) )? (~ (?<format> {alphaformat})(?<wrap> w)?)?(@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$",
-  };
-
-  const result = {
-    exprMode: "",
-    insertNum: "",
-    insertAlpha: "",
-  };
-
-  for (let [key, value] of Object.entries(ruleTemplate)) {
-    while (value.indexOf("{") > -1) {
-      const start: number = value.indexOf("{");
-      const ende: number = value.indexOf("}", start + 1) + 1;
-      const replace: string = value.slice(start, ende);
-      const rule: string = replace.slice(1, replace.length - 1);
-      if (hasKey(ruleTemplate, rule)) {
-        value = value.replace(replace, ruleTemplate[rule]); // works fine!
+      if (align === ">") {
+        str = padding + str;
+      }
+      if (align === "^") {
+        if (str.length % 2 === 0) {
+          str = padding + str + padding;
+        } else {
+          str += padding;
+        }
       }
     }
-    if (hasKey(result,key)) {
-      result[key] = value.replace(/\s/gi, "");
+  
+    return lenStr === 0 ? text : str.substr(0, lenStr);
+  }
+  
+  if (!Object.entries) {
+    Object.entries = function(obj: any): any {
+      const ownProps = Object.keys(obj);
+      let i = ownProps.length;
+      const resArray = new Array(i); // preallocate the Array
+      while (i--){
+        resArray[i] = [ownProps[i], obj[ownProps[i]]];
+      };
+      return resArray;
+    };
+  }
+  
+  function getRegexps(): any {
+    
+    function hasKey<O>(obj: O, key: keyof any): key is keyof O {
+      return key in obj
     }
+  
+    const ruleTemplate = {
+      integer: "[1-9]\\d* | 0",
+      signedint: "[+-]? {integer}",
+      pointfloat: "({integer})? \\. \\d+ | {integer} \\.",
+      exponentfloat: "(?:{integer} | {pointfloat}) [eE] [+-]? \\d+",
+      float: "{pointfloat} | {exponentfloat}",
+      numeric: "{integer} | {float}",
+      signedNum: "[+-]? {numeric}",
+      format:
+        "((?<format_padding> [^}}])? (?<format_align> [<>=^]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {integer})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?",
+      alphastart: "[a-z]+ | [A-Z]+",
+      alphaformat:
+        "((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^]))? ((?<alphaformat_integer>{integer}))?",
+      cast: "[ifsb]",
+      expr: ".+?",
+      stopExpr: ".+?",
+      exprMode:
+        "^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<reverse> !)?$",
+      insertNum:
+        "^(?<start> {signedNum})? (:(?<step> {signedNum}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$",
+      insertAlpha:
+        "^(?<start> {alphastart})(:(?<step> {signedint}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$",
+    };
+  
+    const result = {
+      exprMode: "",
+      insertNum: "",
+      insertAlpha: "",
+    };
+  
+    for (let [key, value] of Object.entries(ruleTemplate)) {
+      while (value.indexOf("{") > -1) {
+        const start: number = value.indexOf("{");
+        const ende: number = value.indexOf("}", start + 1) + 1;
+        const replace: string = value.slice(start, ende);
+        const rule: string = replace.slice(1, replace.length - 1);
+        if (hasKey(ruleTemplate, rule)) {
+          value = value.replace(replace, ruleTemplate[rule]); // works fine!
+        }
+      }
+      if (hasKey(result,key)) {
+        result[key] = value.replace(/\s/gi, "");
+      }
+    }
+  
+    return result;
   }
 
-  return result;
-}
-
-function InsertNumsCommand(): void {
   const document = vscode.window;
 
   const maxDecimals = 20;
@@ -256,6 +256,12 @@ function InsertNumsCommand(): void {
         groups.step != undefined
           ? intOrFloat(groups.step)
           : 1;
+      const repeat =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, "repeat") &&
+        groups.repeat != undefined && Number.isInteger(parseInt(groups.repeat))
+          ? parseInt(groups.repeat)
+          : 0;
       const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
       const stopExpr = groups !== undefined && groups.stopExpr;
       const cast =
@@ -268,14 +274,6 @@ function InsertNumsCommand(): void {
       const WRAP = ALPHA && groups !== undefined && groups.wrap === "w";
       const format =
         groups !== undefined && groups.format !== undefined ? groups.format : "";
-
-      const format_padding = groups !== undefined && groups.format_padding;
-      const format_align = groups !== undefined && groups.format_align;
-      const format_sign = groups !== undefined && groups.format_sign;
-      const format_filled = groups !== undefined && groups.format_filled;
-      const format_integer = groups !== undefined && groups.format_integer;
-      const format_precision = groups !== undefined && groups.format_precision;
-      const format_type = groups !== undefined && groups.format_type;
 
       const alphaformat_padding = groups !== undefined && groups.alphaformat_padding;
       const alphaformat_align = groups !== undefined && groups.alphaformat_align;
@@ -318,9 +316,12 @@ function InsertNumsCommand(): void {
         lenVal = groups !== undefined && WRAP ? groups.start.toString().length : 0;
       }
 
+      const startValue: any = value;
+      
       let evalValue: any = 0;
       let replace: any;
       let prevValue = 0;
+      let repeatCounter = 1;
 
       let i = 0;
       let skip = false;
@@ -330,17 +331,17 @@ function InsertNumsCommand(): void {
       const timeLimit = 1000; // max. 1 second in the while loop
 
       const castTable = {
-        i: function (value: any): number {
-          return Number(value) === (Number(value) | 0) ? Number(value) : 0;
+        i: function (value: string): number {
+          return value.toString().length > 0 && Number(value) === (Number(value) | 0) ? Number.parseInt(value) : 0;
         },
-        f: function (value: any): number {
-          return Number(value) !== (Number(value) | 0) ? Number(value) : 0;
+        f: function (value: string): number {
+          return value.toString().length > 0 && Number(value) === (Number(value) | 0) ? Number.parseFloat(value) : 0;
         },
-        s: function (value: any): string {
+        s: function (value: string): string {
           return String(value);
         },
-        b: function (value: any): boolean {
-          return Boolean(value);
+        b: function (value: string): boolean {
+          return value.toString().length > 0 ? Boolean(value) : true;
         },
       };
 
@@ -348,7 +349,7 @@ function InsertNumsCommand(): void {
 
       while (true) {
         if (
-          (EXPRMODE || stopExpr === undefined) &&
+          (/* EXPRMODE ||  */stopExpr === undefined) &&
           vscode.window.activeTextEditor !== undefined &&
           vscode.window.activeTextEditor.selections.length === i
         ) {
@@ -359,9 +360,10 @@ function InsertNumsCommand(): void {
             `Time limit of ${timeLimit}s exceeded`
           );
           break;
-        }
+        };
+        
         if (EXPRMODE) {
-          const rangeSel = (selections !== null
+          const rangeSel = (selections !== null && i < selections.length
             ? !REVERSE
               ? selections[i]
               : selections[selections.length - 1 - i]
@@ -372,12 +374,13 @@ function InsertNumsCommand(): void {
           }
           try {
             // @ts-ignore
-            value = castTable[cast](original);
+            value = original.length > 0 ? castTable[cast](original) : castTable[cast](value);
           } catch (e) {
             vscode.window.showErrorMessage(
               // @ts-ignore
               `[${value}] could not be cast to ${castTable[cast]}`
             );
+            skip = true;
             return null;
           }
         } else {
@@ -396,7 +399,8 @@ function InsertNumsCommand(): void {
             );
             value = Number.isNaN(+original) ? value : +original;
           }
-        }
+        };
+        
         if (!skip) {
           if (expr || stopExpr !== undefined) {
             if (groups !== undefined && EXPRMODE) {
@@ -417,6 +421,7 @@ function InsertNumsCommand(): void {
                 .replace(/\bn\b/gi, selLen.toString())
                 .replace(/\bp\b/gi, prevValue.toString())
                 .replace(/\bc\b/gi, evalValue)
+                .replace(/\ba\b/gi, startValue.toString())
                 .replace(/\bi\b/gi, i.toString());
               try {
                 evalValue = eval(evalStr);
@@ -440,6 +445,7 @@ function InsertNumsCommand(): void {
               .replace(/\bn\b/gi, selLen.toString())
               .replace(/\bp\b/gi, prevValue.toString())
               .replace(/\bc\b/gi, evalValue)
+              .replace(/\ba\b/gi, startValue.toString())
               .replace(/\bi\b/gi, i.toString());
             try {
               if (eval(evalStr)) {
@@ -453,43 +459,18 @@ function InsertNumsCommand(): void {
             }
           }
           if (format !== undefined && format.length > 0) {
-            let preFormat = "%";
             replace = "";
             if (!ALPHA) {
-              /* 
-              if (format_sign !== undefined) { preFormat += format_sign; }
-              if (format_padding !== undefined) { preFormat += "'" + format_padding; }
-              if (format_align !== undefined) { if (format_align === "<") { preFormat += "-"; } }
-              if (format_filled !== undefined) { preFormat += format_filled; }
-              if (format_integer !== undefined) { preFormat += format_integer; }
- */
-              if (format_precision !== undefined) {
-                preFormat += "." + format_precision;
-                decimals = format_precision ? parseInt(format_precision) : 0;
-              }
-              /* 
-              if (format_type !== undefined) { 
-                preFormat += format_type; 
-              } else { 
-                if ((format_precision !== undefined) || decimals > 0) {
-                  preFormat += "g";
-                } else {
-                  preFormat += "d"; 
-                }
-              }
- */
-
               replace = d3.format(format)(
                 decimals > 0 ? evalValue.toFixed(decimals) : evalValue
               );
             } else {
-              const alphaFormat: object = {};
-              // @ts-ignore
-              alphaFormat.padding = alphaformat_padding;
-              // @ts-ignore
-              alphaFormat.align = alphaformat_align;
-              // @ts-ignore
-              alphaFormat.integer = alphaformat_integer;
+              let alphaFormat: IntAlphaFormat = {
+                padding: alphaformat_padding,
+                align: alphaformat_align,
+                integer: alphaformat_integer ? Number.parseInt(alphaformat_integer) : 0
+              };
+              
               replace = formatString(alphaFormat, evalValue);
             }
           } else {
@@ -504,8 +485,13 @@ function InsertNumsCommand(): void {
 
         if (!EXPRMODE) {
           value += +step;
+          repeatCounter++;
+          if (repeat > 0 && repeatCounter > repeat) {
+            value = startValue;
+            repeatCounter = 1;
+          };
           value.toFixed(decimals);
-        }
+        };
         i += 1;
         skip = false;
       }

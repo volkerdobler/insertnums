@@ -1,23 +1,21 @@
-# Insert Nums README
+# Insert Nums
 
-This extension helps to insert or change sequential values in any text file.
-It is very helpful if you have to insert numbers or sequences of Ascii charts or
-want to change some given numbers based on an expression.
+This extension **inserts** or **changes sequential values** in any text file.
+It is very helpful if you have to insert numbers or sequences of Ascii chars or want to change some selected numbers/chars based on a javascript expression.
 
-This extension is based on the wonderful sublimetext extension from
-James Books (https://github.com/jbrooksuk/InsertNums).
+This extension is based on the wonderful sublimetext extension from James Books (https://github.com/jbrooksuk/InsertNums).
 
-I used this extension a lot in the past and therefore, I had to implement this
-python extension to javascript to use it within VSCode.
+I used this extension intensively in the past within sublime text and I could not find such a flexible extension for VSCode. So I rewrote this python extension in javascript and extended it further.
 
-## Usage
+---
+## Usage:
 
-The extension implements the command "insertNums" and has a default keybinding of `CTRL ALT .`
-(or `CMD ALT .` on Mac). Don't forget the DOT at the end.
+The extension implements the command "insertNums" and has a default keybinding of `CTRL ALT DOT` (or `CMD ALT DOT` on Mac). (`DOT` is the period char on the keyboard)
 
 The easiest usage is to insert a sequence of integers, starting with "1" when selecting multiple cursors:
 
 Select multi-cursors
+
 ```
 |
 |
@@ -26,7 +24,8 @@ Select multi-cursors
 |
 ```
 
-Press `CTRL ALT DOT` and `RETURN`
+Press `CTRL ALT DOT` and `RETURN` (Default is to insert numbers, starting with 1)
+
 ```
 1
 2
@@ -37,8 +36,9 @@ Press `CTRL ALT DOT` and `RETURN`
 
 But the standard behaviour can be changed anytime, as a pop-up window shows up after pressing `CTRL ALT DOT`.
 
-If you want to start with the integer 10 instead of 1 at the same cursors, you can do:
+If you want to start with the integer 10 instead of 1, you can do:
 `CTRL ALT DOT` and type 10 in the pop-up and press `RETURN` and the result will be:
+
 ```
 10
 11
@@ -47,9 +47,11 @@ If you want to start with the integer 10 instead of 1 at the same cursors, you c
 14
 ```
 
-If you add a second number in the pop-up windows after a colon (:), you define the steps between the integers.
-To include only every 5th integer, starting from 5, you can do:
+If you add a second number in the pop-up windows after a colon ( : ), you define the steps between the integers.
+
+To insert only every 5th integer, starting from 5, you type:
 `CTRL ALT DOT 5:5 RETURN` and the result will be:
+
 ```
 5
 10
@@ -58,8 +60,9 @@ To include only every 5th integer, starting from 5, you can do:
 25
 ```
 
-And you can format the values before including them with **~{FORMAT}**,
-so an input "`1~05d`" will result in (starting with 1, default step is 1 and format is 5 digits with leading zeros - without the leading zero, blanks will be included):
+You can format the values before including them with **~{FORMAT}** (Definition see below),
+so an input "`1~05d`" will get (starting with 1, default step is 1 and format is 5 digits with leading zeros - without the leading zero, blanks will be included):
+
 ```
 00001
 00002
@@ -68,15 +71,24 @@ so an input "`1~05d`" will result in (starting with 1, default step is 1 and for
 00005
 ```
 
-If this does not fit your needs, there is an even more complex feature called "expressions" you can use to define each integer.
-To define an expression, you can use the following (internal) "variables":
-`s`: The value of step (specified in the format query and defaults to 1)
-`n`: The number of selections
-`i`: Just an integer holding the counter for the iteration; starts at 0 and is increased by 1 in every loop
-`_`: The current value before the expression (start + i * step)
-`p`: The result of the previously evaluated value (without formatting); 0 for the first value
+Sometime, you might need to repeat the sequence after a fixed number of repetitions. *(this feature is new and not included in the original sublimetext extension!)*
+Example would be, you want to include the numbers 1, 2, 3 and then start from 1 again.
+This can be done with the optional **#{REPEATS}**.
+Typing `1#3` results in:
 
-To insert numbers depending of the previous selection (double the last integer), you can type `CTRL ALT DOT 1::p>0?2*p:1` (anything after :: is treated as a javascript expression)
+```
+1
+2
+3
+1
+2
+```
+
+If this all does not fit your needs, there is an even more complex feature called "expressions" you can use.
+Within an expression, you can use some (internal) "variables". (see [Syntax section](#Syntaxes:))
+
+An example could be to insert numbers depending on the previous selection (double the last value). You can type `CTRL ALT DOT 1::p>0?2*p:1` (anything after :: is treated as a javascript expression including the replacement of the internal variables)
+
 ```
 1
 2
@@ -85,36 +97,19 @@ To insert numbers depending of the previous selection (double the last integer),
 16
 ```
 
-It can also include alpha chars, so same selection as above but
-with `CTRL-ALT-DOT` + a + `RETURN`
-```
-a
-b
-c
-d
-e
-```
+It is also possible to have a stop criteria after the ``@``.
+With the stop criteria, you can stop before filling all selections or (which might be more helpful) to extend the extension.
 
-or for alpha: `z~<6` (the : just underline the following spaces and are not visible)
-```
-:z     :
-:aa    :
-:ab    :
-:ac    :
-:ad    :
-```
 
-Beside formatting, it is also possible to have a stop criteria with **@{STOPCRITERIA}**.
-With the stop criteria, you can stop before filling all selections or (which might be more helpful) to extend the extension. 
+_Example:_ no selection at all
+Start (only current cursor):
 
-Example: we only have one selection:
-
-BEFORE (only one cursor):
 ```
 |
 ```
 
-AFTER typing `1@_>5`, 5 lines will be inserted.
+After typing `1@_>5`, 5 lines will be inserted *(stopp if current value will be greater than 5)*.
+
 ```
 1
 2
@@ -123,9 +118,13 @@ AFTER typing `1@_>5`, 5 lines will be inserted.
 5
 ```
 
-Another feature is to use expressions. Example, you have already a list of numbers and want to add 50 to each number individually.
+If you still need a more complex insertion algorithm, you can use expressions with the `::`.
+In these expression, the `_` (underline) represents the current value under a possible selection.
 
-BEFORE (all 5 numbers are selected, | shows cursors):
+_Example:_ you select a list of numbers and want to add 50 to each number individually.
+
+Start (all 5 numbers are selected, | shows cursors):
+
 ```
 1|
 2|
@@ -134,7 +133,8 @@ BEFORE (all 5 numbers are selected, | shows cursors):
 5|
 ```
 
-AFTER typing `::_+50`
+After typing `::_+50`
+
 ```
 51
 52
@@ -143,9 +143,30 @@ AFTER typing `::_+50`
 55
 ```
 
-Even more complicated expressions could be used, e.g.:
+But *not only numbers* can be included. The extension is flexible and is able to **handle Ascii chars**, so same selection as above but with `CTRL ALT DOT a RETURN`
 
-BEFORE (all 5 numbers are selected, | shows cursors):
+```
+a
+b
+c
+d
+e
+```
+
+or if you want to format the alpha chars leftside: `z~<6` (the : just underline the following spaces and are not visible in the document)
+
+```
+:z     :
+:aa    :
+:ab    :
+:ac    :
+:ad    :
+```
+
+And "finally" you can use even more complex expressions to insert numbers, floats, strings or boolean.
+
+An example would be: 5 numbers are selected *(| shows cursors)*:
+
 ```
 1|
 2|
@@ -154,7 +175,8 @@ BEFORE (all 5 numbers are selected, | shows cursors):
 5|
 ```
 
-AFTER typing: `|if (i+1<=3) {_+100} else {_+200}`, results between numbers 1 to 3 100 are added, all numbers greater than 3 200 are added.
+With the expression: `|if (i+1<=3) {_+100} else {_+200}`, the result will be:
+*(for the first 3 numbers 100 will be added, for all others 200 will be added)*
 
 ```
 101|
@@ -164,12 +186,105 @@ AFTER typing: `|if (i+1<=3) {_+100} else {_+200}`, results between numbers 1 to 
 205|
 ```
 
-## Features
+---
+## Syntaxes:
 
-To read all possible features, please look at the original extension 
-[here](https://github.com/jbrooksuk/InsertNums). For correct "expressions", the Python syntax  (e.g. "`_+1 if _<5 else _`") needs to be changed to Javascript syntax ("`if (_<5) {_+1} else {_}`").
+Syntax for **numbers**: 
+```
+[<start>][:<step>][#<repeat>][~<format>][::<expr>][@<stopexpr>][!]
+```
+with
+```
+<start>    ::= any number
+<step>     ::= any number (positive oder negative)
+<repeat>   ::= any positive number
+<format>   ::= [<padding>][<align>][<sign>][#][0] any integer [.<precision>][<type>]
+<expr>     ::= any javascript expression, which can include the special chars (see below)
+<stopexpr> ::= any javascript expression, which can include the special chars (see below)
+!          ::= reverts the output
+```
 
-If I have the time, I will write more in the future.
+***
+Formatting can be done with the following options:
+```
+<padding>   ::= any char except }
+<align>     ::= "<" for left aligned, ">" for right aligned, "=" for centered, "^" for decimal centered
+<sign>      ::= "-", "+" or " " (blank)
+#           ::= option causes the “alternate form” to be used for the conversion (see Python documentation)
+<precision> ::= any positive number
+<type>      ::= any one of the following chars "bcdeEfFgGnoxX%"
+```
+
+For more details about the formating possibilities see the [Python mini-language documentation](https://docs.python.org/3.4/library/string.html#format-specification-mini-language)
+
+***
+Syntax for **alpha**:
+```
+<start>[:<step>][#<repeat>][~<format>][w][@<stopexpr>][!]
+```
+
+with
+
+```
+<start>    ::= any Ascii char
+<step>     ::= any number (positive oder negative)
+<repeat>   ::= any positive number
+<format>   ::= [<padding>][<align>][<integer>]
+w          ::= wrap output to one char. So after z, not aa will follow but only a (last char)
+<stopexpr> ::= any javascript expression with some special chars, see below
+!          ::= reverts the output
+```
+
+***
+Formatting can be done with the following options:
+```
+<padding> ::= any char except }
+<align>   ::= "<" for left aligned, ">" for right aligned, "=" for centered
+<integer> ::= any positive number (length of string)
+```
+
+***
+Syntax for **expressions**:
+```
+[<cast>]|[~<format>::]<expr>[@<stopexpr>][!]
+```
+
+with
+
+```
+<cast>      ::= "i", "f", "s", "b"
+<format>    ::= same as for numbers
+<expr>      ::= any javascript expression including special chars
+<stopexpr>  ::= any javascript expression with some special chars, see below
+!           ::= reverts the output
+```
+*Be aware: You can use the stop expression in expressions, but in contrast to numbers, the stop expression can not extend the current selection (just stopp before the end)*
+
+The *"cast"* information for expressions defines the output:
+
+```
+i ::= output is an integer
+s ::= output is a string (default)
+f ::= output is a float number
+b ::= output is a boolean
+```
+
+***
+The following *special chars* can be used and will be replaced by some values:
+
+```
+_ ::= current value (before expression)
+s ::= value of <step>
+n ::= number of selections
+p ::= previous value (last inserted)
+c ::= current value (only within expressions, includes value after expression)
+a ::= value of <start>
+i ::= counter, starting with 0 and increased by each inseration
+```
+
+## Additional information
+
+For more examples and information, please look at the original extension [here](https://github.com/jbrooksuk/InsertNums). 
 
 ## Release Notes
 
@@ -178,7 +293,7 @@ All release notes are in the Changelog file
 ## Special thanks!
 
 This project would not be possible without the original Python code [insertnums](https://github.com/jbrooksuk/InsertNums) from James Brooks .
-I also used the [sprintf-js](https://github.com/jbrooksuk/InsertNums) implementation from Alexandru Mărășteanu and [d3-format](https://github.com/d3/d3-format) from the d3 group.
+I also used [d3-format](https://github.com/d3/d3-format) from the d3 group.
 
 Thanks a lot!
 Volker

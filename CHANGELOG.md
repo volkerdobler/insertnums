@@ -39,3 +39,13 @@ Added icon and additional information about project to package.json
 
 - 0.1.1
 Bugfix: expressions will no longer end in an end-less loop
+
+- 0.2
+New features:
+  * you can now repeat the sequence with the # option
+  * you can use a in expressions to get the starting value (first value)
+Improvements:
+  * Eliminate typescript errors and smoothen code
+  * Improve and extend documentation
+  
+getting closer to version 1.0
