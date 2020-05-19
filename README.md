@@ -8,6 +8,7 @@ This extension is based on the wonderful sublimetext extension from James Books 
 I used this extension intensively in the past within sublime text and I could not find such a flexible extension for VSCode. So I rewrote this python extension in javascript and extended it further.
 
 ---
+
 ## Usage:
 
 The extension implements the command "insertNums" and has a default keybinding of `CTRL ALT DOT` (or `CMD ALT DOT` on Mac). (`DOT` is the period char on the keyboard)
@@ -71,7 +72,7 @@ so an input "`1~05d`" will get (starting with 1, default step is 1 and format is
 00005
 ```
 
-Sometime, you might need to repeat the sequence after a fixed number of repetitions. *(this feature is new and not included in the original sublimetext extension!)*
+Sometime, you might need to repeat the sequence after a fixed number of repetitions. _(this feature is new and not included in the original sublimetext extension!)_
 Example would be, you want to include the numbers 1, 2, 3 and then start from 1 again.
 This can be done with the optional **#{REPEATS}**.
 Typing `1#3` results in:
@@ -84,8 +85,62 @@ Typing `1#3` results in:
 2
 ```
 
-If this all does not fit your needs, there is an even more complex feature called "expressions" you can use.
-Within an expression, you can use some (internal) "variables". (see [Syntax section](#Syntaxes:))
+Another need I often have, is to repeat the current number in a sequence a couple of times. _(this feature is new and not included in the original sublimetext extension!)_
+Example would be, you want to include the numbers 1 three time, 2 three times and 3 times (so 9 in total).
+This can be done with the optional **\*{FREQUENCY}**.
+Typing `1*3` when 9 multiselections are marked results in:
+
+```
+1
+1
+1
+2
+2
+2
+3
+3
+3
+```
+
+It is also possible to have a stop criteria after the `@`.
+With the stop criteria, you can stop before filling all selections or (which might be more helpful) to extend the extension.
+
+_Example:_ no selection at all
+Start (only current cursor):
+
+```
+|
+```
+
+After typing `1@_>5`, 5 lines will be inserted _(stopp if current value will be greater than 5)_.
+
+```
+1
+2
+3
+4
+5
+```
+
+And you can combine all of them in one command.
+With one cursor selected and the following command `3:2*2#4@i>10` results in:
+
+```
+3
+3
+5
+5
+7
+7
+9
+9
+3
+3
+5
+```
+
+And there is an even more complex feature called "expressions" you can use.
+Within such an expression, you can use some (internal) "variables". (see [Syntax section](#Syntaxes:))
 
 An example could be to insert numbers depending on the previous selection (double the last value). You can type `CTRL ALT DOT 1::p>0?2*p:1` (anything after :: is treated as a javascript expression including the replacement of the internal variables)
 
@@ -97,29 +152,7 @@ An example could be to insert numbers depending on the previous selection (doubl
 16
 ```
 
-It is also possible to have a stop criteria after the ``@``.
-With the stop criteria, you can stop before filling all selections or (which might be more helpful) to extend the extension.
-
-
-_Example:_ no selection at all
-Start (only current cursor):
-
-```
-|
-```
-
-After typing `1@_>5`, 5 lines will be inserted *(stopp if current value will be greater than 5)*.
-
-```
-1
-2
-3
-4
-5
-```
-
-If you still need a more complex insertion algorithm, you can use expressions with the `::`.
-In these expression, the `_` (underline) represents the current value under a possible selection.
+And because one "variable" within expressions is the `_` (underline) represents the current value under the selection, you can even manipulate the current values.
 
 _Example:_ you select a list of numbers and want to add 50 to each number individually.
 
@@ -143,7 +176,7 @@ After typing `::_+50`
 55
 ```
 
-But *not only numbers* can be included. The extension is flexible and is able to **handle Ascii chars**, so same selection as above but with `CTRL ALT DOT a RETURN`
+But _not only numbers_ can be included with this extension. The extension is flexible and is able to **handle Ascii chars**, so same selection as above but with `CTRL ALT DOT a RETURN`
 
 ```
 a
@@ -163,9 +196,9 @@ or if you want to format the alpha chars leftside: `z~<6` (the : just underline 
 :ad    :
 ```
 
-And "finally" you can use even more complex expressions to insert numbers, floats, strings or boolean.
+And "finally" you can use even more complex **expressions** to insert numbers, floats, strings or boolean.
 
-An example would be: 5 numbers are selected *(| shows cursors)*:
+An example would be: 5 numbers are selected _(| shows cursors)_:
 
 ```
 1|
@@ -176,7 +209,7 @@ An example would be: 5 numbers are selected *(| shows cursors)*:
 ```
 
 With the expression: `|if (i+1<=3) {_+100} else {_+200}`, the result will be:
-*(for the first 3 numbers 100 will be added, for all others 200 will be added)*
+_(for the first 3 numbers 100 will be added, for all others 200 will be added)_
 
 ```
 101|
@@ -187,25 +220,32 @@ With the expression: `|if (i+1<=3) {_+100} else {_+200}`, the result will be:
 ```
 
 ---
+
 ## Syntaxes:
 
-Syntax for **numbers**: 
+Syntax for **numbers**:
+
 ```
-[<start>][:<step>][#<repeat>][~<format>][::<expr>][@<stopexpr>][!]
+[<start>][:<step>][#<repeat>][*<frequency>][~<format>][::<expr>][@<stopexpr>][!]
 ```
+
 with
+
 ```
-<start>    ::= any number
-<step>     ::= any number (positive oder negative)
-<repeat>   ::= any positive number
+<start>    ::= any integer
+<step>     ::= any integer (positive oder negative)
+<repeat>   ::= any positive integer
+<frequency>::= any positive integer
 <format>   ::= [<padding>][<align>][<sign>][#][0] any integer [.<precision>][<type>]
 <expr>     ::= any javascript expression, which can include the special chars (see below)
 <stopexpr> ::= any javascript expression, which can include the special chars (see below)
 !          ::= reverts the output
 ```
 
-***
+---
+
 Formatting can be done with the following options:
+
 ```
 <padding>   ::= any char except }
 <align>     ::= "<" for left aligned, ">" for right aligned, "=" for centered, "^" for decimal centered
@@ -217,34 +257,41 @@ Formatting can be done with the following options:
 
 For more details about the formating possibilities see the [Python mini-language documentation](https://docs.python.org/3.4/library/string.html#format-specification-mini-language)
 
-***
+---
+
 Syntax for **alpha**:
+
 ```
-<start>[:<step>][#<repeat>][~<format>][w][@<stopexpr>][!]
+<start>[:<step>][#<repeat>][*<frequency>][~<format>][w][@<stopexpr>][!]
 ```
 
 with
 
 ```
 <start>    ::= any Ascii char
-<step>     ::= any number (positive oder negative)
-<repeat>   ::= any positive number
+<step>     ::= any integer (positive oder negative)
+<repeat>   ::= any positive integer
+<frequency>::= any positive integer
 <format>   ::= [<padding>][<align>][<integer>]
 w          ::= wrap output to one char. So after z, not aa will follow but only a (last char)
 <stopexpr> ::= any javascript expression with some special chars, see below
 !          ::= reverts the output
 ```
 
-***
+---
+
 Formatting can be done with the following options:
+
 ```
 <padding> ::= any char except }
 <align>   ::= "<" for left aligned, ">" for right aligned, "=" for centered
-<integer> ::= any positive number (length of string)
+<integer> ::= any positive integer (length of string)
 ```
 
-***
+---
+
 Syntax for **expressions**:
+
 ```
 [<cast>]|[~<format>::]<expr>[@<stopexpr>][!]
 ```
@@ -258,9 +305,10 @@ with
 <stopexpr>  ::= any javascript expression with some special chars, see below
 !           ::= reverts the output
 ```
-*Be aware: You can use the stop expression in expressions, but in contrast to numbers, the stop expression can not extend the current selection (just stopp before the end)*
 
-The *"cast"* information for expressions defines the output:
+_Be aware: You can use the stop expression in expressions, but in contrast to numbers, the stop expression can not extend the current selection (just stopp before the end)_
+
+The _"cast"_ information for expressions defines the output:
 
 ```
 i ::= output is an integer
@@ -269,8 +317,9 @@ f ::= output is a float number
 b ::= output is a boolean
 ```
 
-***
-The following *special chars* can be used and will be replaced by some values:
+---
+
+The following _special chars_ can be used and will be replaced by some values:
 
 ```
 _ ::= current value (before expression)
@@ -284,7 +333,7 @@ i ::= counter, starting with 0 and increased by each inseration
 
 ## Additional information
 
-For more examples and information, please look at the original extension [here](https://github.com/jbrooksuk/InsertNums). 
+For more examples and information, please look at the original extension [here](https://github.com/jbrooksuk/InsertNums).
 
 ## Release Notes
 
