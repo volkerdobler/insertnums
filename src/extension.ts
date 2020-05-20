@@ -146,9 +146,9 @@ function InsertNumsCommand(): void {
       exprMode:
         '^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (\\*(?<frequency> {integer})) (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
+        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer})) (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$',
+        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$',
     };
 
     const result = {
@@ -230,7 +230,7 @@ function InsertNumsCommand(): void {
       } else if (!!matchExpr) {
         groups = matchExpr.groups;
       } else {
-        vscode.window.showErrorMessage('Format string not valid' + result);
+        vscode.window.showErrorMessage('Format string not valid ' + result);
         return null;
       }
 
@@ -303,7 +303,7 @@ function InsertNumsCommand(): void {
       let evalStr = '';
 
       const startTime = Date.now();
-      const timeLimit = 1000; // max. 1 second in the while loop
+      const timeLimit = 1000000000000; // max. 1 second in the while loop
 
       const castTable: any = {
         i: function (value: string): number {
@@ -378,7 +378,7 @@ function InsertNumsCommand(): void {
           if (ALPHA) {
             evalValue = numToAlpha(value, lenVal);
             if (UPPER) {
-              String(evalValue).toLocaleUpperCase();
+              evalValue = String(evalValue).toLocaleUpperCase();
             }
           } else {
             if (groups !== undefined && expr) {

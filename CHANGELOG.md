@@ -45,14 +45,19 @@ Current feature list (compared to the original python script - see README file):
 
 * 0.2
   New features:
+
   - you can now repeat the sequence with the # option
   - you can use a in expressions to get the starting value (first value)
     Improvements:
   - Eliminate typescript errors and smoothen code
   - Improve and extend documentation
+
 * 0.3
   New features:
+
   - beside the repeat sequence in previous version, a new frequency option is available with the \*
     Bugfix: expression check during runtime
 
-getting closer to version 1.0
+* 0.3.1
+  Quick Bugfix: the new feature "frequency" was not optional but mantadory. Sorry!
+  Bugfix: inserting upper case letters did not work, fixed now
