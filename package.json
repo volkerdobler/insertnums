@@ -1,6 +1,6 @@
 {
 	"name": "insertnums",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"publisher": "volkerdobler",
 	"displayName": "Insert Nums",
 	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
