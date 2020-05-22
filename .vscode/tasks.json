@@ -20,7 +20,16 @@
 			"type": "npm",
 			"script": "compile",
 			"group": "build",
-			"problemMatcher": []
+			"problemMatcher": [],
+			"presentation": {
+				"echo": true,
+				"reveal": "silent",
+				"focus": false,
+				"panel": "new",
+				"showReuseMessage": true,
+				"clear": true
+			}
+
 		}
 	]
 }
