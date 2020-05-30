@@ -29,21 +29,31 @@ export function activate(context: vscode.ExtensionContext): void {
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  const disposable = vscode.commands.registerCommand('extension.insertNums', () => {
-    // The code you place here will be executed every time your command is executed
+  const disposable = vscode.commands.registerCommand(
+    'extension.insertNums',
+    () => {
+      // The code you place here will be executed every time your command is executed
 
-    // Display a message box to the user
-    // vscode.window.showInformationMessage("Hello World");
-    InsertNumsCommand();
-  });
+      // Display a message box to the user
+      // vscode.window.showInformationMessage("Hello World");
+      InsertNumsCommand();
+    }
+  );
 
   context.subscriptions.push(disposable);
 }
 
 // this method is called when your extension is deactivated
 export function deactivate(): void {
+  showHistory.dispose();
   return;
 }
+
+const commandHistory: string[] = [];
+
+let showHistory: vscode.OutputChannel = vscode.window.createOutputChannel(
+  'Insertnums History'
+);
 
 function InsertNumsCommand(): void {
   interface IntAlphaFormat {
@@ -88,9 +98,12 @@ function InsertNumsCommand(): void {
     // To-Do (String formatieren)
     let str: string = text;
 
-    const padding = format.padding !== undefined && format.padding ? format.padding : ' ';
-    const align = format.align !== undefined && format.align ? format.align : '<';
-    const lenStr = format.integer !== undefined && format.integer ? format.integer : 0;
+    const padding =
+      format.padding !== undefined && format.padding ? format.padding : ' ';
+    const align =
+      format.align !== undefined && format.align ? format.align : '<';
+    const lenStr =
+      format.integer !== undefined && format.integer ? format.integer : 0;
 
     while (str.length < lenStr) {
       if (align === '<') {
@@ -109,6 +122,10 @@ function InsertNumsCommand(): void {
     }
 
     return lenStr === 0 ? text : str.substr(0, lenStr);
+  }
+
+  function getRandomNumber(from: number, to: number): number {
+    return Math.round(Math.random() * (to - from) + from);
   }
 
   if (!Object.entries) {
@@ -139,14 +156,15 @@ function InsertNumsCommand(): void {
       format:
         '((?<format_padding> [^}}])? (?<format_align> [<>=^]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {integer})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
       alphastart: '[a-z]+ | [A-Z]+',
-      alphaformat: '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^]))? ((?<alphaformat_integer>{integer}))?',
+      alphaformat:
+        '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^]))? ((?<alphaformat_integer>{integer}))?',
       cast: '[ifsb]',
       expr: '.+?',
       stopExpr: '.+?',
       exprMode:
         '^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
+        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> {integer}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertAlpha:
         '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$',
     };
@@ -179,11 +197,20 @@ function InsertNumsCommand(): void {
 
   const maxDecimals = 20;
 
-  if (vscode === undefined || vscode.window === undefined || vscode.window.activeTextEditor === undefined) {
-    vscode.window.showErrorMessage('Extension only available with active Texteditor');
+  if (
+    vscode === undefined ||
+    vscode.window === undefined ||
+    vscode.window.activeTextEditor === undefined
+  ) {
+    vscode.window.showErrorMessage(
+      'Extension only available with active Texteditor'
+    );
   }
 
-  const selections = vscode.window.activeTextEditor !== undefined ? vscode.window.activeTextEditor.selections : null;
+  const selections =
+    vscode.window.activeTextEditor !== undefined
+      ? vscode.window.activeTextEditor.selections
+      : null;
 
   if (selections === null) {
     return;
@@ -201,7 +228,57 @@ function InsertNumsCommand(): void {
         return null;
       }
 
+      let getHistory: boolean = false;
+
+      if (result.length > 1 && result[0] === '!') {
+        let rest = result.toString().substring(1);
+        switch (rest) {
+          case '!':
+            if (commandHistory.length > 0) {
+              result = commandHistory[0];
+              getHistory = true;
+              break;
+            } else {
+              vscode.window.showErrorMessage(
+                '[History] History length too short!'
+              );
+              return null;
+            }
+          case 'p':
+            if (commandHistory.length > 0) {
+              showHistory.clear();
+              for (let i = 0; i < commandHistory.length; i++) {
+                showHistory.appendLine(
+                  '!' + i + ' => "' + commandHistory[i] + '"'
+                );
+              }
+              showHistory.show(true);
+            } else {
+              vscode.window.showErrorMessage('[History] Empty');
+            }
+            return null;
+          case 'c':
+            commandHistory.length = 0;
+            vscode.window.showErrorMessage('[History] Cleared!');
+            return null;
+          default:
+            let numRest = Math.abs(parseInt(rest));
+            let nachNum = rest.replace(numRest, '');
+            if (commandHistory.length >= numRest) {
+              result =
+                commandHistory[numRest] + (nachNum.length > 0 ? nachNum : '');
+              if (nachNum.length === 0) {
+                getHistory = true;
+              }
+            }
+        }
+      }
+
       const eingabe = result.length > 0 ? result : '1:1';
+
+      if (!getHistory) {
+        commandHistory.unshift(eingabe);
+      }
 
       const { insertNum, insertAlpha, exprMode } = getRegexps();
       const numReg = new RegExp(insertNum, 'gi');
@@ -217,7 +294,9 @@ function InsertNumsCommand(): void {
         matchAlpha = alphaReg.exec(eingabe);
         matchExpr = exprReg.exec(eingabe);
       } catch (e) {
-        vscode.window.showErrorMessage('No valid regular expression:' + eingabe);
+        vscode.window.showErrorMessage(
+          'No valid regular expression:' + eingabe
+        );
         return null;
       }
 
@@ -234,37 +313,69 @@ function InsertNumsCommand(): void {
         return null;
       }
 
-      const EXPRMODE = groups !== undefined && Object.prototype.hasOwnProperty.call(groups, 'cast');
-      const ALPHA = groups !== undefined && Object.prototype.hasOwnProperty.call(groups, 'wrap');
+      const EXPRMODE =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'cast');
+      const ALPHA =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'wrap');
       const REVERSE = groups !== undefined && groups.reverse === '!';
       const step =
-        groups !== undefined && Object.prototype.hasOwnProperty.call(groups, 'step') && groups.step != undefined
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'step') &&
+        groups.step != undefined
           ? intOrFloat(groups.step)
+          : 1;
+      const randomTo =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'random') &&
+        groups.random !== undefined
+          ? Number(groups.random)
+          : 0;
+      const randomStart =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'start') &&
+        groups.start !== undefined
+          ? Number(groups.start)
           : 1;
       const repeat =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'repeat') &&
         groups.repeat != undefined &&
-        Number.isInteger(parseInt(groups.repeat))
+        Number.isInteger(parseInt(groups.repeat)) &&
+        randomTo === 0
           ? parseInt(groups.repeat)
           : 0;
       const frequency =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'frequency') &&
         groups.frequency != undefined &&
-        Number.isInteger(parseInt(groups.frequency))
+        Number.isInteger(parseInt(groups.frequency)) &&
+        randomTo === 0
           ? parseInt(groups.frequency)
           : 0;
       const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
       const stopExpr = groups !== undefined && groups.stopExpr;
-      const cast: any = EXPRMODE && groups !== undefined && groups.cast !== undefined ? groups.cast : 's';
-      const UPPER = ALPHA && groups !== undefined && groups.start[0] === groups.start[0].toUpperCase();
+      const cast: any =
+        EXPRMODE && groups !== undefined && groups.cast !== undefined
+          ? groups.cast
+          : 's';
+      const UPPER =
+        ALPHA &&
+        groups !== undefined &&
+        groups.start[0] === groups.start[0].toUpperCase();
       const WRAP = ALPHA && groups !== undefined && groups.wrap === 'w';
-      const format = groups !== undefined && groups.format !== undefined ? groups.format : '';
+      const format =
+        groups !== undefined && groups.format !== undefined
+          ? groups.format
+          : '';
 
-      const alphaformat_padding = groups !== undefined && groups.alphaformat_padding;
-      const alphaformat_align = groups !== undefined && groups.alphaformat_align;
-      const alphaformat_integer = groups !== undefined && groups.alphaformat_integer;
+      const alphaformat_padding =
+        groups !== undefined && groups.alphaformat_padding;
+      const alphaformat_align =
+        groups !== undefined && groups.alphaformat_align;
+      const alphaformat_integer =
+        groups !== undefined && groups.alphaformat_integer;
 
       let decimals =
         groups !== undefined && groups.step && groups.step.indexOf('.') > -1
@@ -274,7 +385,10 @@ function InsertNumsCommand(): void {
           : 0;
 
       if (format.length > 0) {
-        decimals = format.indexOf('.') > -1 ? format.length - format.indexOf('.') - 1 : decimals;
+        decimals =
+          format.indexOf('.') > -1
+            ? format.length - format.indexOf('.') - 1
+            : decimals;
       }
 
       const values: any = [];
@@ -283,14 +397,34 @@ function InsertNumsCommand(): void {
 
       if (EXPRMODE) {
       } else if (!ALPHA) {
-        value = groups !== undefined && groups.start !== undefined ? Number(groups.start) : 1;
+        value =
+          groups !== undefined && groups.start !== undefined
+            ? randomTo &&
+              randomTo > 0 &&
+              groups &&
+              groups.start &&
+              Number(groups.start)
+              ? getRandomNumber(randomStart, randomTo)
+              : Number(groups.start)
+            : 1;
       } else {
         value =
-          groups !== undefined && groups.start !== undefined ? alphaToNum(String(groups.start).toLocaleLowerCase()) : 1;
-        lenVal = groups !== undefined && WRAP ? groups.start.toString().length : 0;
+          groups !== undefined && groups.start !== undefined
+            ? alphaToNum(String(groups.start).toLocaleLowerCase())
+            : 1;
+        lenVal =
+          groups !== undefined && WRAP ? groups.start.toString().length : 0;
       }
 
-      const startValue: any = value;
+      const startValue: any =
+        groups !== undefined && groups.start !== undefined ? value : 1;
+
+      if (randomTo > 0 && groups && randomTo <= startValue) {
+        vscode.window.showErrorMessage(
+          `[Start: ${startValue} > Step: ${randomTo}] For random numbers, step needs to be larger than start value!`
+        );
+        return null;
+      }
 
       let evalValue: any = 0;
       let replace: any;
@@ -303,14 +437,20 @@ function InsertNumsCommand(): void {
       let evalStr = '';
 
       const startTime = Date.now();
-      const timeLimit = 1000000000000; // max. 1 second in the while loop
+      const timeLimit = 1000; // max. 1 second in the while loop
 
       const castTable: any = {
         i: function (value: string): number {
-          return value.toString().length > 0 && Number(value) === (Number(value) | 0) ? Number.parseInt(value) : 0;
+          return value.toString().length > 0 &&
+            Number(value) === (Number(value) | 0)
+            ? Number.parseInt(value)
+            : 0;
         },
         f: function (value: string): number {
-          return value.toString().length > 0 && Number(value) === (Number(value) | 0) ? Number.parseFloat(value) : 0;
+          return value.toString().length > 0 &&
+            Number(value) === (Number(value) | 0)
+            ? Number.parseFloat(value)
+            : 0;
         },
         s: function (value: string): string {
           return String(value);
@@ -331,7 +471,10 @@ function InsertNumsCommand(): void {
           break;
         }
         if (Date.now() > startTime + timeLimit) {
-          vscode.window.showInformationMessage(`Time limit of ${timeLimit}s exceeded`);
+          vscode.window.showInformationMessage(
+            `Time limit of ${timeLimit}ms exceeded`
+          );
+          return null;
           break;
         }
 
@@ -344,10 +487,15 @@ function InsertNumsCommand(): void {
               : undefined;
           let original = '';
           if (vscode.window.activeTextEditor !== undefined) {
-            original = vscode.window.activeTextEditor.document.getText(rangeSel);
+            original = vscode.window.activeTextEditor.document.getText(
+              rangeSel
+            );
           }
           try {
-            value = original.length > 0 ? castTable[cast](original) : castTable[cast](value);
+            value =
+              original.length > 0
+                ? castTable[cast](original)
+                : castTable[cast](value);
           } catch (e) {
             vscode.window.showErrorMessage(
               // @ts-ignore
@@ -363,8 +511,14 @@ function InsertNumsCommand(): void {
                 ? selections[i]
                 : selections[selections.length - 1 - i]
               : null;
-          if (rangeSel !== null && !rangeSel.isEmpty && vscode.window.activeTextEditor !== undefined) {
-            const original = vscode.window.activeTextEditor.document.getText(rangeSel);
+          if (
+            rangeSel !== null &&
+            !rangeSel.isEmpty &&
+            vscode.window.activeTextEditor !== undefined
+          ) {
+            const original = vscode.window.activeTextEditor.document.getText(
+              rangeSel
+            );
             value = Number.isNaN(+original) ? value : +original;
           }
         }
@@ -394,7 +548,9 @@ function InsertNumsCommand(): void {
               try {
                 evalValue = eval(evalStr);
               } catch (e) {
-                vscode.window.showErrorMessage(`[${groups.expr}] Invalid Expression. Exception is: ` + e);
+                vscode.window.showErrorMessage(
+                  `[${groups.expr}] Invalid Expression. Exception is: ` + e
+                );
                 return null;
               }
             } else {
@@ -416,25 +572,33 @@ function InsertNumsCommand(): void {
                 break;
               }
             } catch (e) {
-              vscode.window.showErrorMessage(`[${stopExpr}] Invalid Stop Expression. Exception is: ` + e);
+              vscode.window.showErrorMessage(
+                `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e
+              );
               return null;
             }
           }
           if (format !== undefined && format.length > 0) {
             replace = '';
             if (!ALPHA) {
-              replace = d3.format(format)(decimals > 0 ? evalValue.toFixed(decimals) : evalValue);
+              replace = d3.format(format)(
+                decimals > 0 ? evalValue.toFixed(decimals) : evalValue
+              );
             } else {
               let alphaFormat: IntAlphaFormat = {
                 padding: alphaformat_padding,
                 align: alphaformat_align,
-                integer: alphaformat_integer ? Number.parseInt(alphaformat_integer) : 0,
+                integer: alphaformat_integer
+                  ? Number.parseInt(alphaformat_integer)
+                  : 0,
               };
 
               replace = formatString(alphaFormat, evalValue);
             }
           } else {
-            replace = String(decimals > 0 ? evalValue.toFixed(decimals) : evalValue);
+            replace = String(
+              decimals > 0 ? evalValue.toFixed(decimals) : evalValue
+            );
           }
         }
 
@@ -443,7 +607,11 @@ function InsertNumsCommand(): void {
 
         if (!EXPRMODE) {
           if (frequency === 0 || frequencyCounter >= frequency) {
-            value += +step;
+            if (randomTo > 0) {
+              value = getRandomNumber(randomStart, randomTo);
+            } else {
+              value += +step;
+            }
             repeatCounter++;
             frequencyCounter = 1;
           } else {
@@ -473,7 +641,11 @@ function InsertNumsCommand(): void {
               return;
             }
             if (vscode.window.activeTextEditor !== undefined) {
-              WSP.replace(vscode.window.activeTextEditor.document.uri, element, values[index]);
+              WSP.replace(
+                vscode.window.activeTextEditor.document.uri,
+                element,
+                values[index]
+              );
             }
           });
           vscode.workspace.applyEdit(WSP);
@@ -486,13 +658,21 @@ function InsertNumsCommand(): void {
             if (index >= values.length) {
               text = '';
             } else if (index + 1 === selLen && values.length > selLen) {
-              const other = !REVERSE ? values.slice(index, values.length) : values.slice(0, -index - 1);
+              const other = !REVERSE
+                ? values.slice(index, values.length)
+                : values.slice(0, -index - 1);
               text = other.join('\n');
             } else {
-              text = REVERSE ? values[values.length - index - 1].toString() : values[index].toString();
+              text = REVERSE
+                ? values[values.length - index - 1].toString()
+                : values[index].toString();
             }
             if (vscode.window.activeTextEditor !== undefined) {
-              WSP.replace(vscode.window.activeTextEditor.document.uri, element, text);
+              WSP.replace(
+                vscode.window.activeTextEditor.document.uri,
+                element,
+                text
+              );
             }
           });
           vscode.workspace.applyEdit(WSP);
