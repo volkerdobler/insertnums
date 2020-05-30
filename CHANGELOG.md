@@ -2,6 +2,12 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.4
+  New features:
+  
+  - new implementation of a random sequence (documentation see README.md)
+  - new implementation of a bash-like history function (documentation see README.md)
+  
 - 0.3.1
   Fixes:
 

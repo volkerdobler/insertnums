@@ -164,7 +164,7 @@ function InsertNumsCommand(): void {
       exprMode:
         '^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> {integer}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
+        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertAlpha:
         '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$',
     };
@@ -326,18 +326,20 @@ function InsertNumsCommand(): void {
         groups.step != undefined
           ? intOrFloat(groups.step)
           : 1;
-      const randomTo =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'random') &&
-        groups.random !== undefined
-          ? Number(groups.random)
-          : 0;
       const randomStart =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'start') &&
         groups.start !== undefined
           ? Number(groups.start)
           : 1;
+      const randomTo =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'random') &&
+        groups.random !== undefined
+          ? groups.random[0] === '+'
+            ? randomStart + Number(groups.random)
+            : Number(groups.random)
+          : 0;
       const repeat =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'repeat') &&
