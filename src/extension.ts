@@ -174,7 +174,7 @@ function InsertNumsCommand(): void {
   }
 
   if (!Object.entries) {
-    Object.entries = function(obj: any): any {
+    Object.entries = function (obj: any): any {
       const ownProps = Object.keys(obj);
       let i = ownProps.length;
       const resArray = new Array(i); // preallocate the Array
@@ -213,13 +213,13 @@ function InsertNumsCommand(): void {
       insertNum:
         '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$'
+        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$',
     };
 
     const result = {
       exprMode: '',
       insertNum: '',
-      insertAlpha: ''
+      insertAlpha: '',
     };
 
     for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -268,7 +268,7 @@ function InsertNumsCommand(): void {
   document
     .showInputBox({
       prompt: "Enter format string (default: '1:1')",
-      placeHolder: '1:1'
+      placeHolder: '1:1',
     })
     .then((result: any) => {
       if (result === undefined) {
@@ -369,11 +369,16 @@ function InsertNumsCommand(): void {
       const REVERSE =
         groups !== undefined && groups.reverse && groups.reverse === '!';
       const hexNumber =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'start') &&
-        groups.start &&
-        groups.start.length > 2 &&
-        groups.start.substring(0, 2).toLocaleLowerCase() === '0x';
+        (groups !== undefined &&
+          Object.prototype.hasOwnProperty.call(groups, 'start') &&
+          groups.start &&
+          groups.start.length > 2 &&
+          groups.start.substring(0, 2).toLocaleLowerCase() === '0x') ||
+        (selections &&
+          vscode.window.activeTextEditor?.document
+            .getText(selections[0])
+            .trim()
+            .substring(0, 2) === '0x');
       const numLength =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'format_integer')
@@ -529,24 +534,24 @@ function InsertNumsCommand(): void {
       const timeLimit = 1000; // max. 1 second in the while loop
 
       const castTable: any = {
-        i: function(value: string): number {
+        i: function (value: string): number {
           return value.toString().length > 0 &&
             Number(value) === (Number(value) | 0)
             ? Number.parseInt(value)
             : 0;
         },
-        f: function(value: string): number {
+        f: function (value: string): number {
           return value.toString().length > 0 &&
             Number(value) === (Number(value) | 0)
             ? Number.parseFloat(value)
             : 0;
         },
-        s: function(value: string): string {
+        s: function (value: string): string {
           return String(value);
         },
-        b: function(value: string): boolean {
+        b: function (value: string): boolean {
           return value.toString().length > 0 ? Boolean(value) : true;
-        }
+        },
       };
 
       const WSP = new vscode.WorkspaceEdit();
@@ -683,7 +688,7 @@ function InsertNumsCommand(): void {
                 align: alphaformat_align,
                 integer: alphaformat_integer
                   ? Number.parseInt(alphaformat_integer)
-                  : 0
+                  : 0,
               };
 
               replace = formatString(alphaFormat, evalValue);
@@ -733,7 +738,7 @@ function InsertNumsCommand(): void {
           if (REVERSE) {
             selections.reverse();
           }
-          selections.forEach(function(element: any, index: any) {
+          selections.forEach(function (element: any, index: any) {
             if (index === values.length) {
               return;
             }
@@ -751,7 +756,7 @@ function InsertNumsCommand(): void {
         let text = '';
 
         if (selections !== null) {
-          selections.forEach(function(element: vscode.Range, index: number) {
+          selections.forEach(function (element: vscode.Range, index: number) {
             if (index >= values.length) {
               text = '';
             } else if (index + 1 === selLen && values.length > selLen) {
