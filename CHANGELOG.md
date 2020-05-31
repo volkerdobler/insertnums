@@ -2,12 +2,19 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.4.1
+  Updated features:
+
+  - it is now not only possible to print the values in hex, but you can also type hex numbers
+    as start value and if you mark a hex number as first selection, it automatically recognise it
+    and print hex numbers.
+
 - 0.4
   New features:
-  
+
   - new implementation of a random sequence (documentation see README.md)
   - new implementation of a bash-like history function (documentation see README.md)
-  
+
 - 0.3.1
   Fixes:
 

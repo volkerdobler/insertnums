@@ -94,6 +94,51 @@ function InsertNumsCommand(): void {
     return res;
   }
 
+  function numToHex(num: number, len: number = 0): string {
+    let res = '';
+
+    while (num > 0) {
+      const divRest = num % 16;
+      if (divRest >= 10) {
+        res = String.fromCharCode(87 + divRest) + res;
+      } else {
+        res = String.fromCharCode(48 + divRest) + res;
+      }
+      num = Math.floor(num / 16);
+    }
+
+    while (res.length < len) {
+      res = '0' + res;
+    }
+
+    return '0x' + res;
+  }
+  function hexToNum(hex: string): number | undefined {
+    let res = 0;
+
+    if (hex.substring(0, 2).toLocaleLowerCase() !== '0x') {
+      return undefined;
+    }
+
+    for (let i = 2; i < hex.length; i++) {
+      res *= 16;
+      const curCharCode = hex.toLocaleLowerCase().charCodeAt(i);
+
+      switch (true) {
+        case curCharCode >= 48 && curCharCode <= 57:
+          res += curCharCode - 48;
+          break;
+        case curCharCode >= 97 && curCharCode <= 102:
+          res += curCharCode - 87;
+          break;
+        default:
+          vscode.window.showErrorMessage('Wrong hex number: ${hey}');
+      }
+    }
+
+    return res;
+  }
+
   function formatString(format: IntAlphaFormat, text: string): string {
     // To-Do (String formatieren)
     let str: string = text;
@@ -147,12 +192,14 @@ function InsertNumsCommand(): void {
 
     const ruleTemplate = {
       integer: '[1-9]\\d* | 0',
+      hexdigits: '[1-9a-fA-F][0-9a-fA-F]*',
       signedint: '[+-]? {integer}',
       pointfloat: '({integer})? \\. \\d+ | {integer} \\.',
       exponentfloat: '(?:{integer} | {pointfloat}) [eE] [+-]? \\d+',
       float: '{pointfloat} | {exponentfloat}',
+      hexNum: '0[xX]{hexdigits}',
       numeric: '{integer} | {float}',
-      signedNum: '[+-]? {numeric}',
+      signedNum: '([+-]? {numeric})|{hexNum}',
       format:
         '((?<format_padding> [^}}])? (?<format_align> [<>=^]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {integer})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
       alphastart: '[a-z]+ | [A-Z]+',
@@ -319,12 +366,33 @@ function InsertNumsCommand(): void {
       const ALPHA =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'wrap');
-      const REVERSE = groups !== undefined && groups.reverse === '!';
+      const REVERSE =
+        groups !== undefined && groups.reverse && groups.reverse === '!';
+      const hexNumber =
+        (groups !== undefined &&
+          Object.prototype.hasOwnProperty.call(groups, 'start') &&
+          groups.start &&
+          groups.start.length > 2 &&
+          groups.start.substring(0, 2).toLocaleLowerCase() === '0x') ||
+        (selections &&
+          vscode.window.activeTextEditor?.document
+            .getText(selections[0])
+            .trim()
+            .substring(0, 2) === '0x');
+      const numLength =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'format_integer')
+          ? Number(groups.format_integer)
+          : 0;
       const step =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'step') &&
         groups.step != undefined
-          ? intOrFloat(groups.step)
+          ? groups.step.substring(0, 2).toLocaleLowerCase() === '0x'
+            ? hexToNum(groups.step) != undefined
+              ? hexToNum(groups.step)
+              : 1
+            : intOrFloat(groups.step)
           : 1;
       const randomStart =
         groups !== undefined &&
@@ -365,22 +433,34 @@ function InsertNumsCommand(): void {
       const UPPER =
         ALPHA &&
         groups !== undefined &&
+        groups.start &&
+        groups.start.length > 0 &&
         groups.start[0] === groups.start[0].toUpperCase();
-      const WRAP = ALPHA && groups !== undefined && groups.wrap === 'w';
+      const WRAP =
+        ALPHA && groups !== undefined && groups.wrap && groups.wrap === 'w';
       const format =
         groups !== undefined && groups.format !== undefined
           ? groups.format
           : '';
 
       const alphaformat_padding =
-        groups !== undefined && groups.alphaformat_padding;
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'alphaformat_padding') &&
+        groups.alphaformat_padding;
       const alphaformat_align =
-        groups !== undefined && groups.alphaformat_align;
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'alphaformat_align') &&
+        groups.alphaformat_align;
       const alphaformat_integer =
-        groups !== undefined && groups.alphaformat_integer;
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'alphaformat_integer') &&
+        groups.alphaformat_integer;
 
       let decimals =
-        groups !== undefined && groups.step && groups.step.indexOf('.') > -1
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'step') &&
+        groups.step &&
+        groups.step.indexOf('.') > -1
           ? groups.step.length - groups.step.indexOf('.') - 1 <= maxDecimals
             ? groups.step.length - groups.step.indexOf('.') - 1
             : maxDecimals
@@ -400,26 +480,38 @@ function InsertNumsCommand(): void {
       if (EXPRMODE) {
       } else if (!ALPHA) {
         value =
-          groups !== undefined && groups.start !== undefined
-            ? randomTo &&
-              randomTo > 0 &&
-              groups &&
-              groups.start &&
-              Number(groups.start)
+          groups !== undefined &&
+          Object.prototype.hasOwnProperty.call(groups, 'start') &&
+          groups.start !== undefined
+            ? randomTo && randomTo > 0 && Number(groups.start)
               ? getRandomNumber(randomStart, randomTo)
+              : hexNumber
+              ? hexToNum(groups.start) != null
+                ? hexToNum(groups.start)
+                : 1
               : Number(groups.start)
             : 1;
       } else {
         value =
-          groups !== undefined && groups.start !== undefined
+          groups !== undefined &&
+          Object.prototype.hasOwnProperty.call(groups, 'start') &&
+          groups.start !== undefined
             ? alphaToNum(String(groups.start).toLocaleLowerCase())
             : 1;
         lenVal =
-          groups !== undefined && WRAP ? groups.start.toString().length : 0;
+          groups !== undefined &&
+          WRAP &&
+          Object.prototype.hasOwnProperty.call(groups, 'start')
+            ? groups.start.toString().length
+            : 0;
       }
 
       const startValue: any =
-        groups !== undefined && groups.start !== undefined ? value : 1;
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'start') &&
+        groups.start !== undefined
+          ? value
+          : 1;
 
       if (randomTo > 0 && groups && randomTo <= startValue) {
         vscode.window.showErrorMessage(
@@ -541,7 +633,7 @@ function InsertNumsCommand(): void {
               value = value !== null ? value : 0;
               evalStr = groups.expr
                 .replace(/\b_\b/g, value)
-                .replace(/\bs\b/gi, step.toString())
+                .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
                 .replace(/\bn\b/gi, selLen.toString())
                 .replace(/\bp\b/gi, prevValue.toString())
                 .replace(/\bc\b/gi, evalValue)
@@ -556,14 +648,14 @@ function InsertNumsCommand(): void {
                 return null;
               }
             } else {
-              evalValue = value;
+              evalValue = hexNumber ? numToHex(value, numLength) : value;
             }
           }
 
           if (stopExpr !== undefined && stopExpr) {
             evalStr = stopExpr
               .replace(/\b_\b/g, value)
-              .replace(/\bs\b/gi, step.toString())
+              .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
               .replace(/\bn\b/gi, selLen.toString())
               .replace(/\bp\b/gi, prevValue.toString())
               .replace(/\bc\b/gi, evalValue)
@@ -583,9 +675,13 @@ function InsertNumsCommand(): void {
           if (format !== undefined && format.length > 0) {
             replace = '';
             if (!ALPHA) {
-              replace = d3.format(format)(
-                decimals > 0 ? evalValue.toFixed(decimals) : evalValue
-              );
+              if (hexNumber) {
+                replace = numToHex(evalValue, numLength);
+              } else {
+                replace = d3.format(format)(
+                  decimals > 0 ? evalValue.toFixed(decimals) : evalValue
+                );
+              }
             } else {
               let alphaFormat: IntAlphaFormat = {
                 padding: alphaformat_padding,
@@ -598,9 +694,13 @@ function InsertNumsCommand(): void {
               replace = formatString(alphaFormat, evalValue);
             }
           } else {
-            replace = String(
-              decimals > 0 ? evalValue.toFixed(decimals) : evalValue
-            );
+            if (hexNumber) {
+              replace = String(numToHex(evalValue, numLength));
+            } else {
+              replace = String(
+                decimals > 0 ? evalValue.toFixed(decimals) : evalValue
+              );
+            }
           }
         }
 
@@ -612,7 +712,7 @@ function InsertNumsCommand(): void {
             if (randomTo > 0) {
               value = getRandomNumber(randomStart, randomTo);
             } else {
-              value += +step;
+              value += step !== undefined ? +step : 1;
             }
             repeatCounter++;
             frequencyCounter = 1;
