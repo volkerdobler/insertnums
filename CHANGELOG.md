@@ -2,6 +2,12 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.5.1
+
+  New feature:
+
+  - the output is by default based on the multi-line click order. If you want to include the chars in the order of the selections (not the clicks), new option '\$' is introduced
+
 - 0.5.0
 
   New features (all changes by Yu [(@codeyu)](https://github.com/codeyu) - thanks a lot):

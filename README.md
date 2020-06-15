@@ -271,7 +271,7 @@ The number of commands in the history is not limited, but history will be cleare
 Syntax for **numbers**:
 
 ```
-[<start>][:<step>][#<repeat>][*<frequency>][~<format>][r[+]<random>][::<expr>][@<stopexpr>][!]
+[<start>][:<step>][#<repeat>][*<frequency>][~<format>][r[+]<random>][::<expr>][@<stopexpr>][$][!]
 ```
 
 with
@@ -285,6 +285,7 @@ with
 <random>   ::= any integer (if a plus-char is available, the number will be added to the <start> number)
 <expr>     ::= any javascript expression, which can include the special chars (see below)
 <stopexpr> ::= any javascript expression, which can include the special chars (see below)
+$          ::= the selections will be "sorted" (without this option, new chars will be inserted in the order of the multiline clicks)
 !          ::= reverts the output
 ```
 
@@ -308,7 +309,7 @@ For more details about the formatting possibilities see the [Python mini-languag
 Syntax for **alpha**:
 
 ```
-<start>[:<step>][#<repeat>][*<frequency>][~<format>][w][@<stopexpr>][!]
+<start>[:<step>][#<repeat>][*<frequency>][~<format>][w][@<stopexpr>][$][!]
 ```
 
 with
@@ -321,6 +322,7 @@ with
 <format>   ::= [<padding>][<align>][<integer>]
 w          ::= wrap output to one char. E.g. after z, not aa will follow but only a (last char)
 <stopexpr> ::= any javascript expression with some special chars, see below
+$          ::= the selections will be "sorted" (without this option, new chars will be inserted in the order of the multiline clicks)
 !          ::= reverts the output
 ```
 
@@ -339,7 +341,7 @@ Formatting can be done with the following options:
 Syntax for **expressions**:
 
 ```
-[<cast>]|[~<format>::]<expr>[@<stopexpr>][!]
+[<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!]
 ```
 
 with
@@ -349,6 +351,7 @@ with
 <format>    ::= same as for numbers
 <expr>      ::= any javascript expression including special chars
 <stopexpr>  ::= any javascript expression with some special chars, see below
+$          ::= the selections will be "sorted" (without this option, new chars will be inserted in the order of the multiline clicks)
 !           ::= reverts the output
 ```
 

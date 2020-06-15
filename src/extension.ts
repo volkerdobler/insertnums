@@ -259,11 +259,11 @@ function InsertNumsCommand(
       expr: '.+?',
       stopExpr: '.+?',
       exprMode:
-        '^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
+        '^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
+        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$'
+        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$'
     };
 
     const result = {
@@ -415,6 +415,11 @@ function InsertNumsCommand(
         Object.prototype.hasOwnProperty.call(groups, 'wrap');
       const REVERSE =
         groups !== undefined && groups.reverse && groups.reverse === '!';
+      const sortSel =
+        groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'sort_selections') &&
+        groups.sort_selections &&
+        groups.sort_selections === '$';
       const hexNumber =
         (groups !== undefined &&
           Object.prototype.hasOwnProperty.call(groups, 'start') &&
@@ -524,6 +529,14 @@ function InsertNumsCommand(
       let value: any = 1;
       let lenVal = 0;
 
+      const sortSelections = sortSel
+        ? selections.sort(function(a: vscode.Selection, b: vscode.Selection) {
+            return a.anchor.line === b.anchor.line
+              ? a.anchor.character - b.anchor.character
+              : a.anchor.line - b.anchor.line;
+          })
+        : selections;
+
       if (EXPRMODE) {
       } else if (!ALPHA) {
         value =
@@ -620,10 +633,10 @@ function InsertNumsCommand(
 
         if (EXPRMODE) {
           const rangeSel =
-            selections !== null && i < selections.length
+            sortSelections !== null && i < sortSelections.length
               ? !REVERSE
-                ? selections[i]
-                : selections[selections.length - 1 - i]
+                ? sortSelections[i]
+                : sortSelections[sortSelections.length - 1 - i]
               : undefined;
           let original = '';
           if (vscode.window.activeTextEditor !== undefined) {
@@ -646,10 +659,10 @@ function InsertNumsCommand(
           }
         } else {
           const rangeSel =
-            selections !== null && i < selections.length
+            sortSelections !== null && i < sortSelections.length
               ? !REVERSE
-                ? selections[i]
-                : selections[selections.length - 1 - i]
+                ? sortSelections[i]
+                : sortSelections[sortSelections.length - 1 - i]
               : null;
           if (
             rangeSel !== null &&
@@ -780,11 +793,11 @@ function InsertNumsCommand(
       }
 
       if (EXPRMODE) {
-        if (selections !== null) {
+        if (sortSelections !== null) {
           if (REVERSE) {
-            selections.reverse();
+            sortSelections.reverse();
           }
-          selections.forEach(function(element: any, index: any) {
+          sortSelections.forEach(function(element: any, index: any) {
             if (index === values.length) {
               return;
             }
@@ -801,8 +814,11 @@ function InsertNumsCommand(
       } else {
         let text = '';
 
-        if (selections !== null) {
-          selections.forEach(function(element: vscode.Range, index: number) {
+        if (sortSelections !== null) {
+          sortSelections.forEach(function(
+            element: vscode.Range,
+            index: number
+          ) {
             if (index >= values.length) {
               text = '';
             } else if (index + 1 === selLen && values.length > selLen) {
