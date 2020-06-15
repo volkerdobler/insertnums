@@ -27,14 +27,29 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:extension.insertNums"
+		"onCommand:extension.insertNums",
+		"onCommand:extension.insertNums.showPickHistory"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"configuration": {
+			"title": "insertnums",
+			"properties": {
+				"insertnums.historyLimit": {
+					"type": "number",
+					"default": 30,
+					"description": "Maximum number of historical records, 0 is unlimited"
+				}
+			}
+		},
 		"commands": [
 			{
 				"command": "extension.insertNums",
 				"title": "Insert Numbers"
+			},
+			{
+				"command": "extension.insertNums.showPickHistory",
+				"title": "Insert Numbers Show History"
 			}
 		],
 		"keybindings": [
@@ -42,6 +57,12 @@
 				"command": "extension.insertNums",
 				"key": "ctrl+alt+.",
 				"mac": "cmd+alt+.",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "extension.insertNums.showPickHistory",
+				"key": "ctrl+alt+,",
+				"mac": "cmd+alt+,",
 				"when": "editorTextFocus"
 			}
 		]

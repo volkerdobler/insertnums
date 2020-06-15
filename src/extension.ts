@@ -1,4 +1,4 @@
-/* 
+/*
 The extension "InsertNums" is an adoption of a wonderful plugin for
 Sublimecode from James Brooks.
 https://github.com/jbrooksuk/InsertNums
@@ -6,7 +6,7 @@ https://github.com/jbrooksuk/InsertNums
 All errors are in my own responsibility and are solely done by
 myself.
 
-If you want to contact me, send an E-Mail to 
+If you want to contact me, send an E-Mail to
 insertnums.extension@volker-dobler.de
 
 Volker Dobler
@@ -31,35 +31,85 @@ export function activate(context: vscode.ExtensionContext): void {
   // The commandId parameter must match the command field in package.json
   const disposable = vscode.commands.registerCommand(
     'extension.insertNums',
-    () => {
+    (value: string = '') => {
       // The code you place here will be executed every time your command is executed
 
       // Display a message box to the user
       // vscode.window.showInformationMessage("Hello World");
-      InsertNumsCommand();
+      InsertNumsCommand(context, value);
     }
   );
 
   context.subscriptions.push(disposable);
+
+  const showHistoryCommand = vscode.commands.registerCommand(
+    'extension.insertNums.showPickHistory',
+    () => {
+      interface QuickPickItem extends vscode.QuickPickItem {
+        commandParam: string;
+      }
+
+      const histories: QuickPickItem[] = context.globalState
+        .get('histories', [])
+        .map((item, index) => {
+          return {
+            label: `[${index}] ${item}`,
+            commandParam: `${item}`
+          };
+        });
+
+      const options = {
+        placeHolder:
+          histories.length > 0
+            ? 'InsertNums History:'
+            : 'InsertNums History: [Empty]'
+      };
+
+      if (histories.length > 0) {
+        vscode.window.showQuickPick(histories, options).then(item => {
+          vscode.commands.executeCommand(
+            'extension.insertNums',
+            item ? item.commandParam : ''
+          );
+        });
+      }
+    }
+  );
+  context.subscriptions.push(showHistoryCommand);
 }
 
 // this method is called when your extension is deactivated
 export function deactivate(): void {
-  showHistory.dispose();
   return;
 }
 
-const commandHistory: string[] = [];
-
-let showHistory: vscode.OutputChannel = vscode.window.createOutputChannel(
-  'Insertnums History'
-);
-
-function InsertNumsCommand(): void {
+function InsertNumsCommand(
+  context: vscode.ExtensionContext,
+  value: string
+): void {
   interface IntAlphaFormat {
     padding: string | false;
     align: string | false;
     integer: number | false;
+  }
+
+  function addHistory(value: string) {
+    let histories: string[] = context.globalState.get('histories', []);
+
+    const itemIndex: number = histories.indexOf(value);
+    if (itemIndex !== -1) {
+      histories.splice(itemIndex, 1);
+    }
+    histories.unshift(value);
+
+    const historyLimit: number | undefined = vscode.workspace
+      .getConfiguration('insertnums')
+      .get('historyLimit');
+    if (historyLimit && historyLimit !== 0 && histories.length > historyLimit) {
+      histories.splice(historyLimit - 1, histories.length); // Remove excess records
+    }
+
+    context.globalState.update('histories', histories);
   }
 
   function intOrFloat(value: string): number {
@@ -174,7 +224,7 @@ function InsertNumsCommand(): void {
   }
 
   if (!Object.entries) {
-    Object.entries = function (obj: any): any {
+    Object.entries = function(obj: any): any {
       const ownProps = Object.keys(obj);
       let i = ownProps.length;
       const resArray = new Array(i); // preallocate the Array
@@ -213,13 +263,13 @@ function InsertNumsCommand(): void {
       insertNum:
         '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$',
+        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$'
     };
 
     const result = {
       exprMode: '',
       insertNum: '',
-      insertAlpha: '',
+      insertAlpha: ''
     };
 
     for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -268,7 +318,8 @@ function InsertNumsCommand(): void {
   document
     .showInputBox({
       prompt: "Enter format string (default: '1:1')",
-      placeHolder: '1:1',
+      value: value,
+      placeHolder: '1:1'
     })
     .then((result: any) => {
       if (result === undefined) {
@@ -279,10 +330,11 @@ function InsertNumsCommand(): void {
 
       if (result.length > 1 && result[0] === '!') {
         let rest = result.toString().substring(1);
+        let histories = context.globalState.get('histories', []);
         switch (rest) {
           case '!':
-            if (commandHistory.length > 0) {
-              result = commandHistory[0];
+            if (histories.length > 0) {
+              result = histories[0];
               getHistory = true;
               break;
             } else {
@@ -292,28 +344,23 @@ function InsertNumsCommand(): void {
               return null;
             }
           case 'p':
-            if (commandHistory.length > 0) {
-              showHistory.clear();
-              for (let i = 0; i < commandHistory.length; i++) {
-                showHistory.appendLine(
-                  '!' + i + ' => "' + commandHistory[i] + '"'
-                );
-              }
-              showHistory.show(true);
+            if (histories.length > 0) {
+              vscode.commands.executeCommand(
+                'extension.insertNums.showPickHistory'
+              );
             } else {
               vscode.window.showErrorMessage('[History] Empty');
             }
             return null;
           case 'c':
-            commandHistory.length = 0;
+            context.globalState.update('histories', []);
             vscode.window.showErrorMessage('[History] Cleared!');
             return null;
           default:
             let numRest = Math.abs(parseInt(rest));
             let nachNum = rest.replace(numRest, '');
-            if (commandHistory.length >= numRest) {
-              result =
-                commandHistory[numRest] + (nachNum.length > 0 ? nachNum : '');
+            if (histories.length >= numRest) {
+              result = histories[numRest] + (nachNum.length > 0 ? nachNum : '');
               if (nachNum.length === 0) {
                 getHistory = true;
               }
@@ -324,7 +371,7 @@ function InsertNumsCommand(): void {
       const eingabe = result.length > 0 ? result : '1:1';
 
       if (!getHistory) {
-        commandHistory.unshift(eingabe);
+        addHistory(eingabe);
       }
 
       const { insertNum, insertAlpha, exprMode } = getRegexps();
@@ -534,24 +581,24 @@ function InsertNumsCommand(): void {
       const timeLimit = 1000; // max. 1 second in the while loop
 
       const castTable: any = {
-        i: function (value: string): number {
+        i: function(value: string): number {
           return value.toString().length > 0 &&
             Number(value) === (Number(value) | 0)
             ? Number.parseInt(value)
             : 0;
         },
-        f: function (value: string): number {
+        f: function(value: string): number {
           return value.toString().length > 0 &&
             Number(value) === (Number(value) | 0)
             ? Number.parseFloat(value)
             : 0;
         },
-        s: function (value: string): string {
+        s: function(value: string): string {
           return String(value);
         },
-        b: function (value: string): boolean {
+        b: function(value: string): boolean {
           return value.toString().length > 0 ? Boolean(value) : true;
-        },
+        }
       };
 
       const WSP = new vscode.WorkspaceEdit();
@@ -569,7 +616,6 @@ function InsertNumsCommand(): void {
             `Time limit of ${timeLimit}ms exceeded`
           );
           return null;
-          break;
         }
 
         if (EXPRMODE) {
@@ -688,7 +734,7 @@ function InsertNumsCommand(): void {
                 align: alphaformat_align,
                 integer: alphaformat_integer
                   ? Number.parseInt(alphaformat_integer)
-                  : 0,
+                  : 0
               };
 
               replace = formatString(alphaFormat, evalValue);
@@ -738,7 +784,7 @@ function InsertNumsCommand(): void {
           if (REVERSE) {
             selections.reverse();
           }
-          selections.forEach(function (element: any, index: any) {
+          selections.forEach(function(element: any, index: any) {
             if (index === values.length) {
               return;
             }
@@ -756,7 +802,7 @@ function InsertNumsCommand(): void {
         let text = '';
 
         if (selections !== null) {
-          selections.forEach(function (element: vscode.Range, index: number) {
+          selections.forEach(function(element: vscode.Range, index: number) {
             if (index >= values.length) {
               text = '';
             } else if (index + 1 === selLen && values.length > selLen) {
