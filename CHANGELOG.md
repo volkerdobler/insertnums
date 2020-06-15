@@ -2,6 +2,15 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.5.0
+
+  New features (all changes by Yu [(@codeyu)](https://github.com/codeyu) - thanks a lot):
+
+  - thanks to Yu [(@codingyu)](https://github.com/codingyu) it's now possible to show the history in an extra window. Start the extension with CTRL+ALT+, (comma is the default key command for command extension.insertNums.showPickHistory), the history will be shown and you can pick one of the previous commands.
+  - history is also stored via globalState and can be use after closing vscode
+  - new config variable insertNums.historyLimit to limit the number of entries in the history (default: 30)
+  - to clear history, you still can use "!c" in the normal inputBox (CTRL+ALT+.).
+
 - 0.4.1
   Updated features:
 

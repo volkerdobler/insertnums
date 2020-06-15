@@ -45,24 +45,34 @@ export function activate(context: vscode.ExtensionContext): void {
   const showHistoryCommand = vscode.commands.registerCommand(
     'extension.insertNums.showPickHistory',
     () => {
-
       interface QuickPickItem extends vscode.QuickPickItem {
-        commandParam: string
+        commandParam: string;
       }
 
-      const histories: QuickPickItem[] = context.globalState.get('histories', []).map((item, index) => {
-        return {
-          label: `[${index}] ${item}`,
-          commandParam: `${item}`,
-        }
-      });
+      const histories: QuickPickItem[] = context.globalState
+        .get('histories', [])
+        .map((item, index) => {
+          return {
+            label: `[${index}] ${item}`,
+            commandParam: `${item}`
+          };
+        });
 
       const options = {
-        placeHolder: histories.length > 0 ? 'InsertNums History:' : 'InsertNums History: [Empty]'
+        placeHolder:
+          histories.length > 0
+            ? 'InsertNums History:'
+            : 'InsertNums History: [Empty]'
+      };
+
+      if (histories.length > 0) {
+        vscode.window.showQuickPick(histories, options).then(item => {
+          vscode.commands.executeCommand(
+            'extension.insertNums',
+            item ? item.commandParam : ''
+          );
+        });
       }
-      vscode.window.showQuickPick(histories, options).then((item) => {
-        vscode.commands.executeCommand('extension.insertNums', item ? item.commandParam : '');
-      });
     }
   );
   context.subscriptions.push(showHistoryCommand);
@@ -73,7 +83,10 @@ export function deactivate(): void {
   return;
 }
 
-function InsertNumsCommand(context: vscode.ExtensionContext, value: string): void {
+function InsertNumsCommand(
+  context: vscode.ExtensionContext,
+  value: string
+): void {
   interface IntAlphaFormat {
     padding: string | false;
     align: string | false;
@@ -87,11 +100,13 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
     if (itemIndex !== -1) {
       histories.splice(itemIndex, 1);
     }
-    histories.unshift(value)
+    histories.unshift(value);
 
-    const historyLimit: number | undefined = vscode.workspace.getConfiguration('insertnums').get('historyLimit');
+    const historyLimit: number | undefined = vscode.workspace
+      .getConfiguration('insertnums')
+      .get('historyLimit');
     if (historyLimit && historyLimit !== 0 && histories.length > historyLimit) {
-      histories.splice(historyLimit - 1, histories.length) // Remove excess records
+      histories.splice(historyLimit - 1, histories.length); // Remove excess records
     }
 
     context.globalState.update('histories', histories);
@@ -209,7 +224,7 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
   }
 
   if (!Object.entries) {
-    Object.entries = function (obj: any): any {
+    Object.entries = function(obj: any): any {
       const ownProps = Object.keys(obj);
       let i = ownProps.length;
       const resArray = new Array(i); // preallocate the Array
@@ -248,13 +263,13 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
       insertNum:
         '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@ (?<stopExpr> {stopExpr}))? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$',
+        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}) )?(?<reverse> !)?$'
     };
 
     const result = {
       exprMode: '',
       insertNum: '',
-      insertAlpha: '',
+      insertAlpha: ''
     };
 
     for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -304,7 +319,7 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
     .showInputBox({
       prompt: "Enter format string (default: '1:1')",
       value: value,
-      placeHolder: '1:1',
+      placeHolder: '1:1'
     })
     .then((result: any) => {
       if (result === undefined) {
@@ -330,7 +345,9 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
             }
           case 'p':
             if (histories.length > 0) {
-              vscode.commands.executeCommand('extension.insertNums.showPickHistory')
+              vscode.commands.executeCommand(
+                'extension.insertNums.showPickHistory'
+              );
             } else {
               vscode.window.showErrorMessage('[History] Empty');
             }
@@ -354,7 +371,7 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
       const eingabe = result.length > 0 ? result : '1:1';
 
       if (!getHistory) {
-        addHistory(eingabe)
+        addHistory(eingabe);
       }
 
       const { insertNum, insertAlpha, exprMode } = getRegexps();
@@ -411,13 +428,13 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
             .substring(0, 2) === '0x');
       const numLength =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'format_integer')
+        Object.prototype.hasOwnProperty.call(groups, 'format_integer')
           ? Number(groups.format_integer)
           : 0;
       const step =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'step') &&
-          groups.step != undefined
+        Object.prototype.hasOwnProperty.call(groups, 'step') &&
+        groups.step != undefined
           ? groups.step.substring(0, 2).toLocaleLowerCase() === '0x'
             ? hexToNum(groups.step) != undefined
               ? hexToNum(groups.step)
@@ -426,32 +443,32 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
           : 1;
       const randomStart =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'start') &&
-          groups.start !== undefined
+        Object.prototype.hasOwnProperty.call(groups, 'start') &&
+        groups.start !== undefined
           ? Number(groups.start)
           : 1;
       const randomTo =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'random') &&
-          groups.random !== undefined
+        Object.prototype.hasOwnProperty.call(groups, 'random') &&
+        groups.random !== undefined
           ? groups.random[0] === '+'
             ? randomStart + Number(groups.random)
             : Number(groups.random)
           : 0;
       const repeat =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'repeat') &&
-          groups.repeat != undefined &&
-          Number.isInteger(parseInt(groups.repeat)) &&
-          randomTo === 0
+        Object.prototype.hasOwnProperty.call(groups, 'repeat') &&
+        groups.repeat != undefined &&
+        Number.isInteger(parseInt(groups.repeat)) &&
+        randomTo === 0
           ? parseInt(groups.repeat)
           : 0;
       const frequency =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'frequency') &&
-          groups.frequency != undefined &&
-          Number.isInteger(parseInt(groups.frequency)) &&
-          randomTo === 0
+        Object.prototype.hasOwnProperty.call(groups, 'frequency') &&
+        groups.frequency != undefined &&
+        Number.isInteger(parseInt(groups.frequency)) &&
+        randomTo === 0
           ? parseInt(groups.frequency)
           : 0;
       const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
@@ -488,9 +505,9 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
 
       let decimals =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'step') &&
-          groups.step &&
-          groups.step.indexOf('.') > -1
+        Object.prototype.hasOwnProperty.call(groups, 'step') &&
+        groups.step &&
+        groups.step.indexOf('.') > -1
           ? groups.step.length - groups.step.indexOf('.') - 1 <= maxDecimals
             ? groups.step.length - groups.step.indexOf('.') - 1
             : maxDecimals
@@ -511,35 +528,35 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
       } else if (!ALPHA) {
         value =
           groups !== undefined &&
-            Object.prototype.hasOwnProperty.call(groups, 'start') &&
-            groups.start !== undefined
+          Object.prototype.hasOwnProperty.call(groups, 'start') &&
+          groups.start !== undefined
             ? randomTo && randomTo > 0 && Number(groups.start)
               ? getRandomNumber(randomStart, randomTo)
               : hexNumber
-                ? hexToNum(groups.start) != null
-                  ? hexToNum(groups.start)
-                  : 1
-                : Number(groups.start)
+              ? hexToNum(groups.start) != null
+                ? hexToNum(groups.start)
+                : 1
+              : Number(groups.start)
             : 1;
       } else {
         value =
           groups !== undefined &&
-            Object.prototype.hasOwnProperty.call(groups, 'start') &&
-            groups.start !== undefined
+          Object.prototype.hasOwnProperty.call(groups, 'start') &&
+          groups.start !== undefined
             ? alphaToNum(String(groups.start).toLocaleLowerCase())
             : 1;
         lenVal =
           groups !== undefined &&
-            WRAP &&
-            Object.prototype.hasOwnProperty.call(groups, 'start')
+          WRAP &&
+          Object.prototype.hasOwnProperty.call(groups, 'start')
             ? groups.start.toString().length
             : 0;
       }
 
       const startValue: any =
         groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'start') &&
-          groups.start !== undefined
+        Object.prototype.hasOwnProperty.call(groups, 'start') &&
+        groups.start !== undefined
           ? value
           : 1;
 
@@ -564,24 +581,24 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
       const timeLimit = 1000; // max. 1 second in the while loop
 
       const castTable: any = {
-        i: function (value: string): number {
+        i: function(value: string): number {
           return value.toString().length > 0 &&
             Number(value) === (Number(value) | 0)
             ? Number.parseInt(value)
             : 0;
         },
-        f: function (value: string): number {
+        f: function(value: string): number {
           return value.toString().length > 0 &&
             Number(value) === (Number(value) | 0)
             ? Number.parseFloat(value)
             : 0;
         },
-        s: function (value: string): string {
+        s: function(value: string): string {
           return String(value);
         },
-        b: function (value: string): boolean {
+        b: function(value: string): boolean {
           return value.toString().length > 0 ? Boolean(value) : true;
-        },
+        }
       };
 
       const WSP = new vscode.WorkspaceEdit();
@@ -599,7 +616,6 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
             `Time limit of ${timeLimit}ms exceeded`
           );
           return null;
-          break;
         }
 
         if (EXPRMODE) {
@@ -718,7 +734,7 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
                 align: alphaformat_align,
                 integer: alphaformat_integer
                   ? Number.parseInt(alphaformat_integer)
-                  : 0,
+                  : 0
               };
 
               replace = formatString(alphaFormat, evalValue);
@@ -768,7 +784,7 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
           if (REVERSE) {
             selections.reverse();
           }
-          selections.forEach(function (element: any, index: any) {
+          selections.forEach(function(element: any, index: any) {
             if (index === values.length) {
               return;
             }
@@ -786,7 +802,7 @@ function InsertNumsCommand(context: vscode.ExtensionContext, value: string): voi
         let text = '';
 
         if (selections !== null) {
-          selections.forEach(function (element: vscode.Range, index: number) {
+          selections.forEach(function(element: vscode.Range, index: number) {
             if (index >= values.length) {
               text = '';
             } else if (index + 1 === selLen && values.length > selLen) {

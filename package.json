@@ -61,8 +61,8 @@
 			},
 			{
 				"command": "extension.insertNums.showPickHistory",
-				"key": "ctrl+alt+/",
-				"mac": "cmd+alt+/",
+				"key": "ctrl+alt+,",
+				"mac": "cmd+alt+,",
 				"when": "editorTextFocus"
 			}
 		]

@@ -239,9 +239,13 @@ _(for the first 3 numbers 100 will be added, for all others 200 will be added)_
 
 ## (local) History:
 
-As the input box in VSCode does not provide a history option, I implemented a bash-like history for Insertnums.
+The input box in VSCode does currently not provide a history option.
 
-You can use the following syntax to use it.
+But thanks to [(@codeyu)](https://github.com/codeyu) there is a new command (since version 0.5.0) to get the history more easily. Just use the command 'insertNums.showPickHistory' (default key value is CTRL+ALT+,) and you can choose any command from the history.
+
+Also since version 0.5.0, a new config item insertNums.historyLimit (default: 30) is introduced to limit the number of entries in the history. If you don't want to limit the history, use 0 as unlimited history.
+
+In addition, the old bash-like history still works in 'normal' input box.
 
 ```
 !!          ::= runs last command (if available)
@@ -250,7 +254,7 @@ You can use the following syntax to use it.
 !c          ::= clears current history
 ```
 
-The history is local only and will be cleared after closing VSCode. But it can be used across different tabs if you do not close the editor completely (to be honest, as long as the extension is not reloaded).
+The history is stored independent of the current opened workspace in globalStorage of vscode.
 
 You can even add some additional commands to the history, but it is not possible to edit the history commands.
 
@@ -380,6 +384,12 @@ For more examples and information, please look at the original extension [here](
 ## Release Notes
 
 All release notes are in the Changelog file
+
+## Contributors 🙏
+
+A big thanks to the people that have contributed to this project:
+
+- Yu [(@codingyu)](https://github.com/codingyu) &mdash; [contribution](https://github.com/codingyu/insertnums)
 
 ## Special thanks!
 
