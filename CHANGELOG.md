@@ -2,6 +2,11 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.6.0
+
+  New command: insertnums.showPickHistory (default keyboard shortcut: CTRL+ALT+,)
+  The command shows the history of previous typed commands (stored in global). With the new option "insertnums.editHistory" (default: false) you can define, if you want to edit the selected command or just run it.
+
 - 0.5.1
 
   New feature:

@@ -39,6 +39,11 @@
 					"type": "number",
 					"default": 30,
 					"description": "Maximum number of historical records, 0 is unlimited"
+				},
+				"insertnums.editHistory": {
+					"type": "boolean",
+					"default": false,
+					"description": "Picked item from PickHistory is editable (default: false)"
 				}
 			}
 		},
@@ -48,7 +53,7 @@
 				"title": "Insert Numbers"
 			},
 			{
-				"command": "extension.insertNums.showPickHistory",
+				"command": "extension.insertNums.showHistory",
 				"title": "Insert Numbers Show History"
 			}
 		],
@@ -60,7 +65,7 @@
 				"when": "editorTextFocus"
 			},
 			{
-				"command": "extension.insertNums.showPickHistory",
+				"command": "extension.insertNums.showHistory",
 				"key": "ctrl+alt+,",
 				"mac": "cmd+alt+,",
 				"when": "editorTextFocus"

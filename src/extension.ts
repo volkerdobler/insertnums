@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(disposable);
 
   const showHistoryCommand = vscode.commands.registerCommand(
-    'extension.insertNums.showPickHistory',
+    'extension.insertNums.showHistory',
     () => {
       interface QuickPickItem extends vscode.QuickPickItem {
         commandParam: string;
@@ -53,20 +53,30 @@ export function activate(context: vscode.ExtensionContext): void {
         .get('histories', [])
         .map((item, index) => {
           return {
-            label: `[${index}] ${item}`,
-            commandParam: `${item}`
+            label: `[${index + 1}] ${item}`,
+            commandParam: `${item}`,
           };
         });
+
+      const newItem: QuickPickItem = {
+        label: '[0] new item',
+        commandParam: '',
+      };
+      histories.unshift(newItem);
 
       const options = {
         placeHolder:
           histories.length > 0
             ? 'InsertNums History:'
-            : 'InsertNums History: [Empty]'
+            : 'InsertNums History: [Empty]',
+        onDidSelectItem: (selection: QuickPickItem | string) => {
+          let x = 1;
+          let y = selection;
+        },
       };
 
       if (histories.length > 0) {
-        vscode.window.showQuickPick(histories, options).then(item => {
+        vscode.window.showQuickPick(histories, options).then((item) => {
           vscode.commands.executeCommand(
             'extension.insertNums',
             item ? item.commandParam : ''
@@ -224,7 +234,7 @@ function InsertNumsCommand(
   }
 
   if (!Object.entries) {
-    Object.entries = function(obj: any): any {
+    Object.entries = function (obj: any): any {
       const ownProps = Object.keys(obj);
       let i = ownProps.length;
       const resArray = new Array(i); // preallocate the Array
@@ -263,13 +273,13 @@ function InsertNumsCommand(
       insertNum:
         '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$'
+        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     const result = {
       exprMode: '',
       insertNum: '',
-      insertAlpha: ''
+      insertAlpha: '',
     };
 
     for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -315,404 +325,369 @@ function InsertNumsCommand(
 
   const selLen = selections.length;
 
-  document
-    .showInputBox({
-      prompt: "Enter format string (default: '1:1')",
-      value: value,
-      placeHolder: '1:1'
-    })
-    .then((result: any) => {
-      if (result === undefined) {
-        return null;
-      }
+  function renderResult(result: any) {
+    if (result === undefined) {
+      return null;
+    }
 
-      let getHistory: boolean = false;
+    let getHistory: boolean = false;
 
-      if (result.length > 1 && result[0] === '!') {
-        let rest = result.toString().substring(1);
-        let histories = context.globalState.get('histories', []);
-        switch (rest) {
-          case '!':
-            if (histories.length > 0) {
-              result = histories[0];
+    if (result.length > 1 && result[0] === '!') {
+      let rest = result.toString().substring(1);
+      let histories = context.globalState.get('histories', []);
+      switch (rest) {
+        case '!':
+          if (histories.length > 0) {
+            result = histories[0];
+            getHistory = true;
+            break;
+          } else {
+            vscode.window.showErrorMessage(
+              '[History] History length too short!'
+            );
+            return null;
+          }
+        case 'p':
+          if (histories.length > 0) {
+            vscode.commands.executeCommand('extension.insertNums.showHistory');
+          } else {
+            vscode.window.showErrorMessage('[History] Empty');
+          }
+          return null;
+        case 'c':
+          context.globalState.update('histories', []);
+          vscode.window.showErrorMessage('[History] Cleared!');
+          return null;
+        default:
+          let numRest = Math.abs(parseInt(rest));
+          let nachNum = rest.replace(numRest, '');
+          if (histories.length >= numRest) {
+            result = histories[numRest] + (nachNum.length > 0 ? nachNum : '');
+            if (nachNum.length === 0) {
               getHistory = true;
-              break;
-            } else {
-              vscode.window.showErrorMessage(
-                '[History] History length too short!'
-              );
-              return null;
             }
-          case 'p':
-            if (histories.length > 0) {
-              vscode.commands.executeCommand(
-                'extension.insertNums.showPickHistory'
-              );
-            } else {
-              vscode.window.showErrorMessage('[History] Empty');
-            }
-            return null;
-          case 'c':
-            context.globalState.update('histories', []);
-            vscode.window.showErrorMessage('[History] Cleared!');
-            return null;
-          default:
-            let numRest = Math.abs(parseInt(rest));
-            let nachNum = rest.replace(numRest, '');
-            if (histories.length >= numRest) {
-              result = histories[numRest] + (nachNum.length > 0 ? nachNum : '');
-              if (nachNum.length === 0) {
-                getHistory = true;
-              }
-            }
-        }
+          }
       }
+    }
 
-      const eingabe = result.length > 0 ? result : '1:1';
+    const eingabe = result.length > 0 ? result : '1:1';
 
-      if (!getHistory) {
-        addHistory(eingabe);
-      }
+    if (!getHistory) {
+      addHistory(eingabe);
+    }
 
-      const { insertNum, insertAlpha, exprMode } = getRegexps();
-      const numReg = new RegExp(insertNum, 'gi');
-      const alphaReg = new RegExp(insertAlpha, 'gi');
-      const exprReg = new RegExp(exprMode, 'gi');
+    const { insertNum, insertAlpha, exprMode } = getRegexps();
+    const numReg = new RegExp(insertNum, 'gi');
+    const alphaReg = new RegExp(insertAlpha, 'gi');
+    const exprReg = new RegExp(exprMode, 'gi');
 
-      let matchNum = null;
-      let matchAlpha = null;
-      let matchExpr = null;
+    let matchNum = null;
+    let matchAlpha = null;
+    let matchExpr = null;
 
-      try {
-        matchNum = numReg.exec(eingabe);
-        matchAlpha = alphaReg.exec(eingabe);
-        matchExpr = exprReg.exec(eingabe);
-      } catch (e) {
-        vscode.window.showErrorMessage(
-          'No valid regular expression:' + eingabe
-        );
-        return null;
-      }
+    try {
+      matchNum = numReg.exec(eingabe);
+      matchAlpha = alphaReg.exec(eingabe);
+      matchExpr = exprReg.exec(eingabe);
+    } catch (e) {
+      vscode.window.showErrorMessage('No valid regular expression:' + eingabe);
+      return null;
+    }
 
-      let groups;
+    let groups;
 
-      if (!!matchNum) {
-        groups = matchNum.groups;
-      } else if (!!matchAlpha) {
-        groups = matchAlpha.groups;
-      } else if (!!matchExpr) {
-        groups = matchExpr.groups;
-      } else {
-        vscode.window.showErrorMessage('Format string not valid ' + result);
-        return null;
-      }
+    if (!!matchNum) {
+      groups = matchNum.groups;
+    } else if (!!matchAlpha) {
+      groups = matchAlpha.groups;
+    } else if (!!matchExpr) {
+      groups = matchExpr.groups;
+    } else {
+      vscode.window.showErrorMessage('Format string not valid ' + result);
+      return null;
+    }
 
-      const EXPRMODE =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'cast');
-      const ALPHA =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'wrap');
-      const REVERSE =
-        groups !== undefined && groups.reverse && groups.reverse === '!';
-      const sortSel =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'sort_selections') &&
-        groups.sort_selections &&
-        groups.sort_selections === '$';
-      const hexNumber =
-        (groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'start') &&
-          groups.start &&
-          groups.start.length > 2 &&
-          groups.start.substring(0, 2).toLocaleLowerCase() === '0x') ||
-        (selections &&
-          vscode.window.activeTextEditor?.document
-            .getText(selections[0])
-            .trim()
-            .substring(0, 2) === '0x');
-      const numLength =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'format_integer')
-          ? Number(groups.format_integer)
-          : 0;
-      const step =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'step') &&
-        groups.step != undefined
-          ? groups.step.substring(0, 2).toLocaleLowerCase() === '0x'
-            ? hexToNum(groups.step) != undefined
-              ? hexToNum(groups.step)
-              : 1
-            : intOrFloat(groups.step)
-          : 1;
-      const randomStart =
+    const EXPRMODE =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'cast');
+    const ALPHA =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'wrap');
+    const REVERSE =
+      groups !== undefined && groups.reverse && groups.reverse === '!';
+    const sortSel =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'sort_selections') &&
+      groups.sort_selections &&
+      groups.sort_selections === '$';
+    const hexNumber =
+      (groups !== undefined &&
+        Object.prototype.hasOwnProperty.call(groups, 'start') &&
+        groups.start &&
+        groups.start.length > 2 &&
+        groups.start.substring(0, 2).toLocaleLowerCase() === '0x') ||
+      (selections &&
+        vscode.window.activeTextEditor?.document
+          .getText(selections[0])
+          .trim()
+          .substring(0, 2) === '0x');
+    const numLength =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'format_integer')
+        ? Number(groups.format_integer)
+        : 0;
+    const step =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'step') &&
+      groups.step != undefined
+        ? groups.step.substring(0, 2).toLocaleLowerCase() === '0x'
+          ? hexToNum(groups.step) != undefined
+            ? hexToNum(groups.step)
+            : 1
+          : intOrFloat(groups.step)
+        : 1;
+    const randomStart =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'start') &&
+      groups.start !== undefined
+        ? Number(groups.start)
+        : 1;
+    const randomTo =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'random') &&
+      groups.random !== undefined
+        ? groups.random[0] === '+'
+          ? randomStart + Number(groups.random)
+          : Number(groups.random)
+        : 0;
+    const repeat =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'repeat') &&
+      groups.repeat != undefined &&
+      Number.isInteger(parseInt(groups.repeat)) &&
+      randomTo === 0
+        ? parseInt(groups.repeat)
+        : 0;
+    const frequency =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'frequency') &&
+      groups.frequency != undefined &&
+      Number.isInteger(parseInt(groups.frequency)) &&
+      randomTo === 0
+        ? parseInt(groups.frequency)
+        : 0;
+    const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
+    const stopExpr = groups !== undefined && groups.stopExpr;
+    const cast: any =
+      EXPRMODE && groups !== undefined && groups.cast !== undefined
+        ? groups.cast
+        : 's';
+    const UPPER =
+      ALPHA &&
+      groups !== undefined &&
+      groups.start &&
+      groups.start.length > 0 &&
+      groups.start[0] === groups.start[0].toUpperCase();
+    const WRAP =
+      ALPHA && groups !== undefined && groups.wrap && groups.wrap === 'w';
+    const format =
+      groups !== undefined && groups.format !== undefined ? groups.format : '';
+
+    const alphaformat_padding =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'alphaformat_padding') &&
+      groups.alphaformat_padding;
+    const alphaformat_align =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'alphaformat_align') &&
+      groups.alphaformat_align;
+    const alphaformat_integer =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'alphaformat_integer') &&
+      groups.alphaformat_integer;
+
+    let decimals =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'step') &&
+      groups.step &&
+      groups.step.indexOf('.') > -1
+        ? groups.step.length - groups.step.indexOf('.') - 1 <= maxDecimals
+          ? groups.step.length - groups.step.indexOf('.') - 1
+          : maxDecimals
+        : 0;
+
+    if (format.length > 0) {
+      decimals =
+        format.indexOf('.') > -1
+          ? format.length - format.indexOf('.') - 1
+          : decimals;
+    }
+
+    const values: any = [];
+    let value: any = 1;
+    let lenVal = 0;
+
+    const sortSelections = sortSel
+      ? selections &&
+        selections.sort(function (a: vscode.Selection, b: vscode.Selection) {
+          return a.anchor.line === b.anchor.line
+            ? a.anchor.character - b.anchor.character
+            : a.anchor.line - b.anchor.line;
+        })
+      : selections;
+
+    if (EXPRMODE) {
+    } else if (!ALPHA) {
+      value =
         groups !== undefined &&
         Object.prototype.hasOwnProperty.call(groups, 'start') &&
         groups.start !== undefined
-          ? Number(groups.start)
+          ? randomTo && randomTo > 0 && Number(groups.start)
+            ? getRandomNumber(randomStart, randomTo)
+            : hexNumber
+            ? hexToNum(groups.start) != null
+              ? hexToNum(groups.start)
+              : 1
+            : Number(groups.start)
           : 1;
-      const randomTo =
+    } else {
+      value =
         groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'random') &&
-        groups.random !== undefined
-          ? groups.random[0] === '+'
-            ? randomStart + Number(groups.random)
-            : Number(groups.random)
+        Object.prototype.hasOwnProperty.call(groups, 'start') &&
+        groups.start !== undefined
+          ? alphaToNum(String(groups.start).toLocaleLowerCase())
+          : 1;
+      lenVal =
+        groups !== undefined &&
+        WRAP &&
+        Object.prototype.hasOwnProperty.call(groups, 'start')
+          ? groups.start.toString().length
           : 0;
-      const repeat =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'repeat') &&
-        groups.repeat != undefined &&
-        Number.isInteger(parseInt(groups.repeat)) &&
-        randomTo === 0
-          ? parseInt(groups.repeat)
-          : 0;
-      const frequency =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'frequency') &&
-        groups.frequency != undefined &&
-        Number.isInteger(parseInt(groups.frequency)) &&
-        randomTo === 0
-          ? parseInt(groups.frequency)
-          : 0;
-      const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
-      const stopExpr = groups !== undefined && groups.stopExpr;
-      const cast: any =
-        EXPRMODE && groups !== undefined && groups.cast !== undefined
-          ? groups.cast
-          : 's';
-      const UPPER =
-        ALPHA &&
-        groups !== undefined &&
-        groups.start &&
-        groups.start.length > 0 &&
-        groups.start[0] === groups.start[0].toUpperCase();
-      const WRAP =
-        ALPHA && groups !== undefined && groups.wrap && groups.wrap === 'w';
-      const format =
-        groups !== undefined && groups.format !== undefined
-          ? groups.format
-          : '';
+    }
 
-      const alphaformat_padding =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'alphaformat_padding') &&
-        groups.alphaformat_padding;
-      const alphaformat_align =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'alphaformat_align') &&
-        groups.alphaformat_align;
-      const alphaformat_integer =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'alphaformat_integer') &&
-        groups.alphaformat_integer;
+    const startValue: any =
+      groups !== undefined &&
+      Object.prototype.hasOwnProperty.call(groups, 'start') &&
+      groups.start !== undefined
+        ? value
+        : 1;
 
-      let decimals =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'step') &&
-        groups.step &&
-        groups.step.indexOf('.') > -1
-          ? groups.step.length - groups.step.indexOf('.') - 1 <= maxDecimals
-            ? groups.step.length - groups.step.indexOf('.') - 1
-            : maxDecimals
+    if (randomTo > 0 && groups && randomTo <= startValue) {
+      vscode.window.showErrorMessage(
+        `[Start: ${startValue} > Step: ${randomTo}] For random numbers, step needs to be larger than start value!`
+      );
+      return null;
+    }
+
+    let evalValue: any = 0;
+    let replace: any;
+    let prevValue = 0;
+    let repeatCounter = 1;
+    let frequencyCounter = 1;
+
+    let i = 0;
+    let skip = false;
+    let evalStr = '';
+
+    const startTime = Date.now();
+    const timeLimit = 1000; // max. 1 second in the while loop
+
+    const castTable: any = {
+      i: function (value: string): number {
+        return value.toString().length > 0 &&
+          Number(value) === (Number(value) | 0)
+          ? Number.parseInt(value)
           : 0;
+      },
+      f: function (value: string): number {
+        return value.toString().length > 0 &&
+          Number(value) === (Number(value) | 0)
+          ? Number.parseFloat(value)
+          : 0;
+      },
+      s: function (value: string): string {
+        return String(value);
+      },
+      b: function (value: string): boolean {
+        return value.toString().length > 0 ? Boolean(value) : true;
+      },
+    };
 
-      if (format.length > 0) {
-        decimals =
-          format.indexOf('.') > -1
-            ? format.length - format.indexOf('.') - 1
-            : decimals;
+    const WSP = new vscode.WorkspaceEdit();
+
+    while (true) {
+      if (
+        /* EXPRMODE ||  */ stopExpr === undefined &&
+        vscode.window.activeTextEditor !== undefined &&
+        vscode.window.activeTextEditor.selections.length === i
+      ) {
+        break;
       }
-
-      const values: any = [];
-      let value: any = 1;
-      let lenVal = 0;
-
-      const sortSelections = sortSel
-        ? selections.sort(function(a: vscode.Selection, b: vscode.Selection) {
-            return a.anchor.line === b.anchor.line
-              ? a.anchor.character - b.anchor.character
-              : a.anchor.line - b.anchor.line;
-          })
-        : selections;
+      if (Date.now() > startTime + timeLimit) {
+        vscode.window.showInformationMessage(
+          `Time limit of ${timeLimit}ms exceeded`
+        );
+        return null;
+      }
 
       if (EXPRMODE) {
-      } else if (!ALPHA) {
-        value =
-          groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'start') &&
-          groups.start !== undefined
-            ? randomTo && randomTo > 0 && Number(groups.start)
-              ? getRandomNumber(randomStart, randomTo)
-              : hexNumber
-              ? hexToNum(groups.start) != null
-                ? hexToNum(groups.start)
-                : 1
-              : Number(groups.start)
-            : 1;
-      } else {
-        value =
-          groups !== undefined &&
-          Object.prototype.hasOwnProperty.call(groups, 'start') &&
-          groups.start !== undefined
-            ? alphaToNum(String(groups.start).toLocaleLowerCase())
-            : 1;
-        lenVal =
-          groups !== undefined &&
-          WRAP &&
-          Object.prototype.hasOwnProperty.call(groups, 'start')
-            ? groups.start.toString().length
-            : 0;
-      }
-
-      const startValue: any =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'start') &&
-        groups.start !== undefined
-          ? value
-          : 1;
-
-      if (randomTo > 0 && groups && randomTo <= startValue) {
-        vscode.window.showErrorMessage(
-          `[Start: ${startValue} > Step: ${randomTo}] For random numbers, step needs to be larger than start value!`
-        );
-        return null;
-      }
-
-      let evalValue: any = 0;
-      let replace: any;
-      let prevValue = 0;
-      let repeatCounter = 1;
-      let frequencyCounter = 1;
-
-      let i = 0;
-      let skip = false;
-      let evalStr = '';
-
-      const startTime = Date.now();
-      const timeLimit = 1000; // max. 1 second in the while loop
-
-      const castTable: any = {
-        i: function(value: string): number {
-          return value.toString().length > 0 &&
-            Number(value) === (Number(value) | 0)
-            ? Number.parseInt(value)
-            : 0;
-        },
-        f: function(value: string): number {
-          return value.toString().length > 0 &&
-            Number(value) === (Number(value) | 0)
-            ? Number.parseFloat(value)
-            : 0;
-        },
-        s: function(value: string): string {
-          return String(value);
-        },
-        b: function(value: string): boolean {
-          return value.toString().length > 0 ? Boolean(value) : true;
+        const rangeSel =
+          sortSelections !== null && i < sortSelections.length
+            ? !REVERSE
+              ? sortSelections[i]
+              : sortSelections[sortSelections.length - 1 - i]
+            : undefined;
+        let original = '';
+        if (vscode.window.activeTextEditor !== undefined) {
+          original = vscode.window.activeTextEditor.document.getText(rangeSel);
         }
-      };
-
-      const WSP = new vscode.WorkspaceEdit();
-
-      while (true) {
-        if (
-          /* EXPRMODE ||  */ stopExpr === undefined &&
-          vscode.window.activeTextEditor !== undefined &&
-          vscode.window.activeTextEditor.selections.length === i
-        ) {
-          break;
-        }
-        if (Date.now() > startTime + timeLimit) {
-          vscode.window.showInformationMessage(
-            `Time limit of ${timeLimit}ms exceeded`
+        try {
+          value =
+            original.length > 0
+              ? castTable[cast](original)
+              : castTable[cast](value);
+        } catch (e) {
+          vscode.window.showErrorMessage(
+            // @ts-ignore
+            `[${value}] could not be cast to ${castTable[cast]}`
           );
+          skip = true;
           return null;
         }
+      } else {
+        const rangeSel =
+          sortSelections !== null && i < sortSelections.length
+            ? !REVERSE
+              ? sortSelections[i]
+              : sortSelections[sortSelections.length - 1 - i]
+            : null;
+        if (
+          rangeSel !== null &&
+          !rangeSel.isEmpty &&
+          vscode.window.activeTextEditor !== undefined
+        ) {
+          const original = vscode.window.activeTextEditor.document.getText(
+            rangeSel
+          );
+          value = Number.isNaN(+original) ? value : +original;
+        }
+      }
 
-        if (EXPRMODE) {
-          const rangeSel =
-            sortSelections !== null && i < sortSelections.length
-              ? !REVERSE
-                ? sortSelections[i]
-                : sortSelections[sortSelections.length - 1 - i]
-              : undefined;
-          let original = '';
-          if (vscode.window.activeTextEditor !== undefined) {
-            original = vscode.window.activeTextEditor.document.getText(
-              rangeSel
-            );
-          }
-          try {
-            value =
-              original.length > 0
-                ? castTable[cast](original)
-                : castTable[cast](value);
-          } catch (e) {
-            vscode.window.showErrorMessage(
-              // @ts-ignore
-              `[${value}] could not be cast to ${castTable[cast]}`
-            );
-            skip = true;
-            return null;
-          }
-        } else {
-          const rangeSel =
-            sortSelections !== null && i < sortSelections.length
-              ? !REVERSE
-                ? sortSelections[i]
-                : sortSelections[sortSelections.length - 1 - i]
-              : null;
-          if (
-            rangeSel !== null &&
-            !rangeSel.isEmpty &&
-            vscode.window.activeTextEditor !== undefined
-          ) {
-            const original = vscode.window.activeTextEditor.document.getText(
-              rangeSel
-            );
-            value = Number.isNaN(+original) ? value : +original;
+      if (!skip) {
+        if (expr || stopExpr !== undefined) {
+          if (groups !== undefined && EXPRMODE) {
+            groups.step = '';
           }
         }
-
-        if (!skip) {
-          if (expr || stopExpr !== undefined) {
-            if (groups !== undefined && EXPRMODE) {
-              groups.step = '';
-            }
+        if (ALPHA) {
+          evalValue = numToAlpha(value, lenVal);
+          if (UPPER) {
+            evalValue = String(evalValue).toLocaleUpperCase();
           }
-          if (ALPHA) {
-            evalValue = numToAlpha(value, lenVal);
-            if (UPPER) {
-              evalValue = String(evalValue).toLocaleUpperCase();
-            }
-          } else {
-            if (groups !== undefined && expr) {
-              value = value !== null ? value : 0;
-              evalStr = groups.expr
-                .replace(/\b_\b/g, value)
-                .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
-                .replace(/\bn\b/gi, selLen.toString())
-                .replace(/\bp\b/gi, prevValue.toString())
-                .replace(/\bc\b/gi, evalValue)
-                .replace(/\ba\b/gi, startValue.toString())
-                .replace(/\bi\b/gi, i.toString());
-              try {
-                evalValue = eval(evalStr);
-              } catch (e) {
-                vscode.window.showErrorMessage(
-                  `[${groups.expr}] Invalid Expression. Exception is: ` + e
-                );
-                return null;
-              }
-            } else {
-              evalValue = hexNumber ? numToHex(value, numLength) : value;
-            }
-          }
-
-          if (stopExpr !== undefined && stopExpr) {
-            evalStr = stopExpr
+        } else {
+          if (groups !== undefined && expr) {
+            value = value !== null ? value : 0;
+            evalStr = groups.expr
               .replace(/\b_\b/g, value)
               .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
               .replace(/\bn\b/gi, selLen.toString())
@@ -721,128 +696,164 @@ function InsertNumsCommand(
               .replace(/\ba\b/gi, startValue.toString())
               .replace(/\bi\b/gi, i.toString());
             try {
-              if (eval(evalStr)) {
-                break;
-              }
+              evalValue = eval(evalStr);
             } catch (e) {
               vscode.window.showErrorMessage(
-                `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e
+                `[${groups.expr}] Invalid Expression. Exception is: ` + e
               );
               return null;
             }
-          }
-          if (format !== undefined && format.length > 0) {
-            replace = '';
-            if (!ALPHA) {
-              if (hexNumber) {
-                replace = numToHex(evalValue, numLength);
-              } else {
-                replace = d3.format(format)(
-                  decimals > 0 ? evalValue.toFixed(decimals) : evalValue
-                );
-              }
-            } else {
-              let alphaFormat: IntAlphaFormat = {
-                padding: alphaformat_padding,
-                align: alphaformat_align,
-                integer: alphaformat_integer
-                  ? Number.parseInt(alphaformat_integer)
-                  : 0
-              };
-
-              replace = formatString(alphaFormat, evalValue);
-            }
           } else {
+            evalValue = hexNumber ? numToHex(value, numLength) : value;
+          }
+        }
+
+        if (stopExpr !== undefined && stopExpr) {
+          evalStr = stopExpr
+            .replace(/\b_\b/g, value)
+            .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
+            .replace(/\bn\b/gi, selLen.toString())
+            .replace(/\bp\b/gi, prevValue.toString())
+            .replace(/\bc\b/gi, evalValue)
+            .replace(/\ba\b/gi, startValue.toString())
+            .replace(/\bi\b/gi, i.toString());
+          try {
+            if (eval(evalStr)) {
+              break;
+            }
+          } catch (e) {
+            vscode.window.showErrorMessage(
+              `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e
+            );
+            return null;
+          }
+        }
+        if (format !== undefined && format.length > 0) {
+          replace = '';
+          if (!ALPHA) {
             if (hexNumber) {
-              replace = String(numToHex(evalValue, numLength));
+              replace = numToHex(evalValue, numLength);
             } else {
-              replace = String(
+              replace = d3.format(format)(
                 decimals > 0 ? evalValue.toFixed(decimals) : evalValue
               );
             }
-          }
-        }
-
-        values.push(!skip ? String(replace) : String(value));
-        prevValue = !skip ? +replace : +value;
-
-        if (!EXPRMODE) {
-          if (frequency === 0 || frequencyCounter >= frequency) {
-            if (randomTo > 0) {
-              value = getRandomNumber(randomStart, randomTo);
-            } else {
-              value += step !== undefined ? +step : 1;
-            }
-            repeatCounter++;
-            frequencyCounter = 1;
           } else {
-            frequencyCounter++;
-          }
-          if (repeat > 0 && repeatCounter > repeat) {
-            value = startValue;
-            repeatCounter = 1;
-          }
-          value.toFixed(decimals);
-        }
-        i += 1;
-        skip = false;
-      }
+            let alphaFormat: IntAlphaFormat = {
+              padding: alphaformat_padding,
+              align: alphaformat_align,
+              integer: alphaformat_integer
+                ? Number.parseInt(alphaformat_integer)
+                : 0,
+            };
 
-      if (values.length === 0) {
-        return null;
-      }
-
-      if (EXPRMODE) {
-        if (sortSelections !== null) {
-          if (REVERSE) {
-            sortSelections.reverse();
+            replace = formatString(alphaFormat, evalValue);
           }
-          sortSelections.forEach(function(element: any, index: any) {
-            if (index === values.length) {
-              return;
-            }
-            if (vscode.window.activeTextEditor !== undefined) {
-              WSP.replace(
-                vscode.window.activeTextEditor.document.uri,
-                element,
-                values[index]
-              );
-            }
-          });
-          vscode.workspace.applyEdit(WSP);
-        }
-      } else {
-        let text = '';
-
-        if (sortSelections !== null) {
-          sortSelections.forEach(function(
-            element: vscode.Range,
-            index: number
-          ) {
-            if (index >= values.length) {
-              text = '';
-            } else if (index + 1 === selLen && values.length > selLen) {
-              const other = !REVERSE
-                ? values.slice(index, values.length)
-                : values.slice(0, -index - 1);
-              text = other.join('\n');
-            } else {
-              text = REVERSE
-                ? values[values.length - index - 1].toString()
-                : values[index].toString();
-            }
-            if (vscode.window.activeTextEditor !== undefined) {
-              WSP.replace(
-                vscode.window.activeTextEditor.document.uri,
-                element,
-                text
-              );
-            }
-          });
-          vscode.workspace.applyEdit(WSP);
+        } else {
+          if (hexNumber) {
+            replace = String(numToHex(evalValue, numLength));
+          } else {
+            replace = String(
+              decimals > 0 ? evalValue.toFixed(decimals) : evalValue
+            );
+          }
         }
       }
 
-      // vscode.window.showInformationMessage("Eingegeben: " + eingabe);
-    });
+      values.push(!skip ? String(replace) : String(value));
+      prevValue = !skip ? +replace : +value;
+
+      if (!EXPRMODE) {
+        if (frequency === 0 || frequencyCounter >= frequency) {
+          if (randomTo > 0) {
+            value = getRandomNumber(randomStart, randomTo);
+          } else {
+            value += step !== undefined ? +step : 1;
+          }
+          repeatCounter++;
+          frequencyCounter = 1;
+        } else {
+          frequencyCounter++;
+        }
+        if (repeat > 0 && repeatCounter > repeat) {
+          value = startValue;
+          repeatCounter = 1;
+        }
+        value.toFixed(decimals);
+      }
+      i += 1;
+      skip = false;
+    }
+
+    if (values.length === 0) {
+      return null;
+    }
+
+    if (EXPRMODE) {
+      if (sortSelections !== null) {
+        if (REVERSE) {
+          sortSelections.reverse();
+        }
+        sortSelections.forEach(function (element: any, index: any) {
+          if (index === values.length) {
+            return;
+          }
+          if (vscode.window.activeTextEditor !== undefined) {
+            WSP.replace(
+              vscode.window.activeTextEditor.document.uri,
+              element,
+              values[index]
+            );
+          }
+        });
+        vscode.workspace.applyEdit(WSP);
+      }
+    } else {
+      let text = '';
+
+      if (sortSelections !== null) {
+        sortSelections.forEach(function (element: vscode.Range, index: number) {
+          if (index >= values.length) {
+            text = '';
+          } else if (index + 1 === selLen && values.length > selLen) {
+            const other = !REVERSE
+              ? values.slice(index, values.length)
+              : values.slice(0, -index - 1);
+            text = other.join('\n');
+          } else {
+            text = REVERSE
+              ? values[values.length - index - 1].toString()
+              : values[index].toString();
+          }
+          if (vscode.window.activeTextEditor !== undefined) {
+            WSP.replace(
+              vscode.window.activeTextEditor.document.uri,
+              element,
+              text
+            );
+          }
+        });
+        vscode.workspace.applyEdit(WSP);
+      }
+    }
+  }
+
+  const editHistory: boolean | undefined = vscode.workspace
+    .getConfiguration('insertnums')
+    .get('editHistory');
+
+  if (value.length === 0 || editHistory) {
+    document
+      .showInputBox({
+        prompt: "Enter format string (default: '1:1')",
+        value: value,
+        placeHolder: '1:1',
+      })
+      .then((result: any) => {
+        renderResult(result);
+        // vscode.window.showInformationMessage("Eingegeben: " + eingabe);
+      });
+  } else {
+    renderResult(value);
+  }
 }

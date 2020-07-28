@@ -237,15 +237,24 @@ _(for the first 3 numbers 100 will be added, for all others 200 will be added)_
 
 ---
 
-## (local) History:
+## History:
 
-The input box in VSCode does currently not provide a history option.
+The history is stored independent of the current opened workspace in globalStorage of vscode.
 
-But thanks to [(@codeyu)](https://github.com/codeyu) there is a new command (since version 0.5.0) to get the history more easily. Just use the command 'insertNums.showPickHistory' (default key value is CTRL+ALT+,) and you can choose any command from the history.
+# History command
 
-Also since version 0.5.0, a new config item insertNums.historyLimit (default: 30) is introduced to limit the number of entries in the history. If you don't want to limit the history, use 0 as unlimited history.
+With the command 'insertNums.showHistory' (default key board shortcut is CTRL+ALT+,) you can see the previous typed commands. Select one of them to run this command directly a second time.
+Two config items can be used:
 
-In addition, the old bash-like history still works in 'normal' input box.
+- 'insertNums.historyLimit' (default: 30) limit the number of entries in the history. If you don't want to limit the history size, use 0 as unlimited history.
+- 'insertNums.editHistory' (default: false) defines, if you have to edit/confirm the selected command from the history or just run it directly.
+  (special thanks to [(@codeyu)](https://github.com/codeyu) for the first version of the history command).
+
+If you don't find a fitting command in the history, you can choose "new item" and after RETURN you are back in the normal command and can type your new command in the input box.
+
+# Bash-like history
+
+There is a bash-like history for the 'normal' command (input box).
 
 ```
 !!          ::= runs last command (if available)
@@ -254,15 +263,13 @@ In addition, the old bash-like history still works in 'normal' input box.
 !c          ::= clears current history
 ```
 
-The history is stored independent of the current opened workspace in globalStorage of vscode.
-
-You can even add some additional commands to the history, but it is not possible to edit the history commands.
+You can even add some additional commands to this history, but it is not possible to edit the history commands.
 
 Example: if you have run the previous command `10:5` and you would like to add a stop criteria, you can type `!!@i>5` to run the previous command with the new stop criteria (the new command will be `10:5@i>5`).
 
 New commands (including edited commands) will be saved in the history as new entry.
 
-The number of commands in the history is not limited, but history will be cleared if extension or VSCode is reloaded.
+The number of commands in the bash-like history is not limited, but history will be cleared if extension or VSCode is reloaded.
 
 ---
 
@@ -392,7 +399,7 @@ All release notes are in the Changelog file
 
 A big thanks to the people that have contributed to this project:
 
-- Yu [(@codingyu)](https://github.com/codingyu) &mdash; [contribution](https://github.com/codingyu/insertnums)
+- Yu [(@codingyu)](https://github.com/codingyu) &mdash; [contribution](https://github.com/codingyu/insertnums) (added first version of history picklist in version 0.5.0)
 
 ## Special thanks!
 
