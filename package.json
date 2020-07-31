@@ -21,7 +21,7 @@
 		"url": "https://github.com/volkerdobler/insertnums.git"
 	},
 	"engines": {
-		"vscode": "^1.45.1"
+		"vscode": "^1.47.0"
 	},
 	"categories": [
 		"Other"
