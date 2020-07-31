@@ -2,6 +2,10 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.6.1
+
+  Bugfix: showHistory command in package.json was wrong - sorry!
+
 - 0.6.0
 
   New command: insertnums.showPickHistory (default keyboard shortcut: CTRL+ALT+,)
