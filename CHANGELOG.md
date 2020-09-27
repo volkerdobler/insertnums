@@ -2,6 +2,12 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.6.2
+  Bugfix: step did not work with decimal numbers - fixed
+
+  Update: minor changes in the README file. Especially formatting had
+  some wrong documentation.
+
 - 0.6.1
 
   Bugfix: showHistory command in package.json was wrong - sorry!

@@ -123,8 +123,8 @@ function InsertNumsCommand(
   }
 
   function intOrFloat(value: string): number {
-    const num = parseInt(value);
-    return Number.isInteger(num) ? parseInt(value) : parseFloat(value);
+    const nValue = parseFloat(value);
+    return Number.isInteger(nValue) ? parseInt(value) : parseFloat(value);
   }
 
   function numToAlpha(num: number, len = 0): string {
@@ -261,7 +261,7 @@ function InsertNumsCommand(
       numeric: '{integer} | {float}',
       signedNum: '([+-]? {numeric})|{hexNum}',
       format:
-        '((?<format_padding> [^}}])? (?<format_align> [<>=^]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {integer})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
+        '((?<format_padding> [^}}])? (?<format_align> [<>^=]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {integer})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
         '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^]))? ((?<alphaformat_integer>{integer}))?',

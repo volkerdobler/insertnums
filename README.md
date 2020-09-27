@@ -72,8 +72,10 @@ e.g. an input "`1~05d`" will get (starting with 1, default step is 1 and format 
 00005
 ```
 
-Sometimes, you might need to repeat the sequence after a fixed number of repetitions. _(this feature is new and not included in the original sublimetext extension!)_
-Example would be, you want to include the numbers 1, 2, 3 and then start from 1 again.
+The _d_ at the end stands for "decimal" output. If you need the numbers as hex, replace the d with an _x_. If you need the output as octal, put an _o_ at the end and binary numbers can be inserted with a _b_ at the end.
+
+Sometimes, you might need to start the sequence again after a fixed number of repetitions. _(this feature is new and not included in the original sublimetext extension!)_
+Example would be, you want to include the numbers 1, 2, 3 only and after the 3, it should start from 1 again.
 This can be done with the optional **#{REPEATS}**.
 Typing `1#3` results in:
 
@@ -85,8 +87,8 @@ Typing `1#3` results in:
 2
 ```
 
-Another need I often have, is to repeat the current number in a sequence a couple of times. _(this feature is new and not included in the original sublimetext extension!)_
-Example would be, you want to include the numbers 1 three time, 2 three times and 3 times (so 9 in total).
+Another need I often have, is to repeat the current char/number a few times before increasing the value. _(this feature is new and not included in the original sublimetext extension!)_
+Example would be, you want to include the numbers 1 three times, then 2 three times and after this the number 3 three times (so 9 insertations in total).
 This can be done with the optional **\*{FREQUENCY}**.
 Typing `1*3` when 9 multi selections are marked, results in:
 
@@ -101,6 +103,8 @@ Typing `1*3` when 9 multi selections are marked, results in:
 3
 3
 ```
+
+Another possible need is to add the number 1 3-times, 4 3-times and so on. Again, if you type `1:4*3` the programm will insert 1, 1, 1, then add 4 and insert 5, 5, 5, adds 4 and inserts 9 3-times.
 
 It is also possible to have a stop criterion with the option **@{STOPEXPRESSION}**.
 _STOPEXPRESSION_ can be any regular javascript but has the advantage, that some special chars can be used (details in the **SYNTAX** chapter below).
@@ -122,7 +126,7 @@ After typing `1@_>5`, 5 lines will be inserted _(stop if current value will be g
 5
 ```
 
-And you can combine all of them in one command.
+You can combine all of these options in one command.
 With one cursor selected and the following command `3:2*2#4@i>10` results in:
 
 ```
@@ -139,7 +143,7 @@ With one cursor selected and the following command `3:2*2#4@i>10` results in:
 5
 ```
 
-A special sequence of integers is the random sequence. Insertnums can do see easily with the option **r{UNTIL}** option.
+A special sequence of integers is the random sequence. Insertnums can do this easily with the option **r{UNTIL}** option.
 _UNTIL_ is either an integer or a plus-char followed by an integer. Without a plus-char the integer determines the maximal value in the random range. If a plus-char is used, the _UNTIL_ value will be added to the start value (details syntax see below).
 
 You want to include 5 random number between 15 and 25 (including both). Type the following: `15r25` (or alternative `15r+10`).
@@ -302,14 +306,14 @@ Formatting can be done with the following options:
 
 ```
 <padding>   ::= any char except }
-<align>     ::= "<" for left aligned, ">" for right aligned, "=" for centered, "^" for decimal centered
+<align>     ::= "<" for left aligned, ">" for right aligned (default), "^" for centered, "=" for right aligned, but with any sign and symbol to the left of any padding
 <sign>      ::= "-", "+" or " " (blank)
 #           ::= option causes the “alternate form” to be used for the conversion (see Python documentation)
 <precision> ::= any positive number
 <type>      ::= any one of the following chars "bcdeEfFgGnoxX%"
 ```
 
-For more details about the formatting possibilities see the [Python mini-language documentation](https://docs.python.org/3.4/library/string.html#format-specification-mini-language)
+For more details about the formatting possibilities see the [d3-formatting documentation](https://github.com/d3/d3-format#locale_format) or the [Python mini-language documentation](https://docs.python.org/3.4/library/string.html#format-specification-mini-language).
 
 ---
 
@@ -339,7 +343,7 @@ Formatting can be done with the following options:
 
 ```
 <padding> ::= any char except }
-<align>   ::= "<" for left aligned, ">" for right aligned, "=" for centered
+<align>   ::= "<" for left aligned, ">" for right aligned, "^" for centered
 <integer> ::= any positive integer (length of string)
 ```
 
