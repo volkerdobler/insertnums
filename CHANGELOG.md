@@ -2,6 +2,9 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.6.3
+  Bugfix: command did not start
+
 - 0.6.2
   Bugfix: step did not work with decimal numbers - fixed
 
