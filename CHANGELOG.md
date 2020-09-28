@@ -2,7 +2,7 @@
 
 All notable changes to this extension (newest on top):
 
-- 0.6.3
+- 0.6.4
   Bugfix: command did not start
 
 - 0.6.2
