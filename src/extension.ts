@@ -414,7 +414,7 @@ function InsertNumsCommand(
       groups !== undefined &&
       Object.prototype.hasOwnProperty.call(groups, 'wrap');
     const REVERSE =
-      groups !== undefined && groups.reverse && groups.reverse === '!';
+      groups !== undefined && groups.reverse != null && groups.reverse === '!';
     const sortSel =
       groups !== undefined &&
       Object.prototype.hasOwnProperty.call(groups, 'sort_selections') &&
@@ -669,7 +669,16 @@ function InsertNumsCommand(
           const original = vscode.window.activeTextEditor.document.getText(
             rangeSel
           );
-          value = Number.isNaN(+original) ? value : +original;
+          if (Number.isNaN(+original)) {
+          } else {
+            if (!expr) {
+              value = +original;
+              vscode.window.showErrorMessage(
+                'To replace numbers us the expression mode!'
+              );
+            }
+          }
+          // value = Number.isNaN(+original) ? value : +original;
         }
       }
 
@@ -687,6 +696,8 @@ function InsertNumsCommand(
         } else {
           if (groups !== undefined && expr) {
             value = value !== null ? value : 0;
+            evalValue =
+              step !== undefined ? +startValue + +step * values.length : value;
             evalStr = groups.expr
               .replace(/\b_\b/g, value)
               .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
@@ -709,6 +720,8 @@ function InsertNumsCommand(
         }
 
         if (stopExpr !== undefined && stopExpr) {
+          evalValue =
+            step !== undefined ? +startValue + +step * values.length : value;
           evalStr = stopExpr
             .replace(/\b_\b/g, value)
             .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
