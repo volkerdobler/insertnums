@@ -20,5 +20,13 @@
     "search.exclude": {
         "out": true
     },
-    "typescript.tsc.autoDetect": "off"
+    "typescript.tsc.autoDetect": "off",
+    "workbench.colorCustomizations": {
+        "editorStickyScroll.background": "#3333ff",
+        "editorStickyScrollHover.background": "#0000ff",
+        "[Cobalt2]": {
+            "editor.findMatchHighlightBackground": "#b6c700",
+            "editor.findMatchBackground": "#869e00"
+        }
+    }
 }
