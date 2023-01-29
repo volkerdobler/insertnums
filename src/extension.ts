@@ -1,22 +1,25 @@
 /*
-The extension "InsertNums" is an adoption of a wonderful plugin for
-Sublimecode from James Brooks.
+The extension "InsertSeq" (previous InsertNums) is an adoption of a wonderful plugin for sublimecode from James Brooks.
 https://github.com/jbrooksuk/InsertNums
 
 All errors are in my own responsibility and are solely done by
 myself.
 
 If you want to contact me, send an E-Mail to
-insertnums.extension@volker-dobler.de
+insertseq.extension@dobler-online.com
 
 Volker Dobler
-May 2020
+original from May 2020
+rewritten February 2023
  */
 
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+import * as path from 'path';
+
+// nicht updaten!!! With version 3 it will not work
 import * as d3 from 'd3-format';
 
 // this method is called when your extension is activated
@@ -24,68 +27,53 @@ import * as d3 from 'd3-format';
 export function activate(context: vscode.ExtensionContext): void {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "insertnums" is now active!');
+  console.log('Congratulations, your extension "insertseq" is now active!');
 
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  const disposable = vscode.commands.registerCommand(
+  const insertSeq = vscode.commands.registerCommand(
+    'extension.insertSeq',
+    (value: string = '') => {
+      InsertSequenceCommand({ context, value });
+    }
+  );
+
+  const insertNums = vscode.commands.registerCommand(
     'extension.insertNums',
     (value: string = '') => {
-      // The code you place here will be executed every time your command is executed
-
       // Display a message box to the user
-      // vscode.window.showInformationMessage("Hello World");
-      InsertNumsCommand(context, value);
+      vscode.window.showInformationMessage(
+        'The command has changed to insertSeq. insertNums is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)'
+      );
+
+      InsertSequenceCommand({ context, value, version: 'insertnums' });
     }
   );
 
-  context.subscriptions.push(disposable);
+  context.subscriptions.push(insertSeq);
+  context.subscriptions.push(insertNums);
 
-  const showHistoryCommand = vscode.commands.registerCommand(
+  const showSeqHistoryCommand = vscode.commands.registerCommand(
+    'extension.insertSeq.showHistory',
+    () => {
+      insertSequenceHistory({ context });
+    }
+  );
+
+  const showNumHistoryCommand = vscode.commands.registerCommand(
     'extension.insertNums.showHistory',
     () => {
-      interface QuickPickItem extends vscode.QuickPickItem {
-        commandParam: string;
-      }
+      vscode.window.showInformationMessage(
+        'The command has changed to insertSeq.showHistory. insertNums.showHistory is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)'
+      );
 
-      const histories: QuickPickItem[] = context.globalState
-        .get('histories', [])
-        .map((item, index) => {
-          return {
-            label: `[${index + 1}] ${item}`,
-            commandParam: `${item}`,
-          };
-        });
-
-      const newItem: QuickPickItem = {
-        label: '[0] new item',
-        commandParam: '',
-      };
-      histories.unshift(newItem);
-
-      const options = {
-        placeHolder:
-          histories.length > 0
-            ? 'InsertNums History:'
-            : 'InsertNums History: [Empty]',
-        onDidSelectItem: (selection: QuickPickItem | string) => {
-          let x = 1;
-          let y = selection;
-        },
-      };
-
-      if (histories.length > 0) {
-        vscode.window.showQuickPick(histories, options).then((item) => {
-          vscode.commands.executeCommand(
-            'extension.insertNums',
-            item ? item.commandParam : ''
-          );
-        });
-      }
+      insertSequenceHistory({ context, version: 'insertnums' });
     }
   );
-  context.subscriptions.push(showHistoryCommand);
+
+  context.subscriptions.push(showSeqHistoryCommand);
+  context.subscriptions.push(showNumHistoryCommand);
 }
 
 // this method is called when your extension is deactivated
@@ -93,17 +81,26 @@ export function deactivate(): void {
   return;
 }
 
-function InsertNumsCommand(
-  context: vscode.ExtensionContext,
-  value: string
-): void {
+function InsertSequenceCommand({
+  context,
+  value,
+  version,
+}: {
+  context: vscode.ExtensionContext;
+  value: string;
+  version?: string;
+}): void {
   interface IntAlphaFormat {
     padding: string | false;
     align: string | false;
     integer: number | false;
   }
 
-  function addHistory(value: string) {
+  type valueType = {
+    value: string;
+  };
+
+  function addHistory({ value }: valueType) {
     let histories: string[] = context.globalState.get('histories', []);
 
     const itemIndex: number = histories.indexOf(value);
@@ -122,24 +119,17 @@ function InsertNumsCommand(
     context.globalState.update('histories', histories);
   }
 
-  function intOrFloat(value: string): number {
-    const nValue = parseFloat(value);
-    return Number.isInteger(nValue) ? parseInt(value) : parseFloat(value);
-  }
-
   function numToAlpha(num: number, len = 0): string {
     let res = '';
-
-    if (len > 0) {
-      num = ((num - 1) % Math.pow(26, len)) + 1;
-    }
-
     while (num > 0) {
       --num;
       res = String.fromCharCode(97 + (num % 26)) + res;
       num = Math.floor(num / 26);
     }
 
+    if (res.length > len) {
+      res = res.slice(-len);
+    }
     return res;
   }
 
@@ -173,6 +163,7 @@ function InsertNumsCommand(
 
     return '0x' + res;
   }
+
   function hexToNum(hex: string): number | undefined {
     let res = 0;
 
@@ -192,7 +183,7 @@ function InsertNumsCommand(
           res += curCharCode - 87;
           break;
         default:
-          vscode.window.showErrorMessage('Wrong hex number: ${hey}');
+          curWindow.showErrorMessage('Wrong hex number: ${hey}');
       }
     }
 
@@ -200,7 +191,7 @@ function InsertNumsCommand(
   }
 
   function formatString(format: IntAlphaFormat, text: string): string {
-    // To-Do (String formatieren)
+    // TODO (String formatieren)
     let str: string = text;
 
     const padding =
@@ -226,7 +217,7 @@ function InsertNumsCommand(
       }
     }
 
-    return lenStr === 0 ? text : str.substr(0, lenStr);
+    return lenStr === 0 ? text : str.substring(0, lenStr);
   }
 
   function getRandomNumber(from: number, to: number): number {
@@ -245,12 +236,20 @@ function InsertNumsCommand(
     };
   }
 
-  function getRegexps(): any {
-    function hasKey<O>(obj: O, key: keyof any): key is keyof O {
+  type LexReturn = {
+    [key: string]: RegExp;
+  };
+
+  function getValidInputRegExp(): { [key: string]: any } {
+    type RuleTemplate = {
+      [key: string]: string;
+    };
+
+    function hasKey(obj: RuleTemplate, key: string): boolean {
       return key in obj;
     }
 
-    const ruleTemplate = {
+    const ruleTemplate: RuleTemplate = {
       integer: '[1-9]\\d* | 0',
       hexdigits: '[1-9a-fA-F][0-9a-fA-F]*',
       signedint: '[+-]? {integer}',
@@ -276,7 +275,7 @@ function InsertNumsCommand(
         '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
-    const result = {
+    const result: RuleTemplate = {
       exprMode: '',
       insertNum: '',
       insertAlpha: '',
@@ -297,478 +296,402 @@ function InsertNumsCommand(
       }
     }
 
-    return result;
+    return { result };
   }
 
-  const document = vscode.window;
-
-  const maxDecimals = 20;
-
-  if (
-    vscode === undefined ||
-    vscode.window === undefined ||
-    vscode.window.activeTextEditor === undefined
-  ) {
-    vscode.window.showErrorMessage(
-      'Extension only available with active Texteditor'
-    );
-  }
-
-  const selections =
-    vscode.window.activeTextEditor !== undefined
-      ? vscode.window.activeTextEditor.selections
-      : null;
-
-  if (selections === null) {
+  // check if vscode is available (should be ;-) )
+  const curWindow = vscode?.window;
+  if (!curWindow) {
     return;
   }
 
+  // check if TextEditor is available/open
+  const curTextEditor = curWindow.activeTextEditor;
+  if (!curTextEditor) {
+    curWindow.showErrorMessage(
+      'Extension only available with an active Texteditor'
+    );
+    return;
+  }
+
+  // check if selection is available (should be ;-) )
+  const selections = curTextEditor.selections;
+  if (!selections) {
+    curWindow.showErrorMessage('No selection available! Is Texteditor active?');
+    return;
+  }
+
+  // default values (can be change via configuration)
+  const defaultStart: string = '1';
+  const defaultStep: string = '1';
+  const defaultCast: string = 's';
+  const defaultDecimals: string = '0';
+
+  const maxDecimals = 20;
   const selLen = selections.length;
 
-  function renderResult(result: any) {
-    if (result === undefined) {
-      return null;
-    }
+  // read configuration
+  const config_editHistory: boolean =
+    vscode.workspace.getConfiguration('insertseq').get('editHistory') ||
+    vscode.workspace.getConfiguration('insertnums').get('editHistory') ||
+    false;
 
-    let getHistory: boolean = false;
+  const config_start: string =
+    vscode.workspace.getConfiguration('insertseq').get('start') ||
+    vscode.workspace.getConfiguration('insertnums').get('start') ||
+    defaultStart;
 
+  const config_step: string =
+    vscode.workspace.getConfiguration('insertseq').get('step') ||
+    vscode.workspace.getConfiguration('insertnums').get('step') ||
+    defaultStep;
+
+  const config_cast: string =
+    vscode.workspace.getConfiguration('insertseq').get('cast') ||
+    vscode.workspace.getConfiguration('insertnums').get('cast') ||
+    defaultCast;
+
+  const config_decimals: string =
+    vscode.workspace.getConfiguration('insertseq').get('decimals') ||
+    vscode.workspace.getConfiguration('insertnums').get('decimals') ||
+    defaultDecimals;
+
+  // Direct start of command is without value, so the inputbox is shown.
+  if (value.length === 0 || config_editHistory) {
+    curWindow
+      .showInputBox({
+        prompt: `Enter format string (default: '${config_start}:${config_step}')`,
+        value: value,
+        placeHolder: `${config_start}:${config_step}`,
+      })
+      .then((value) => {
+        if (value === '') {
+          value = `${config_start}:${config_step}`;
+        }
+        if (value) {
+          renderResult({ result: value });
+        }
+      });
+  } else {
+    // called from History with a value
+    renderResult({ result: value });
+  }
+
+  // the working horse
+  function renderResult({ result }: { result: string }): void {
+    // historic history functionality (string starts with !)
     if (result.length > 1 && result[0] === '!') {
-      let rest = result.toString().substring(1);
+      let rest = result.substring(1);
+      // get saved history of last commands
       let histories = context.globalState.get('histories', []);
       switch (rest) {
+        // get previous command
         case '!':
           if (histories.length > 0) {
             result = histories[0];
-            getHistory = true;
-            break;
           } else {
-            vscode.window.showErrorMessage(
-              '[History] History length too short!'
-            );
-            return null;
+            curWindow.showErrorMessage('[History] No previous command');
+            return;
           }
+          break;
+        // show all previous commands in a Pick-Input
         case 'p':
           if (histories.length > 0) {
-            vscode.commands.executeCommand('extension.insertNums.showHistory');
+            vscode.commands.executeCommand('extension.insertSeq.showHistory');
           } else {
-            vscode.window.showErrorMessage('[History] Empty');
+            curWindow.showErrorMessage('[History] Empty');
           }
-          return null;
+          return;
+        // clear history
         case 'c':
           context.globalState.update('histories', []);
-          vscode.window.showErrorMessage('[History] Cleared!');
-          return null;
+          curWindow.showErrorMessage('[History] Cleared!');
+          return;
         default:
           let numRest = Math.abs(parseInt(rest));
-          let nachNum = rest.replace(numRest, '');
+          let nachNum = rest.replace(String(numRest), '');
           if (histories.length >= numRest) {
             result = histories[numRest] + (nachNum.length > 0 ? nachNum : '');
-            if (nachNum.length === 0) {
-              getHistory = true;
+            if (nachNum.length > 0) {
+              addHistory({ value: result });
             }
           }
       }
+    } else {
+      addHistory({ value: result });
     }
 
     const eingabe = result.length > 0 ? result : '1:1';
 
-    if (!getHistory) {
-      addHistory(eingabe);
+    // get the valid input regexps for numbers, alpha and substitution mode
+    const regResult = getValidInputRegExp();
+
+    let matchNum: RegExpExecArray | null = null;
+    let matchAlpha: RegExpExecArray | null = null;
+    let matchExpr: RegExpExecArray | null = null;
+
+    matchNum = new RegExp(regResult.result.insertNum).exec(eingabe);
+    matchAlpha = new RegExp(regResult.result.insertAlpha).exec(eingabe);
+    matchExpr = new RegExp(regResult.result.exprMode).exec(eingabe);
+
+    let groups = matchNum?.groups ||
+      matchAlpha?.groups ||
+      matchExpr?.groups || { start: config_start, step: config_step };
+
+    if (!matchNum && !matchAlpha && !matchExpr) {
+      let errorMsg = 'No valid regular expression: >' + eingabe + '<. ';
+      errorMsg += `DEFAULT: ${config_start}:${config_step} `;
+      errorMsg +=
+        'Options: NUMBERS:  [<start>][:<step>][~<format>][r[<from>,<to>]|[+?<to>]][*<frequency>][#repetitions][::<expr>][@<stopexpr>][$][!] or ';
+      errorMsg +=
+        'ALPHA:  <start>[:<step>][~<format>][*<frequency>][#repetitions][@<stopexpr>][w][$][!] or ';
+      errorMsg +=
+        'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] ';
+      errorMsg +=
+        'or (deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
+      /*       
+         (?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> (:(?<rrange> \\d+,d+)|(?<rstop> \\+?\\d+))))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
+         
+         (?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
+         
+         (?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
+      */
+      curWindow.showErrorMessage(errorMsg);
+      return;
     }
 
-    const { insertNum, insertAlpha, exprMode } = getRegexps();
-    const numReg = new RegExp(insertNum, 'gi');
-    const alphaReg = new RegExp(insertAlpha, 'gi');
-    const exprReg = new RegExp(exprMode, 'gi');
-
-    let matchNum = null;
-    let matchAlpha = null;
-    let matchExpr = null;
-
-    try {
-      matchNum = numReg.exec(eingabe);
-      matchAlpha = alphaReg.exec(eingabe);
-      matchExpr = exprReg.exec(eingabe);
-    } catch (e) {
-      vscode.window.showErrorMessage('No valid regular expression:' + eingabe);
-      return null;
-    }
-
-    let groups;
-
-    if (!!matchNum) {
-      groups = matchNum.groups;
-    } else if (!!matchAlpha) {
-      groups = matchAlpha.groups;
-    } else if (!!matchExpr) {
-      groups = matchExpr.groups;
-    } else {
-      vscode.window.showErrorMessage('Format string not valid ' + result);
-      return null;
-    }
-
-    const EXPRMODE =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'cast');
-    const ALPHA =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'wrap');
-    const REVERSE =
-      groups !== undefined && groups.reverse && groups.reverse === '!';
-    const sortSel =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'sort_selections') &&
-      groups.sort_selections &&
-      groups.sort_selections === '$';
-    const hexNumber =
-      (groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'start') &&
-        groups.start &&
-        groups.start.length > 2 &&
+    // check if substitution
+    const EXPRMODE = !!matchExpr;
+    // check if alpha
+    const ALPHA = !!matchAlpha;
+    // check if reverse is on
+    const REVERSE = groups.reverse === '!';
+    // check, if selections/multilines needs to be sorted before insertation
+    const SORTSEL = groups.sort_selections === '$';
+    // check, if a hex number is inserted or the first selection is
+    const HEXNUMBER =
+      (groups.start &&
         groups.start.substring(0, 2).toLocaleLowerCase() === '0x') ||
-      (selections &&
-        vscode.window.activeTextEditor?.document
+      (selections.length > 0 &&
+        curTextEditor?.document
           .getText(selections[0])
           .trim()
           .substring(0, 2) === '0x');
-    const numLength =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'format_integer')
-        ? Number(groups.format_integer)
-        : 0;
+    // the length of the total formated number or 0, if no formating is needed
+    const numLength = Number(groups.format_integer) || 0;
+    // start value (also re-start for frequency)
+    const start = groups.start || config_start;
+    const startValue = parseFloat(start);
+    // the incrementation
     const step =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'step') &&
-      groups.step != undefined
+      groups.step && groups.step.length > 0
         ? groups.step.substring(0, 2).toLocaleLowerCase() === '0x'
-          ? hexToNum(groups.step) != undefined
-            ? hexToNum(groups.step)
-            : 1
-          : intOrFloat(groups.step)
-        : 1;
-    const randomStart =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'start') &&
-      groups.start !== undefined
-        ? Number(groups.start)
-        : 1;
+          ? hexToNum(groups.step)
+            ? groups.step
+            : hexToNum(config_step)
+            ? config_step
+            : defaultStep
+          : groups.step
+        : config_step;
+    // upper bound of random number range
     const randomTo =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'random') &&
-      groups.random !== undefined
-        ? groups.random[0] === '+'
-          ? randomStart + Number(groups.random)
-          : Number(groups.random)
-        : 0;
-    const repeat =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'repeat') &&
-      groups.repeat != undefined &&
-      Number.isInteger(parseInt(groups.repeat)) &&
-      randomTo === 0
-        ? parseInt(groups.repeat)
-        : 0;
-    const frequency =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'frequency') &&
-      groups.frequency != undefined &&
-      Number.isInteger(parseInt(groups.frequency)) &&
-      randomTo === 0
-        ? parseInt(groups.frequency)
-        : 0;
-    const expr = !ALPHA && groups !== undefined && groups.expr !== undefined;
-    const stopExpr = groups !== undefined && groups.stopExpr;
-    const cast: any =
-      EXPRMODE && groups !== undefined && groups.cast !== undefined
-        ? groups.cast
-        : 's';
-    const UPPER =
-      ALPHA &&
-      groups !== undefined &&
-      groups.start &&
-      groups.start.length > 0 &&
-      groups.start[0] === groups.start[0].toUpperCase();
-    const WRAP =
-      ALPHA && groups !== undefined && groups.wrap && groups.wrap === 'w';
-    const format =
-      groups !== undefined && groups.format !== undefined ? groups.format : '';
+      groups.random && groups.random[0] === '+'
+        ? startValue + (parseInt(groups.random) || 0)
+        : parseInt(groups.random) || 0;
+    // how often should each "insertation" be repeated
+    const repeat = parseInt(groups.repeat);
+    // what is the max. number of insertation, before starting from beginning?
+    const frequency = parseInt(groups.frequency);
+    // is there any "expression" in the input
+    const expr = !ALPHA && groups.expr;
+    // when to stop the insertation?
+    const stopExpr = groups.stopExpr || '';
+    // when replacing anything, what cast (typenumber) should be used
+    const cast = EXPRMODE && groups.cast ? groups.cast : config_cast;
+    // does the alpha input starts with a uppercase letter?
+    const UPPER = ALPHA && start && start[0] === start[0].toUpperCase();
+    // wrap alpha input
+    const WRAP = ALPHA && groups.wrap === 'w';
+    // which format should be used
+    const format = groups.format || '';
 
-    const alphaformat_padding =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'alphaformat_padding') &&
-      groups.alphaformat_padding;
-    const alphaformat_align =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'alphaformat_align') &&
-      groups.alphaformat_align;
-    const alphaformat_integer =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'alphaformat_integer') &&
-      groups.alphaformat_integer;
-
-    let decimals =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'step') &&
-      groups.step &&
-      groups.step.indexOf('.') > -1
-        ? groups.step.length - groups.step.indexOf('.') - 1 <= maxDecimals
-          ? groups.step.length - groups.step.indexOf('.') - 1
-          : maxDecimals
-        : 0;
-
-    if (format.length > 0) {
-      decimals =
-        format.indexOf('.') > -1
-          ? format.length - format.indexOf('.') - 1
-          : decimals;
-    }
-
-    const values: any = [];
-    let value: any = 1;
-    let lenVal = 0;
-
-    const sortSelections = sortSel
-      ? selections &&
-        selections.sort(function (a: vscode.Selection, b: vscode.Selection) {
-          return a.anchor.line === b.anchor.line
-            ? a.anchor.character - b.anchor.character
-            : a.anchor.line - b.anchor.line;
-        })
-      : selections;
-
-    if (EXPRMODE) {
-    } else if (!ALPHA) {
-      value =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'start') &&
-        groups.start !== undefined
-          ? randomTo && randomTo > 0 && Number(groups.start)
-            ? getRandomNumber(randomStart, randomTo)
-            : hexNumber
-            ? hexToNum(groups.start) != null
-              ? hexToNum(groups.start)
-              : 1
-            : Number(groups.start)
-          : 1;
-    } else {
-      value =
-        groups !== undefined &&
-        Object.prototype.hasOwnProperty.call(groups, 'start') &&
-        groups.start !== undefined
-          ? alphaToNum(String(groups.start).toLocaleLowerCase())
-          : 1;
-      lenVal =
-        groups !== undefined &&
-        WRAP &&
-        Object.prototype.hasOwnProperty.call(groups, 'start')
-          ? groups.start.toString().length
-          : 0;
-    }
-
-    const startValue: any =
-      groups !== undefined &&
-      Object.prototype.hasOwnProperty.call(groups, 'start') &&
-      groups.start !== undefined
-        ? value
-        : 1;
-
-    if (randomTo > 0 && groups && randomTo <= startValue) {
-      vscode.window.showErrorMessage(
-        `[Start: ${startValue} > Step: ${randomTo}] For random numbers, step needs to be larger than start value!`
+    // check if RandomTo larger than RandomFrom (startValue) - if not, stop
+    if (randomTo > 0 && randomTo <= startValue) {
+      curWindow.showErrorMessage(
+        `[Random sequence]: From ${startValue} is larger then To: ${randomTo}]!`
       );
-      return null;
+      return;
     }
 
-    let evalValue: any = 0;
-    let replace: any;
+    // TODO: ???
+    const alphaformat_padding = groups.alphaformat_padding;
+    const alphaformat_align = groups.alphaformat_align;
+    const alphaformat_integer = groups.alphaformat_integer;
+
+    // how many decimals are wished? (either because, the step has decimals or the format has decimals)
+    const decimals =
+      format.length > 0
+        ? format.indexOf('.') > -1
+          ? format.length - format.indexOf('.') - 1
+          : step.indexOf('.') > -1
+          ? step.length - step.indexOf('.') - 1
+          : parseInt(config_decimals)
+        : step.indexOf('.') > -1
+        ? step.length - step.indexOf('.') - 1
+        : parseInt(config_decimals);
+
+    // all insertations/replacements
+    const values: string[] = [];
+    // current value as number
+    let valCounter: number = 1;
+
+    const sortSelections: vscode.Selection[] = SORTSEL
+      ? quicksort({ arr: selections, low: 0, high: selections.length })
+      : selections.slice();
+
+    // set current to start sequence as number ("value")
+    switch (true) {
+      // substitution input - value is not relevant at the moment
+      case EXPRMODE:
+        break;
+      // alpha input
+      case ALPHA:
+        valCounter = start
+          ? alphaToNum(start.toLocaleLowerCase())
+          : parseFloat(config_start);
+        break;
+      // nummeric input
+      default:
+        let hx = hexToNum(start);
+        valCounter = start
+          ? randomTo && randomTo > 0 && parseFloat(start)
+            ? getRandomNumber(startValue, randomTo)
+            : HEXNUMBER && hx
+            ? hx
+            : parseFloat(start)
+          : parseFloat(config_start);
+    }
+
+    // TODO ????
     let prevValue = 0;
     let repeatCounter = 1;
     let frequencyCounter = 1;
+    // collect all selected ranges to replace them with new values
+    let selectedRegions: vscode.Selection[] = [];
 
-    let i = 0;
-    let skip = false;
-    let evalStr = '';
-
-    const startTime = Date.now();
-    const timeLimit = 1000; // max. 1 second in the while loop
-
-    const castTable: any = {
-      i: function (value: string): number {
-        return value.toString().length > 0 &&
-          Number(value) === (Number(value) | 0)
-          ? Number.parseInt(value)
-          : 0;
+    const castTable: { [key: string]: Function } = {
+      i: function (value: string): string {
+        return value.length > 0 ? parseInt(value).toString() : '0';
       },
-      f: function (value: string): number {
-        return value.toString().length > 0 &&
-          Number(value) === (Number(value) | 0)
-          ? Number.parseFloat(value)
-          : 0;
+      f: function (value: string): string {
+        return value.length > 0 ? parseFloat(value).toString() : '0';
       },
       s: function (value: string): string {
-        return String(value);
+        return value;
       },
-      b: function (value: string): boolean {
-        return value.toString().length > 0 ? Boolean(value) : true;
+      b: function (value: string): string {
+        return Boolean(value).toString();
       },
     };
 
-    const WSP = new vscode.WorkspaceEdit();
+    const WSPedit = new vscode.WorkspaceEdit();
+
+    // internal counter to break the infinit loop
+    let i = 0;
+
+    let curValueStr: string = value.toString();
+
+    // max. time in the infinit loop (while-loop below)
+    const startTime = Date.now();
+    const timeLimit = 1000; // max. 1 second in the while loop
 
     while (true) {
-      if (
-        /* EXPRMODE ||  */ stopExpr === undefined &&
-        vscode.window.activeTextEditor !== undefined &&
-        vscode.window.activeTextEditor.selections.length === i
-      ) {
+      // no stop expression available and we already have reached the final selection/cursor position => break
+      if (stopExpr.length === 0 && selections.length <= i) {
         break;
       }
-      if (Date.now() > startTime + timeLimit) {
-        vscode.window.showInformationMessage(
-          `Time limit of ${timeLimit}ms exceeded`
-        );
-        return null;
-      }
+      // if (Date.now() > startTime + timeLimit) {
+      // curWindow.showInformationMessage(
+      // `Time limit of ${timeLimit}ms exceeded`
+      // );
+      // return;
+      // }
 
-      if (EXPRMODE) {
-        const rangeSel =
-          sortSelections !== null && i < sortSelections.length
-            ? !REVERSE
-              ? sortSelections[i]
-              : sortSelections[sortSelections.length - 1 - i]
-            : undefined;
-        let original = '';
-        if (vscode.window.activeTextEditor !== undefined) {
-          original = vscode.window.activeTextEditor.document.getText(rangeSel);
-        }
+      const rangeSel = !REVERSE
+        ? sortSelections[i]
+        : sortSelections[sortSelections.length - 1 - i];
+
+      const selectedText =
+        cast.length === 1
+          ? castTable[cast] &&
+            castTable[cast](curTextEditor?.document.getText(rangeSel))
+          : curTextEditor?.document.getText(rangeSel) || '';
+
+      let exprValue: string = '';
+
+      // if expression is available, calculate the expression
+      if (expr) {
+        // an expressions is available
+        let underscoreValue = EXPRMODE
+          ? parseFloat(selectedText) || 0
+          : valCounter;
+        // tmp Variables not to crash valCounter
+        let tmpString = expr
+          .replace(/\b_\b/gi, underscoreValue.toLocaleString())
+          .replace(/\bs\b/gi, step.toLocaleString())
+          .replace(/\bn\b/gi, selLen.toLocaleString())
+          .replace(/\bp\b/gi, prevValue.toLocaleString())
+          .replace(/\ba\b/gi, startValue.toLocaleString())
+          .replace(/\bi\b/gi, i.toLocaleString());
         try {
-          value =
-            original.length > 0
-              ? castTable[cast](original)
-              : castTable[cast](value);
+          let evalResult = eval(tmpString);
+          if (parseFloat(evalResult)) {
+            exprValue = evalResult.toString();
+          }
         } catch (e) {
-          vscode.window.showErrorMessage(
-            // @ts-ignore
-            `[${value}] could not be cast to ${castTable[cast]}`
+          curWindow.showErrorMessage(
+            `[${expr}] Invalid Expression. Exception is: ` + e
           );
-          skip = true;
-          return null;
-        }
-      } else {
-        const rangeSel =
-          sortSelections !== null && i < sortSelections.length
-            ? !REVERSE
-              ? sortSelections[i]
-              : sortSelections[sortSelections.length - 1 - i]
-            : null;
-        if (
-          rangeSel !== null &&
-          !rangeSel.isEmpty &&
-          vscode.window.activeTextEditor !== undefined
-        ) {
-          const original = vscode.window.activeTextEditor.document.getText(
-            rangeSel
-          );
-          value = Number.isNaN(+original) ? value : +original;
+          return;
         }
       }
 
-      if (!skip) {
-        if (expr || stopExpr !== undefined) {
-          if (groups !== undefined && EXPRMODE) {
-            groups.step = '';
-          }
-        }
-        if (ALPHA) {
-          evalValue = numToAlpha(value, lenVal);
-          if (UPPER) {
-            evalValue = String(evalValue).toLocaleUpperCase();
-          }
-        } else {
-          if (groups !== undefined && expr) {
-            value = value !== null ? value : 0;
-            evalStr = groups.expr
-              .replace(/\b_\b/g, value)
-              .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
-              .replace(/\bn\b/gi, selLen.toString())
-              .replace(/\bp\b/gi, prevValue.toString())
-              .replace(/\bc\b/gi, evalValue)
-              .replace(/\ba\b/gi, startValue.toString())
-              .replace(/\bi\b/gi, i.toString());
-            try {
-              evalValue = eval(evalStr);
-            } catch (e) {
-              vscode.window.showErrorMessage(
-                `[${groups.expr}] Invalid Expression. Exception is: ` + e
-              );
-              return null;
-            }
-          } else {
-            evalValue = hexNumber ? numToHex(value, numLength) : value;
-          }
-        }
+      // if stop expression is available, calculate it
+      if (stopExpr) {
+        let stopResult: boolean | string;
 
-        if (stopExpr !== undefined && stopExpr) {
-          evalStr = stopExpr
-            .replace(/\b_\b/g, value)
-            .replace(/\bs\b/gi, step !== undefined ? step.toString() : '')
-            .replace(/\bn\b/gi, selLen.toString())
-            .replace(/\bp\b/gi, prevValue.toString())
-            .replace(/\bc\b/gi, evalValue)
-            .replace(/\ba\b/gi, startValue.toString())
-            .replace(/\bi\b/gi, i.toString());
-          try {
-            if (eval(evalStr)) {
-              break;
-            }
-          } catch (e) {
-            vscode.window.showErrorMessage(
-              `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e
-            );
-            return null;
+        let tmpString = stopExpr
+          .replace(/\b_\b/g, valCounter.toLocaleString())
+          .replace(/\bs\b/gi, step.toLocaleString())
+          .replace(/\bn\b/gi, selLen.toLocaleString())
+          .replace(/\bp\b/gi, prevValue.toLocaleString())
+          .replace(/\bc\b/gi, exprValue.toLocaleString())
+          .replace(/\ba\b/gi, startValue.toLocaleString())
+          .replace(/\bi\b/gi, i.toLocaleString());
+        try {
+          stopResult = eval(tmpString);
+          if (!stopResult && stopResult != '') {
+            break;
           }
-        }
-        if (format !== undefined && format.length > 0) {
-          replace = '';
-          if (!ALPHA) {
-            if (hexNumber) {
-              replace = numToHex(evalValue, numLength);
-            } else {
-              replace = d3.format(format)(
-                decimals > 0 ? evalValue.toFixed(decimals) : evalValue
-              );
-            }
-          } else {
-            let alphaFormat: IntAlphaFormat = {
-              padding: alphaformat_padding,
-              align: alphaformat_align,
-              integer: alphaformat_integer
-                ? Number.parseInt(alphaformat_integer)
-                : 0,
-            };
-
-            replace = formatString(alphaFormat, evalValue);
-          }
-        } else {
-          if (hexNumber) {
-            replace = String(numToHex(evalValue, numLength));
-          } else {
-            replace = String(
-              decimals > 0 ? evalValue.toFixed(decimals) : evalValue
-            );
-          }
+        } catch (e) {
+          curWindow.showErrorMessage(
+            `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e
+          );
+          return;
         }
       }
 
-      values.push(!skip ? String(replace) : String(value));
-      prevValue = !skip ? +replace : +value;
+      // if there has been an expression, substitute valCounter with this expression
+      if (exprValue.length > 0) {
+        valCounter = parseFloat(exprValue);
+      }
 
       if (!EXPRMODE) {
         if (frequency === 0 || frequencyCounter >= frequency) {
           if (randomTo > 0) {
-            value = getRandomNumber(randomStart, randomTo);
+            valCounter = getRandomNumber(startValue, randomTo);
           } else {
-            value += step !== undefined ? +step : 1;
+            valCounter += step !== undefined ? +step : 1;
           }
           repeatCounter++;
           frequencyCounter = 1;
@@ -776,84 +699,179 @@ function InsertNumsCommand(
           frequencyCounter++;
         }
         if (repeat > 0 && repeatCounter > repeat) {
-          value = startValue;
+          valCounter = startValue;
           repeatCounter = 1;
         }
-        value.toFixed(decimals);
+        valCounter.toFixed(decimals);
+      }
+
+      // now convert valCounter to curValueStr
+      if (ALPHA) {
+        // Alpha Mode - get current Step as Alpha-String
+        curValueStr = numToAlpha(valCounter, WRAP ? 1 : 0);
+        if (UPPER) {
+          curValueStr = curValueStr.toLocaleUpperCase();
+        }
+      } else {
+        if (EXPRMODE) {
+          valCounter += parseInt(selectedText) || 0;
+        }
+        // numberic or substitution mode
+        if (format?.length > 0) {
+          curValueStr = d3.format(format)(valCounter);
+        } else {
+          if (HEXNUMBER) {
+            curValueStr = numToHex(valCounter, numLength);
+          } else {
+            curValueStr =
+              decimals > 0
+                ? valCounter.toFixed(decimals).toString()
+                : valCounter.toString();
+          }
+        }
+      }
+
+      values.push(curValueStr.toLocaleString());
+      selectedRegions.push(rangeSel);
+      prevValue = valCounter;
+      if (!expr) {
+        valCounter += parseFloat(step);
       }
       i += 1;
-      skip = false;
-    }
-
-    if (values.length === 0) {
-      return null;
     }
 
     if (EXPRMODE) {
-      if (sortSelections !== null) {
-        if (REVERSE) {
-          sortSelections.reverse();
-        }
-        sortSelections.forEach(function (element: any, index: any) {
-          if (index === values.length) {
-            return;
-          }
-          if (vscode.window.activeTextEditor !== undefined) {
-            WSP.replace(
-              vscode.window.activeTextEditor.document.uri,
-              element,
-              values[index]
-            );
-          }
-        });
-        vscode.workspace.applyEdit(WSP);
+      // substitution mode
+      if (REVERSE) {
+        sortSelections.reverse();
       }
+      sortSelections.forEach(function (
+        element: vscode.Selection,
+        index: number
+      ) {
+        if (curTextEditor) {
+          WSPedit.replace(
+            curTextEditor.document.uri,
+            new vscode.Range(
+              selectedRegions[index].start,
+              selectedRegions[index].end
+            ),
+            values[index]
+          );
+        }
+      });
     } else {
-      let text = '';
+      // insert mode (numberic or alpha)
+      sortSelections.forEach(function (
+        element: vscode.Selection,
+        index: number
+      ) {
+        if (curTextEditor !== undefined) {
+          WSPedit.replace(
+            curTextEditor.document.uri,
+            new vscode.Range(
+              selectedRegions[index].active,
+              selectedRegions[index].active
+            ),
+            values[index]
+          );
+        }
+      });
+    }
+    vscode.workspace.applyEdit(WSPedit);
+  }
+}
 
-      if (sortSelections !== null) {
-        sortSelections.forEach(function (element: vscode.Range, index: number) {
-          if (index >= values.length) {
-            text = '';
-          } else if (index + 1 === selLen && values.length > selLen) {
-            const other = !REVERSE
-              ? values.slice(index, values.length)
-              : values.slice(0, -index - 1);
-            text = other.join('\n');
-          } else {
-            text = REVERSE
-              ? values[values.length - index - 1].toString()
-              : values[index].toString();
-          }
-          if (vscode.window.activeTextEditor !== undefined) {
-            WSP.replace(
-              vscode.window.activeTextEditor.document.uri,
-              element,
-              text
-            );
-          }
-        });
-        vscode.workspace.applyEdit(WSP);
+function insertSequenceHistory({
+  context,
+  version,
+}: {
+  context: vscode.ExtensionContext;
+  version?: string;
+}) {
+  interface QuickPickItem extends vscode.QuickPickItem {
+    commandParam: string;
+  }
+
+  const histories: QuickPickItem[] = context.globalState
+    .get('histories', [])
+    .map((item, index) => {
+      return {
+        label: `[${index + 1}] ${item}`,
+        commandParam: `${item}`,
+      };
+    });
+
+  const newItem: QuickPickItem = {
+    label: '[0] new item',
+    commandParam: '',
+  };
+  histories.unshift(newItem);
+
+  const options = {
+    placeHolder:
+      histories.length > 0
+        ? 'InsertSeq History:'
+        : 'InsertSeq History: [Empty]',
+    onDidSelectItem: (selection: QuickPickItem | string) => {
+      let x = 1;
+      let y = selection;
+    },
+  };
+
+  // check if vscode is available (should be ;-) )
+  const curWindow = vscode?.window;
+  if (!curWindow) {
+    return;
+  }
+
+  if (histories.length > 0) {
+    curWindow.showQuickPick(histories, options).then((item) => {
+      vscode.commands.executeCommand(
+        'extension.insertSeq',
+        item ? item.commandParam : ''
+      );
+    });
+  }
+}
+
+function quicksort({
+  arr,
+  low,
+  high,
+}: {
+  arr: readonly vscode.Selection[];
+  low: number;
+  high: number;
+}): vscode.Selection[] {
+  function compare(a: vscode.Selection, b: vscode.Selection): number {
+    return a.anchor.line === b.anchor.line
+      ? a.anchor.character - b.anchor.character
+      : a.anchor.line - b.anchor.line;
+  }
+
+  function swap(arr: vscode.Selection[], x: number, y: number) {
+    [arr[x], arr[y]] = [arr[y], arr[x]];
+  }
+
+  function partition(arr: vscode.Selection[], low: number, high: number) {
+    let pivot: vscode.Selection = arr[high];
+    let i = low - 1;
+
+    for (let j = low; j < high; j++) {
+      if (compare(arr[j], pivot) < 0) {
+        i++;
+        swap(arr, i, j);
       }
     }
+    swap(arr, i + 1, high);
+    return i + 1;
   }
 
-  const editHistory: boolean | undefined = vscode.workspace
-    .getConfiguration('insertnums')
-    .get('editHistory');
-
-  if (value.length === 0 || editHistory) {
-    document
-      .showInputBox({
-        prompt: "Enter format string (default: '1:1')",
-        value: value,
-        placeHolder: '1:1',
-      })
-      .then((result: any) => {
-        renderResult(result);
-        // vscode.window.showInformationMessage("Eingegeben: " + eingabe);
-      });
-  } else {
-    renderResult(value);
-  }
+  let arrreturn: vscode.Selection[] = arr.slice(); // Object.assign([], arr);
+  if (low >= high || low < 0) return arrreturn;
+  let pIndex = partition(arrreturn, low, high);
+  quicksort({ arr: arrreturn, low, high: pIndex - 1 });
+  quicksort({ arr: arrreturn, low: pIndex + 1, high });
+  return arrreturn;
 }

@@ -2,8 +2,8 @@
 	"name": "insertnums",
 	"version": "0.6.4",
 	"publisher": "volkerdobler",
-	"displayName": "Insert Nums",
-	"description": "Insert Numbers or Alphacharts to VSCode textdocuments",
+	"displayName": "Insert Seq",
+	"description": "Insert Sequences any kind (numberic, alpha, expressions) to VSCode textdocuments",
 	"keywords": [
 		"sequences",
 		"numbers",
@@ -33,24 +33,52 @@
 	"main": "./out/extension.js",
 	"contributes": {
 		"configuration": {
-			"title": "insertnums",
+			"title": "insertseq",
 			"properties": {
-				"insertnums.historyLimit": {
+				"insertseq.historyLimit": {
 					"type": "number",
 					"default": 30,
 					"description": "Maximum number of historical records, 0 is unlimited"
 				},
-				"insertnums.editHistory": {
+				"insertseq.editHistory": {
 					"type": "boolean",
 					"default": false,
 					"description": "Picked item from PickHistory is editable (default: false)"
+				},
+				"insertseq.start": {
+					"type": "string",
+					"default": "1",
+					"description": "Default start"
+				},
+				"insertseq.step": {
+					"type": "string",
+					"default": "1",
+					"description": "Default increment"
+				},
+				"insertseq.cast": {
+					"type": "string",
+					"default": "s",
+					"description": "Default substituion function [S = String, I = Integer, F = Float, B = Boolean]"
+				},
+				"insertseq.decimals": {
+					"type": "string",
+					"default": "0",
+					"description": "Default decimals"
 				}
 			}
 		},
 		"commands": [
 			{
+				"command": "extension.insertSeq",
+				"title": "Insert Numbers"
+			},
+			{
 				"command": "extension.insertNums",
 				"title": "Insert Numbers"
+			},
+			{
+				"command": "extension.insertSeq.showHistory",
+				"title": "Insert Numbers Show History"
 			},
 			{
 				"command": "extension.insertNums.showHistory",
@@ -59,13 +87,13 @@
 		],
 		"keybindings": [
 			{
-				"command": "extension.insertNums",
+				"command": "extension.insertSeq",
 				"key": "ctrl+alt+.",
 				"mac": "cmd+alt+.",
 				"when": "editorTextFocus"
 			},
 			{
-				"command": "extension.insertNums.showHistory",
+				"command": "extension.insertSeq.showHistory",
 				"key": "ctrl+alt+,",
 				"mac": "cmd+alt+,",
 				"when": "editorTextFocus"
@@ -81,9 +109,14 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
+		"@types/d3-format": "^3.0.1",
 		"@types/node": "^18.11.9",
 		"@types/vscode": "^1.49.0",
 		"eslint": "^8.27.0",
+		"eslint-config-airbnb": "^19.0.4",
+		"eslint-config-prettier": "^8.6.0",
+		"eslint-plugin-import": "^2.27.5",
+		"eslint-plugin-prettier": "^4.2.1",
 		"typescript": "^4.8.4"
 	},
 	"icon": "insertnums.png",
@@ -92,7 +125,6 @@
 		"theme": "dark"
 	},
 	"dependencies": {
-		"@types/d3-format": "^3.0.1",
-		"d3-format": "^3.1.0"
+		"d3-format": "^2.0.0"
 	}
 }
