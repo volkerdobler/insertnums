@@ -90,12 +90,6 @@ function InsertSequenceCommand({
   value: string;
   version?: string;
 }): void {
-  interface IntAlphaFormat {
-    padding: string | false;
-    align: string | false;
-    integer: number | false;
-  }
-
   type valueType = {
     value: string;
   };
@@ -190,34 +184,29 @@ function InsertSequenceCommand({
     return res;
   }
 
-  function formatString(format: IntAlphaFormat, text: string): string {
-    // TODO (String formatieren)
+  function formatString(
+    format: { fill: string; align: string; length: number },
+    text: string
+  ): string {
     let str: string = text;
 
-    const padding =
-      format.padding !== undefined && format.padding ? format.padding : ' ';
-    const align =
-      format.align !== undefined && format.align ? format.align : '<';
-    const lenStr =
-      format.integer !== undefined && format.integer ? format.integer : 0;
-
-    while (str.length < lenStr) {
-      if (align === '<') {
-        str += padding;
+    while (str.length < format.length) {
+      if (format.align === '<') {
+        str += format.fill;
       }
-      if (align === '>') {
-        str = padding + str;
+      if (format.align === '>') {
+        str = format.fill + str;
       }
-      if (align === '^') {
+      if (format.align === '^') {
         if (str.length % 2 === 0) {
-          str = padding + str + padding;
+          str = format.fill + str + format.fill;
         } else {
-          str += padding;
+          str = format.fill + str;
         }
       }
     }
 
-    return lenStr === 0 ? text : str.substring(0, lenStr);
+    return format.length === 0 ? text : str.substring(0, format.length);
   }
 
   function getRandomNumber(from: number, to: number): number {
@@ -501,9 +490,9 @@ function InsertSequenceCommand({
         ? startValue + (parseInt(groups.random) || 0)
         : parseInt(groups.random) || 0;
     // how often should each "insertation" be repeated
-    const repeat = parseInt(groups.repeat) || 0;
+    const repeatStartValue = parseInt(groups.repeat) || 0;
     // what is the max. number of insertation, before starting from beginning?
-    const frequency = parseInt(groups.frequency) || 0;
+    const frequencyStartValue = parseInt(groups.frequency) || 0;
     // is there any "expression" in the input
     const expr = !ALPHA && groups.expr;
     // when to stop the insertation?
@@ -516,6 +505,18 @@ function InsertSequenceCommand({
     const WRAP = ALPHA && groups.wrap === 'w';
     // which format should be used
     const format = groups.format || '';
+    // string formatting
+    const alphaFormat = {
+      fill:
+        groups.alphaformat_padding && groups.alphaformat_padding.length === 1
+          ? groups.alphaformat_padding
+          : ' ',
+      align:
+        groups.alphaformat_align && groups.alphaformat_align.match(/^[<>^]$/)
+          ? groups.alphaformat_align
+          : '<',
+      length: parseInt(groups.alphaformat_integer) || 0,
+    };
 
     // check if RandomTo larger than RandomFrom (startValue) - if not, stop
     if (randomTo > 0 && randomTo <= startValue) {
@@ -524,11 +525,6 @@ function InsertSequenceCommand({
       );
       return;
     }
-
-    // TODO: ???
-    const alphaformat_padding = groups.alphaformat_padding;
-    const alphaformat_align = groups.alphaformat_align;
-    const alphaformat_integer = groups.alphaformat_integer;
 
     // how many decimals are wished? (either because, the step has decimals or the format has decimals)
     const decimals =
@@ -544,44 +540,14 @@ function InsertSequenceCommand({
 
     // all insertations/replacements
     const values: string[] = [];
-    // current value as number
-    let valCounter: number = 1;
 
     const sortSelections: vscode.Selection[] = SORTSEL
       ? quicksort({ arr: selections, low: 0, high: selections.length })
       : selections.slice();
 
-    // set current to start sequence as number ("value")
-    switch (true) {
-      // substitution input - value is not relevant at the moment
-      case EXPRMODE:
-        break;
-      // alpha input
-      case ALPHA:
-        valCounter = start
-          ? alphaToNum(start.toLocaleLowerCase())
-          : parseFloat(config_start);
-        break;
-      // nummeric input
-      default:
-        let hx = hexToNum(start);
-        if (ISRANDOM) {
-          if (randomTo && +randomTo > 0) {
-            valCounter = getRandomNumber(startValue, randomTo);
-          } else {
-            if (HEXNUMBER && hx) {
-              valCounter = hx;
-            }
-          }
-        } else {
-          valCounter = parseFloat(start);
-        }
-    }
+    // stores prev value for expression calculation (of next value)
+    let prevValue: number = 0;
 
-    // TODO ????
-    let prevValue = 0;
-    let repeatCounter = 1;
-    let frequencyCounter = 1;
     // collect all selected ranges to replace them with new values
     let selectedRegions: vscode.Selection[] = [];
 
@@ -602,9 +568,17 @@ function InsertSequenceCommand({
 
     const WSPedit = new vscode.WorkspaceEdit();
 
-    // internal counter to break the infinit loop
-    let i = 0;
+    // curIteration as number
+    let curIterationVal = 0;
 
+    // curFreqCounter for repeat functionality
+    let curFreqCounter = 1;
+    let curFreqIndexVal = 0;
+    // curRepeatCounter for repeat functionality
+    let curRepeatCounter = 1;
+    let curRepeatIndexVal = 0;
+
+    // current new value as string
     let curValueStr: string = value.toString();
 
     // max. time in the infinit loop (while-loop below)
@@ -615,7 +589,7 @@ function InsertSequenceCommand({
 
     while (loopContinue) {
       // no stop expression available and we already have reached the final selection/cursor position => break
-      if (stopExpr.length === 0 && selections.length <= i) {
+      if (stopExpr.length === 0 && selections.length <= curIterationVal) {
         loopContinue = false;
         break;
       }
@@ -627,8 +601,8 @@ function InsertSequenceCommand({
       // }
 
       const rangeSel = !REVERSE
-        ? sortSelections[i]
-        : sortSelections[sortSelections.length - 1 - i];
+        ? sortSelections[curIterationVal]
+        : sortSelections[sortSelections.length - 1 - curIterationVal];
 
       const selectedText =
         cast.length === 1
@@ -636,28 +610,29 @@ function InsertSequenceCommand({
             castTable[cast](curTextEditor?.document.getText(rangeSel))
           : curTextEditor?.document.getText(rangeSel) || '';
 
-      let exprValue: string = '';
+      let exprValueStr: string = '';
 
       // if expression is available, calculate the expression
       if (expr) {
-        // an expressions is available
+        // unserscoreValue depends on mode: expremode => selected text as number; else => (start + i * step)
         let underscoreValue = EXPRMODE
           ? parseFloat(selectedText) || 0
-          : valCounter;
-        // tmp Variables not to crash valCounter
+          : parseFloat(start) + curIterationVal * parseFloat(step);
+
+        // tmp Variables, replace internal variables in the expression
         let tmpString = expr
-          .replace(/\b_\b/gi, underscoreValue.toLocaleString())
+          .replace(/\b_\b/g, underscoreValue.toLocaleString())
           .replace(/\bs\b/gi, step.toLocaleString())
           .replace(/\bn\b/gi, selLen.toLocaleString())
           .replace(/\bp\b/gi, prevValue.toLocaleString())
           .replace(/\ba\b/gi, startValue.toLocaleString())
-          .replace(/\bi\b/gi, i.toLocaleString());
+          .replace(/\bi\b/gi, curIterationVal.toLocaleString());
         try {
           let evalResult = eval(tmpString);
-          if (parseFloat(evalResult)) {
-            exprValue = evalResult.toString();
+          if (evalResult) {
+            exprValueStr = evalResult.toString();
           } else {
-            exprValue = '';
+            exprValueStr = '';
           }
         } catch (e) {
           curWindow.showErrorMessage(
@@ -669,18 +644,20 @@ function InsertSequenceCommand({
 
       // if stop expression is available, calculate it
       if (stopExpr) {
-        let stopResult: boolean | string;
+        // calculate the current value
+        let underscoreValue =
+          parseFloat(start) + curIterationVal * parseFloat(step);
 
         let tmpString = stopExpr
-          .replace(/\b_\b/g, valCounter.toLocaleString())
+          .replace(/\b_\b/g, underscoreValue.toLocaleString())
           .replace(/\bs\b/gi, step.toLocaleString())
           .replace(/\bn\b/gi, selLen.toLocaleString())
           .replace(/\bp\b/gi, prevValue.toLocaleString())
-          .replace(/\bc\b/gi, exprValue.toLocaleString())
+          .replace(/\bc\b/gi, exprValueStr.toLocaleString())
           .replace(/\ba\b/gi, startValue.toLocaleString())
-          .replace(/\bi\b/gi, i.toLocaleString());
+          .replace(/\bi\b/gi, curIterationVal.toLocaleString());
         try {
-          stopResult = eval(tmpString);
+          let stopResult = eval(tmpString);
           if (stopResult && stopResult != '') {
             loopContinue = false;
             break;
@@ -693,61 +670,116 @@ function InsertSequenceCommand({
         }
       }
 
-      // if there has been an expression, substitute valCounter with this expression
-      if (exprValue.length > 0) {
-        valCounter = parseFloat(exprValue);
-      }
+      let curValueStr: string = '';
+      let curValueIsNumber: boolean;
 
-      // now convert valCounter to curValueStr
+      // get curValue as string
       if (ALPHA) {
+        // alpha mode
+
+        let value: number = 0;
+
+        // value based on frequency or repetition
+        if (frequencyStartValue > 0 || repeatStartValue > 0) {
+          // repeat the current number multiple ("frequencyStartValue") times
+          value =
+            parseFloat(start) +
+            (curFreqIndexVal + curRepeatIndexVal * frequencyStartValue) *
+              parseInt(step);
+        } else {
+          // calculate current value base on normal counting
+          value = parseFloat(start) + curIterationVal * parseInt(step);
+        }
+
         // Alpha Mode - get current Step as Alpha-String
-        curValueStr = numToAlpha(valCounter, WRAP ? 1 : 0);
+        curValueStr = numToAlpha(value, WRAP ? 1 : 0);
         if (UPPER) {
           curValueStr = curValueStr.toLocaleUpperCase();
         }
+        curValueIsNumber = false;
       } else {
-        if (EXPRMODE) {
-          valCounter += parseInt(selectedText) || 0;
-        }
-        // numberic or substitution mode
-        if (format?.length > 0) {
-          curValueStr = d3.format(format)(valCounter);
-        } else {
-          if (HEXNUMBER) {
-            curValueStr = numToHex(valCounter, numLength);
-          } else {
-            curValueStr =
-              decimals > 0
-                ? valCounter.toFixed(decimals).toString()
-                : valCounter.toString();
+        // numeric mode or substitution mode
+
+        // initial value with 0, we don't know anything about the new value
+        let value: number | string = 0;
+
+        // if expression is available, calculat value based on expression result
+        if (exprValueStr.length > 0) {
+          value = exprValueStr;
+          if (EXPRMODE) {
+            if (Number.isFinite(+value)) {
+              value += parseFloat(selectedText) || 0;
+            }
           }
+          curValueStr = value.toString();
+          curValueIsNumber = Number.isFinite(+value);
+        } else {
+          // if random option is choosen, value is a random number
+          if (ISRANDOM) {
+            value = getRandomNumber(
+              parseFloat(start) + curIterationVal * parseFloat(step),
+              randomTo
+            );
+          } else {
+            // value based on frequency or repetition
+            if (frequencyStartValue > 0 || repeatStartValue > 0) {
+              // repeat the current number multiple ("frequencyStartValue") times
+              value =
+                parseFloat(start) +
+                (curFreqIndexVal + curRepeatIndexVal * frequencyStartValue) *
+                  parseInt(step);
+            } else {
+              // calculate current value base on normal counting
+              value = parseFloat(start) + curIterationVal * parseInt(step);
+            }
+          }
+
+          // when substitution, try to add the current value to the new value
+          value += EXPRMODE ? parseFloat(selectedText) || 0 : 0;
+
+          curValueStr = value.toString();
+          curValueIsNumber = true;
+        }
+      }
+
+      // format string available format curValueStr
+      if (format?.length > 0) {
+        // if the curValue is a
+        if (curValueIsNumber) {
+          curValueStr = d3.format(format)(+curValueStr);
+        } else {
+          curValueStr = formatString(alphaFormat, curValueStr);
         }
       }
 
       values.push(curValueStr.toLocaleString());
       selectedRegions.push(rangeSel);
-      prevValue = valCounter;
-
-      if (!expr) {
-        if (frequency === 0 || frequencyCounter >= frequency) {
-          if (randomTo > 0) {
-            valCounter = getRandomNumber(startValue, randomTo);
-          } else {
-            valCounter += step ? +step : config_step ? +config_step : 1;
-          }
-          repeatCounter++;
-          frequencyCounter = 1;
-        } else {
-          frequencyCounter++;
-        }
-        if (repeat > 0 && repeatCounter > repeat) {
-          valCounter = startValue;
-          repeatCounter = 1;
-        }
-        valCounter.toFixed(decimals);
+      // value based on frequency or repetition
+      if (frequencyStartValue > 0 || repeatStartValue > 0) {
+        prevValue =
+          parseFloat(start) +
+          (curFreqIndexVal + curRepeatIndexVal * frequencyStartValue) *
+            parseInt(step);
+      } else {
+        // calculate current value base on normal counting
+        prevValue = parseFloat(start) + curIterationVal * parseInt(step);
       }
 
-      i += 1;
+      // increase frequency and repeatition
+      if (frequencyStartValue === 0 || curFreqCounter >= frequencyStartValue) {
+        curRepeatCounter++;
+        curFreqCounter = 1;
+        curFreqIndexVal++;
+      } else {
+        curFreqCounter++;
+      }
+      if (repeatStartValue > 0 && curRepeatCounter > repeatStartValue) {
+        curRepeatCounter = 1;
+        curFreqIndexVal = 0;
+        curRepeatIndexVal++;
+      }
+
+      curIterationVal += 1;
     }
 
     if (EXPRMODE) {
