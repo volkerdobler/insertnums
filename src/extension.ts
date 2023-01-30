@@ -270,7 +270,7 @@ function InsertSequenceCommand({
       exprMode:
         '^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?\\d+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (\\?(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
         '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
@@ -450,7 +450,7 @@ function InsertSequenceCommand({
       errorMsg +=
         'or (deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
       /*       
-         (?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> (:(?<rrange> \\d+,d+)|(?<rstop> \\+?\\d+))))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
+         (?<start> {signedNum})? (:(?<step> {signedNum}))? (?(?<random> (:(?<rrange> \\d+,d+)|(?<rstop> \\+?\\d+))))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
          
          (?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
          
@@ -493,15 +493,17 @@ function InsertSequenceCommand({
             : defaultStep
           : groups.step
         : config_step;
+    // check, if random number is used
+    const ISRANDOM = groups.random != undefined;
     // upper bound of random number range
     const randomTo =
       groups.random && groups.random[0] === '+'
         ? startValue + (parseInt(groups.random) || 0)
         : parseInt(groups.random) || 0;
     // how often should each "insertation" be repeated
-    const repeat = parseInt(groups.repeat);
+    const repeat = parseInt(groups.repeat) || 0;
     // what is the max. number of insertation, before starting from beginning?
-    const frequency = parseInt(groups.frequency);
+    const frequency = parseInt(groups.frequency) || 0;
     // is there any "expression" in the input
     const expr = !ALPHA && groups.expr;
     // when to stop the insertation?
@@ -563,13 +565,17 @@ function InsertSequenceCommand({
       // nummeric input
       default:
         let hx = hexToNum(start);
-        valCounter = start
-          ? randomTo && randomTo > 0 && parseFloat(start)
-            ? getRandomNumber(startValue, randomTo)
-            : HEXNUMBER && hx
-            ? hx
-            : parseFloat(start)
-          : parseFloat(config_start);
+        if (ISRANDOM) {
+          if (randomTo && +randomTo > 0) {
+            valCounter = getRandomNumber(startValue, randomTo);
+          } else {
+            if (HEXNUMBER && hx) {
+              valCounter = hx;
+            }
+          }
+        } else {
+          valCounter = parseFloat(start);
+        }
     }
 
     // TODO ????
@@ -605,9 +611,12 @@ function InsertSequenceCommand({
     const startTime = Date.now();
     const timeLimit = 1000; // max. 1 second in the while loop
 
-    while (true) {
+    let loopContinue = true;
+
+    while (loopContinue) {
       // no stop expression available and we already have reached the final selection/cursor position => break
       if (stopExpr.length === 0 && selections.length <= i) {
+        loopContinue = false;
         break;
       }
       // if (Date.now() > startTime + timeLimit) {
@@ -647,6 +656,8 @@ function InsertSequenceCommand({
           let evalResult = eval(tmpString);
           if (parseFloat(evalResult)) {
             exprValue = evalResult.toString();
+          } else {
+            exprValue = '';
           }
         } catch (e) {
           curWindow.showErrorMessage(
@@ -670,7 +681,8 @@ function InsertSequenceCommand({
           .replace(/\bi\b/gi, i.toLocaleString());
         try {
           stopResult = eval(tmpString);
-          if (!stopResult && stopResult != '') {
+          if (stopResult && stopResult != '') {
+            loopContinue = false;
             break;
           }
         } catch (e) {
@@ -684,25 +696,6 @@ function InsertSequenceCommand({
       // if there has been an expression, substitute valCounter with this expression
       if (exprValue.length > 0) {
         valCounter = parseFloat(exprValue);
-      }
-
-      if (!EXPRMODE) {
-        if (frequency === 0 || frequencyCounter >= frequency) {
-          if (randomTo > 0) {
-            valCounter = getRandomNumber(startValue, randomTo);
-          } else {
-            valCounter += step !== undefined ? +step : 1;
-          }
-          repeatCounter++;
-          frequencyCounter = 1;
-        } else {
-          frequencyCounter++;
-        }
-        if (repeat > 0 && repeatCounter > repeat) {
-          valCounter = startValue;
-          repeatCounter = 1;
-        }
-        valCounter.toFixed(decimals);
       }
 
       // now convert valCounter to curValueStr
@@ -734,9 +727,26 @@ function InsertSequenceCommand({
       values.push(curValueStr.toLocaleString());
       selectedRegions.push(rangeSel);
       prevValue = valCounter;
+
       if (!expr) {
-        valCounter += parseFloat(step);
+        if (frequency === 0 || frequencyCounter >= frequency) {
+          if (randomTo > 0) {
+            valCounter = getRandomNumber(startValue, randomTo);
+          } else {
+            valCounter += step ? +step : config_step ? +config_step : 1;
+          }
+          repeatCounter++;
+          frequencyCounter = 1;
+        } else {
+          frequencyCounter++;
+        }
+        if (repeat > 0 && repeatCounter > repeat) {
+          valCounter = startValue;
+          repeatCounter = 1;
+        }
+        valCounter.toFixed(decimals);
       }
+
       i += 1;
     }
 
@@ -762,19 +772,23 @@ function InsertSequenceCommand({
       });
     } else {
       // insert mode (numberic or alpha)
-      sortSelections.forEach(function (
-        element: vscode.Selection,
-        index: number
-      ) {
+      let lastPosition: vscode.Position;
+      values.forEach(function (element: string, index: number) {
         if (curTextEditor !== undefined) {
-          WSPedit.replace(
-            curTextEditor.document.uri,
-            new vscode.Range(
-              selectedRegions[index].active,
-              selectedRegions[index].active
-            ),
-            values[index]
-          );
+          if (selectedRegions && selectedRegions[index]) {
+            lastPosition = selectedRegions[index].active;
+            WSPedit.replace(
+              curTextEditor.document.uri,
+              new vscode.Range(
+                selectedRegions[index].active,
+                selectedRegions[index].active
+              ),
+              element
+            );
+          } else {
+            lastPosition = new vscode.Position(lastPosition.line + 1, 0);
+            WSPedit.insert(curTextEditor.document.uri, lastPosition, element);
+          }
         }
       });
     }
