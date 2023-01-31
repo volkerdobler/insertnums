@@ -487,12 +487,12 @@ function InsertSequenceCommand({
     // upper bound of random number range
     const randomTo =
       groups.random && groups.random[0] === '+'
-        ? startValue + (parseInt(groups.random) || 0)
-        : parseInt(groups.random) || 0;
+        ? startValue + (parseFloat(groups.random) || 0)
+        : parseFloat(groups.random) || 0;
     // how often should each "insertation" be repeated
-    const repeatStartValue = parseInt(groups.repeat) || 0;
+    const repeatValue = parseInt(groups.repeat) || Number.MAX_SAFE_INTEGER;
     // what is the max. number of insertation, before starting from beginning?
-    const frequencyStartValue = parseInt(groups.frequency) || 0;
+    const frequencyValue = parseInt(groups.frequency) || 1;
     // is there any "expression" in the input
     const expr = !ALPHA && groups.expr;
     // when to stop the insertation?
@@ -571,13 +571,6 @@ function InsertSequenceCommand({
     // curIteration as number
     let curIterationVal = 0;
 
-    // curFreqCounter for repeat functionality
-    let curFreqCounter = 1;
-    let curFreqIndexVal = 0;
-    // curRepeatCounter for repeat functionality
-    let curRepeatCounter = 1;
-    let curRepeatIndexVal = 0;
-
     // current new value as string
     let curValueStr: string = value.toString();
 
@@ -600,6 +593,9 @@ function InsertSequenceCommand({
       // return;
       // }
 
+      let curIterationIndex =
+        Math.trunc(curIterationVal / frequencyValue) % repeatValue;
+
       const rangeSel = !REVERSE
         ? sortSelections[curIterationVal]
         : sortSelections[sortSelections.length - 1 - curIterationVal];
@@ -617,7 +613,7 @@ function InsertSequenceCommand({
         // unserscoreValue depends on mode: expremode => selected text as number; else => (start + i * step)
         let underscoreValue = EXPRMODE
           ? parseFloat(selectedText) || 0
-          : parseFloat(start) + curIterationVal * parseFloat(step);
+          : parseFloat(start) + curIterationIndex * parseFloat(step);
 
         // tmp Variables, replace internal variables in the expression
         let tmpString = expr
@@ -646,7 +642,7 @@ function InsertSequenceCommand({
       if (stopExpr) {
         // calculate the current value
         let underscoreValue =
-          parseFloat(start) + curIterationVal * parseFloat(step);
+          parseFloat(start) + curIterationIndex * parseFloat(step);
 
         let tmpString = stopExpr
           .replace(/\b_\b/g, underscoreValue.toLocaleString())
@@ -679,17 +675,7 @@ function InsertSequenceCommand({
 
         let value: number = 0;
 
-        // value based on frequency or repetition
-        if (frequencyStartValue > 0 || repeatStartValue > 0) {
-          // repeat the current number multiple ("frequencyStartValue") times
-          value =
-            parseFloat(start) +
-            (curFreqIndexVal + curRepeatIndexVal * frequencyStartValue) *
-              parseInt(step);
-        } else {
-          // calculate current value base on normal counting
-          value = parseFloat(start) + curIterationVal * parseInt(step);
-        }
+        value = parseFloat(start) + curIterationIndex * parseInt(step);
 
         // Alpha Mode - get current Step as Alpha-String
         curValueStr = numToAlpha(value, WRAP ? 1 : 0);
@@ -716,22 +702,9 @@ function InsertSequenceCommand({
         } else {
           // if random option is choosen, value is a random number
           if (ISRANDOM) {
-            value = getRandomNumber(
-              parseFloat(start) + curIterationVal * parseFloat(step),
-              randomTo
-            );
+            value = getRandomNumber(parseFloat(start), randomTo);
           } else {
-            // value based on frequency or repetition
-            if (frequencyStartValue > 0 || repeatStartValue > 0) {
-              // repeat the current number multiple ("frequencyStartValue") times
-              value =
-                parseFloat(start) +
-                (curFreqIndexVal + curRepeatIndexVal * frequencyStartValue) *
-                  parseInt(step);
-            } else {
-              // calculate current value base on normal counting
-              value = parseFloat(start) + curIterationVal * parseInt(step);
-            }
+            value = parseFloat(start) + curIterationIndex * parseInt(step);
           }
 
           // when substitution, try to add the current value to the new value
@@ -754,30 +727,7 @@ function InsertSequenceCommand({
 
       values.push(curValueStr.toLocaleString());
       selectedRegions.push(rangeSel);
-      // value based on frequency or repetition
-      if (frequencyStartValue > 0 || repeatStartValue > 0) {
-        prevValue =
-          parseFloat(start) +
-          (curFreqIndexVal + curRepeatIndexVal * frequencyStartValue) *
-            parseInt(step);
-      } else {
-        // calculate current value base on normal counting
-        prevValue = parseFloat(start) + curIterationVal * parseInt(step);
-      }
-
-      // increase frequency and repeatition
-      if (frequencyStartValue === 0 || curFreqCounter >= frequencyStartValue) {
-        curRepeatCounter++;
-        curFreqCounter = 1;
-        curFreqIndexVal++;
-      } else {
-        curFreqCounter++;
-      }
-      if (repeatStartValue > 0 && curRepeatCounter > repeatStartValue) {
-        curRepeatCounter = 1;
-        curFreqIndexVal = 0;
-        curRepeatIndexVal++;
-      }
+      prevValue = parseFloat(start) + curIterationIndex * parseInt(step);
 
       curIterationVal += 1;
     }
