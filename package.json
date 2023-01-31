@@ -60,10 +60,17 @@
 					"default": "s",
 					"description": "Default substituion function [S = String, I = Integer, F = Float, B = Boolean]"
 				},
-				"insertseq.decimals": {
+				"insertseq.centerString": {
 					"type": "string",
-					"default": "0",
-					"description": "Default decimals"
+					"default": "l",
+					"enum": [
+						"l",
+						"r"
+					],
+					"enumdescription": [
+						"l (default): e.g. a 1 char string centered in a 4 char field is left oriented",
+						"r: e.g. a 1 char string centered in a 4 char field is right oriented"
+					]
 				}
 			}
 		},
