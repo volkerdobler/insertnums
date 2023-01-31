@@ -130,6 +130,8 @@ function InsertSequenceCommand({
   function alphaToNum(alpha: string): number {
     let res = 0;
 
+    alpha = alpha.toLocaleLowerCase();
+
     for (let i = 0; i < alpha.length; i++) {
       res *= 26;
       res += alpha.charCodeAt(i) - 96;
@@ -185,7 +187,7 @@ function InsertSequenceCommand({
   }
 
   function formatString(
-    format: { fill: string; align: string; length: number },
+    format: { fill: string; align: string; length: number; adjust: boolean },
     text: string
   ): string {
     let str: string = text;
@@ -201,12 +203,15 @@ function InsertSequenceCommand({
         if (str.length % 2 === 0) {
           str = format.fill + str + format.fill;
         } else {
-          str = format.fill + str;
+          str = format.adjust ? str + format.fill : format.fill + str;
         }
       }
     }
 
-    return format.length === 0 ? text : str.substring(0, format.length);
+    return format.length === 0
+      ? text
+      : // : str.substring(str.length > format.length ? 1 : 0);
+        str.substring(0, format.length);
   }
 
   function getRandomNumber(from: number, to: number): number {
@@ -252,7 +257,7 @@ function InsertSequenceCommand({
         '((?<format_padding> [^}}])? (?<format_align> [<>^=]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {integer})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
-        '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^]))? ((?<alphaformat_integer>{integer}))?',
+        '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{integer}))?',
       cast: '[ifsb]',
       expr: '.+?',
       stopExpr: '.+?',
@@ -311,12 +316,15 @@ function InsertSequenceCommand({
   }
 
   // default values (can be change via configuration)
+  // where to start
   const defaultStart: string = '1';
+  // what steps are default
   const defaultStep: string = '1';
+  // what type of insertation? (string)
   const defaultCast: string = 's';
-  const defaultDecimals: string = '0';
+  // when a string is centered, but is not perfectly possible, move one character to the left (true) or right (false) - e.g. true => | a  |; false => |  a |
+  const defaultCenterString: string = 'l';
 
-  const maxDecimals = 20;
   const selLen = selections.length;
 
   // read configuration
@@ -340,10 +348,10 @@ function InsertSequenceCommand({
     vscode.workspace.getConfiguration('insertnums').get('cast') ||
     defaultCast;
 
-  const config_decimals: string =
-    vscode.workspace.getConfiguration('insertseq').get('decimals') ||
-    vscode.workspace.getConfiguration('insertnums').get('decimals') ||
-    defaultDecimals;
+  const config_centerString: string =
+    vscode.workspace.getConfiguration('insertseq').get('centerString') ||
+    vscode.workspace.getConfiguration('insertnums').get('centerString') ||
+    defaultCenterString;
 
   // Direct start of command is without value, so the inputbox is shown.
   if (value.length === 0 || config_editHistory) {
@@ -438,13 +446,6 @@ function InsertSequenceCommand({
         'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] ';
       errorMsg +=
         'or (deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
-      /*       
-         (?<start> {signedNum})? (:(?<step> {signedNum}))? (?(?<random> (:(?<rrange> \\d+,d+)|(?<rstop> \\+?\\d+))))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
-         
-         (?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
-         
-         (?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?
-      */
       curWindow.showErrorMessage(errorMsg);
       return;
     }
@@ -490,9 +491,15 @@ function InsertSequenceCommand({
         ? startValue + (parseFloat(groups.random) || 0)
         : parseFloat(groups.random) || 0;
     // how often should each "insertation" be repeated
-    const repeatValue = parseInt(groups.repeat) || Number.MAX_SAFE_INTEGER;
+    const repeatValue =
+      groups.repeat && parseInt(groups.repeat) > 0
+        ? parseInt(groups.repeat)
+        : Number.MAX_SAFE_INTEGER;
     // what is the max. number of insertation, before starting from beginning?
-    const frequencyValue = parseInt(groups.frequency) || 1;
+    const frequencyValue =
+      groups.frequency && parseInt(groups.frequency) > 0
+        ? parseInt(groups.frequency)
+        : 1;
     // is there any "expression" in the input
     const expr = !ALPHA && groups.expr;
     // when to stop the insertation?
@@ -500,7 +507,8 @@ function InsertSequenceCommand({
     // when replacing anything, what cast (typenumber) should be used
     const cast = EXPRMODE && groups.cast ? groups.cast : config_cast;
     // does the alpha input starts with a uppercase letter?
-    const UPPER = ALPHA && start && start[0] === start[0].toUpperCase();
+    const UPPER =
+      (ALPHA && start && start[0] === start[0].toUpperCase()) || false;
     // wrap alpha input
     const WRAP = ALPHA && groups.wrap === 'w';
     // which format should be used
@@ -516,6 +524,10 @@ function InsertSequenceCommand({
           ? groups.alphaformat_align
           : '<',
       length: parseInt(groups.alphaformat_integer) || 0,
+      // default: TRUE (l) => | a  |; FALSE (r) => |  a |
+      adjust: groups.alphaformat_correct
+        ? groups.alphaformat_correct === 'l'
+        : config_centerString === 'l',
     };
 
     // check if RandomTo larger than RandomFrom (startValue) - if not, stop
@@ -525,18 +537,6 @@ function InsertSequenceCommand({
       );
       return;
     }
-
-    // how many decimals are wished? (either because, the step has decimals or the format has decimals)
-    const decimals =
-      format.length > 0
-        ? format.indexOf('.') > -1
-          ? format.length - format.indexOf('.') - 1
-          : step.indexOf('.') > -1
-          ? step.length - step.indexOf('.') - 1
-          : parseInt(config_decimals)
-        : step.indexOf('.') > -1
-        ? step.length - step.indexOf('.') - 1
-        : parseInt(config_decimals);
 
     // all insertations/replacements
     const values: string[] = [];
@@ -617,19 +617,15 @@ function InsertSequenceCommand({
 
         // tmp Variables, replace internal variables in the expression
         let tmpString = expr
-          .replace(/\b_\b/g, underscoreValue.toLocaleString())
-          .replace(/\bs\b/gi, step.toLocaleString())
-          .replace(/\bn\b/gi, selLen.toLocaleString())
-          .replace(/\bp\b/gi, prevValue.toLocaleString())
-          .replace(/\ba\b/gi, startValue.toLocaleString())
-          .replace(/\bi\b/gi, curIterationVal.toLocaleString());
+          .replace(/\b_\b/g, underscoreValue.toString())
+          .replace(/\bs\b/gi, step.toString())
+          .replace(/\bn\b/gi, selLen.toString())
+          .replace(/\bp\b/gi, prevValue.toString())
+          .replace(/\ba\b/gi, startValue.toString())
+          .replace(/\bi\b/gi, curIterationVal.toString());
         try {
           let evalResult = eval(tmpString);
-          if (evalResult) {
-            exprValueStr = evalResult.toString();
-          } else {
-            exprValueStr = '';
-          }
+          exprValueStr = evalResult.toString();
         } catch (e) {
           curWindow.showErrorMessage(
             `[${expr}] Invalid Expression. Exception is: ` + e
@@ -645,13 +641,13 @@ function InsertSequenceCommand({
           parseFloat(start) + curIterationIndex * parseFloat(step);
 
         let tmpString = stopExpr
-          .replace(/\b_\b/g, underscoreValue.toLocaleString())
-          .replace(/\bs\b/gi, step.toLocaleString())
-          .replace(/\bn\b/gi, selLen.toLocaleString())
-          .replace(/\bp\b/gi, prevValue.toLocaleString())
-          .replace(/\bc\b/gi, exprValueStr.toLocaleString())
-          .replace(/\ba\b/gi, startValue.toLocaleString())
-          .replace(/\bi\b/gi, curIterationVal.toLocaleString());
+          .replace(/\b_\b/g, underscoreValue.toString())
+          .replace(/\bs\b/gi, step.toString())
+          .replace(/\bn\b/gi, selLen.toString())
+          .replace(/\bp\b/gi, prevValue.toString())
+          .replace(/\bc\b/gi, exprValueStr.toString())
+          .replace(/\ba\b/gi, startValue.toString())
+          .replace(/\bi\b/gi, curIterationVal.toString());
         try {
           let stopResult = eval(tmpString);
           if (stopResult && stopResult != '') {
@@ -673,9 +669,7 @@ function InsertSequenceCommand({
       if (ALPHA) {
         // alpha mode
 
-        let value: number = 0;
-
-        value = parseFloat(start) + curIterationIndex * parseInt(step);
+        let value = alphaToNum(start) + curIterationIndex * parseInt(step);
 
         // Alpha Mode - get current Step as Alpha-String
         curValueStr = numToAlpha(value, WRAP ? 1 : 0);
@@ -686,25 +680,22 @@ function InsertSequenceCommand({
       } else {
         // numeric mode or substitution mode
 
-        // initial value with 0, we don't know anything about the new value
-        let value: number | string = 0;
-
         // if expression is available, calculat value based on expression result
         if (exprValueStr.length > 0) {
-          value = exprValueStr;
-          if (EXPRMODE) {
-            if (Number.isFinite(+value)) {
-              value += parseFloat(selectedText) || 0;
-            }
+          if (EXPRMODE && Number.isFinite(+exprValueStr)) {
+            let value: number = 0;
+            value = +exprValueStr + (parseFloat(selectedText) || 0);
+            exprValueStr = value.toString();
           }
-          curValueStr = value.toString();
-          curValueIsNumber = Number.isFinite(+value);
+          curValueStr = exprValueStr;
+          curValueIsNumber = Number.isFinite(+exprValueStr);
         } else {
           // if random option is choosen, value is a random number
+          let value: number;
           if (ISRANDOM) {
             value = getRandomNumber(parseFloat(start), randomTo);
           } else {
-            value = parseFloat(start) + curIterationIndex * parseInt(step);
+            value = parseFloat(start) + curIterationIndex * parseFloat(step);
           }
 
           // when substitution, try to add the current value to the new value
@@ -725,23 +716,25 @@ function InsertSequenceCommand({
         }
       }
 
-      values.push(curValueStr.toLocaleString());
+      values.push(curValueStr.toString());
       selectedRegions.push(rangeSel);
-      prevValue = parseFloat(start) + curIterationIndex * parseInt(step);
+      prevValue = parseFloat(start) + curIterationIndex * parseFloat(step);
 
       curIterationVal += 1;
     }
 
-    if (EXPRMODE) {
-      // substitution mode
-      if (REVERSE) {
-        sortSelections.reverse();
-      }
-      sortSelections.forEach(function (
-        element: vscode.Selection,
-        index: number
-      ) {
-        if (curTextEditor) {
+    if (curTextEditor) {
+      if (EXPRMODE) {
+        // substitution mode
+        if (REVERSE) {
+          sortSelections.reverse();
+        }
+        let lastPosition: vscode.Selection = selectedRegions[0];
+        sortSelections.forEach(function (
+          element: vscode.Selection,
+          index: number
+        ) {
+          lastPosition = selectedRegions[index];
           WSPedit.replace(
             curTextEditor.document.uri,
             new vscode.Range(
@@ -750,31 +743,68 @@ function InsertSequenceCommand({
             ),
             values[index]
           );
+        });
+        for (
+          let i = sortSelections.length;
+          sortSelections.length < values.length;
+          i++
+        ) {
+          if (values[i] != undefined) {
+            values[i] = '\n';
+          }
+          WSPedit.insert(
+            curTextEditor.document.uri,
+            lastPosition.end,
+            values[i]
+          );
         }
-      });
-    } else {
-      // insert mode (numberic or alpha)
-      let lastPosition: vscode.Position;
-      values.forEach(function (element: string, index: number) {
-        if (curTextEditor !== undefined) {
+      } else {
+        // insert mode (numberic or alpha)
+        let lastPosition: vscode.Position;
+        let selectionCounter: number = 0;
+        values.forEach(function (element: string, index: number) {
           if (selectedRegions && selectedRegions[index]) {
             lastPosition = selectedRegions[index].active;
             WSPedit.replace(
               curTextEditor.document.uri,
               new vscode.Range(
-                selectedRegions[index].active,
-                selectedRegions[index].active
+                selectedRegions[index].start,
+                selectedRegions[index].end
               ),
               element
             );
+            selectionCounter++;
           } else {
-            lastPosition = new vscode.Position(lastPosition.line + 1, 0);
-            WSPedit.insert(curTextEditor.document.uri, lastPosition, element);
+            let newElement = element;
+            if (lastPosition.line + 1 >= curTextEditor.document.lineCount) {
+              newElement = '\n' + element;
+            }
+            lastPosition = new vscode.Position(
+              lastPosition.line + 1,
+              lastPosition.character
+            );
+            WSPedit.replace(
+              curTextEditor.document.uri,
+              // lastPosition,
+              new vscode.Range(lastPosition, lastPosition),
+              newElement
+            );
           }
+        });
+        for (
+          let i = selectionCounter;
+          selectionCounter < selectedRegions.length;
+          i++
+        ) {
+          WSPedit.replace(
+            curTextEditor.document.uri,
+            new vscode.Range(selectedRegions[i].start, selectedRegions[i].end),
+            ''
+          );
         }
-      });
+      }
+      vscode.workspace.applyEdit(WSPedit);
     }
-    vscode.workspace.applyEdit(WSPedit);
   }
 }
 
