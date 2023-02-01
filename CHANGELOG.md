@@ -3,6 +3,8 @@
 All notable changes to this extension (newest on top):
 
 - 0.9.0
+  We are getting closer to version 1 ;-)
+
   New: I have decided to change the command name to "insertseq", because the command does not only insert numbers, but complet sequences (numbers, alpha chars, regular expressions, etc.)
 
   New: read configuration for default values:
