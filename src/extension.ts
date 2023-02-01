@@ -17,9 +17,7 @@ rewritten February 2023
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-import * as path from 'path';
-
-// nicht updaten!!! With version 3 it will not work
+// don't update this module!!! Starting with version 3, it will currently not work anymore!
 import * as d3 from 'd3-format';
 
 // this method is called when your extension is activated
@@ -35,7 +33,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const insertSeq = vscode.commands.registerCommand(
     'extension.insertSeq',
     (value: string = '') => {
-      InsertSequenceCommand({ context, value });
+      InsertSequenceCommand({ context, value, version: 'insertseq' });
     }
   );
 
@@ -103,9 +101,10 @@ function InsertSequenceCommand({
     }
     histories.unshift(value);
 
-    const historyLimit: number | undefined = vscode.workspace
-      .getConfiguration('insertnums')
-      .get('historyLimit');
+    const historyLimit: number | undefined =
+      vscode.workspace.getConfiguration('insertseq').get('historyLimit') ||
+      vscode.workspace.getConfiguration('insertnums').get('historyLimit') ||
+      0;
     if (historyLimit && historyLimit !== 0 && histories.length > historyLimit) {
       histories.splice(historyLimit - 1, histories.length); // Remove excess records
     }
@@ -160,12 +159,12 @@ function InsertSequenceCommand({
     return '0x' + res;
   }
 
-  function hexToNum(hex: string): number | undefined {
-    let res = 0;
+  function isHex(hex: string): boolean {
+    return hex.substring(0, 2).toLocaleLowerCase() === '0x';
+  }
 
-    if (hex.substring(0, 2).toLocaleLowerCase() !== '0x') {
-      return undefined;
-    }
+  function hexToNum(hex: string): number {
+    let res = 0;
 
     for (let i = 2; i < hex.length; i++) {
       res *= 16;
@@ -229,10 +228,6 @@ function InsertSequenceCommand({
       return resArray;
     };
   }
-
-  type LexReturn = {
-    [key: string]: RegExp;
-  };
 
   function getValidInputRegExp(): { [key: string]: any } {
     type RuleTemplate = {
@@ -303,7 +298,7 @@ function InsertSequenceCommand({
   const curTextEditor = curWindow.activeTextEditor;
   if (!curTextEditor) {
     curWindow.showErrorMessage(
-      'Extension only available with an active Texteditor'
+      '[insertseq] Extension only available with an active Texteditor'
     );
     return;
   }
@@ -311,7 +306,9 @@ function InsertSequenceCommand({
   // check if selection is available (should be ;-) )
   const selections = curTextEditor.selections;
   if (!selections) {
-    curWindow.showErrorMessage('No selection available! Is Texteditor active?');
+    curWindow.showErrorMessage(
+      '[insertseq] No selection available! Is Texteditor active?'
+    );
     return;
   }
 
@@ -324,7 +321,7 @@ function InsertSequenceCommand({
   const defaultCast: string = 's';
   // when a string is centered, but is not perfectly possible, move one character to the left (true) or right (false) - e.g. true => | a  |; false => |  a |
   const defaultCenterString: string = 'l';
-
+  // how many selections do we have?
   const selLen = selections.length;
 
   // read configuration
@@ -418,7 +415,8 @@ function InsertSequenceCommand({
       addHistory({ value: result });
     }
 
-    const eingabe = result.length > 0 ? result : '1:1';
+    const eingabe =
+      result.length > 0 ? result : `${config_start}:${config_step}`;
 
     // get the valid input regexps for numbers, alpha and substitution mode
     const regResult = getValidInputRegExp();
@@ -436,7 +434,8 @@ function InsertSequenceCommand({
       matchExpr?.groups || { start: config_start, step: config_step };
 
     if (!matchNum && !matchAlpha && !matchExpr) {
-      let errorMsg = 'No valid regular expression: >' + eingabe + '<. ';
+      let errorMsg =
+        '[insertseq] No valid regular expression: >' + eingabe + '<. ';
       errorMsg += `DEFAULT: ${config_start}:${config_step} `;
       errorMsg +=
         'Options: NUMBERS:  [<start>][:<step>][~<format>][r[<from>,<to>]|[+?<to>]][*<frequency>][#repetitions][::<expr>][@<stopexpr>][$][!] or ';
@@ -458,31 +457,24 @@ function InsertSequenceCommand({
     const REVERSE = groups.reverse === '!';
     // check, if selections/multilines needs to be sorted before insertation
     const SORTSEL = groups.sort_selections === '$';
-    // check, if a hex number is inserted or the first selection is
-    const HEXNUMBER =
-      (groups.start &&
-        groups.start.substring(0, 2).toLocaleLowerCase() === '0x') ||
-      (selections.length > 0 &&
-        curTextEditor?.document
-          .getText(selections[0])
-          .trim()
-          .substring(0, 2) === '0x');
-    // the length of the total formated number or 0, if no formating is needed
-    const numLength = Number(groups.format_integer) || 0;
+
     // start value (also re-start for frequency)
-    const start = groups.start || config_start;
+    const start = isHex(groups.start)
+      ? hexToNum(groups.start).toString()
+      : groups.start || config_start;
     const startValue = parseFloat(start);
     // the incrementation
     const step =
       groups.step && groups.step.length > 0
-        ? groups.step.substring(0, 2).toLocaleLowerCase() === '0x'
-          ? hexToNum(groups.step)
-            ? groups.step
-            : hexToNum(config_step)
-            ? config_step
-            : defaultStep
+        ? isHex(groups.step)
+          ? hexToNum(groups.step).toString()
           : groups.step
-        : config_step;
+        : isHex(config_step)
+        ? hexToNum(config_step).toString()
+        : config_step || defaultStep;
+
+    // convert all values later to hex number, because we found a hex in the input
+    const ISHEXMODE = isHex(groups.start) || isHex(groups.step) || false;
     // check, if random number is used
     const ISRANDOM = groups.random != undefined;
     // upper bound of random number range
@@ -513,6 +505,7 @@ function InsertSequenceCommand({
     const WRAP = ALPHA && groups.wrap === 'w';
     // which format should be used
     const format = groups.format || '';
+
     // string formatting
     const alphaFormat = {
       fill:
@@ -547,9 +540,6 @@ function InsertSequenceCommand({
 
     // stores prev value for expression calculation (of next value)
     let prevValue: number = 0;
-
-    // collect all selected ranges to replace them with new values
-    let selectedRegions: vscode.Selection[] = [];
 
     const castTable: { [key: string]: Function } = {
       i: function (value: string): string {
@@ -586,25 +576,28 @@ function InsertSequenceCommand({
         loopContinue = false;
         break;
       }
-      // if (Date.now() > startTime + timeLimit) {
-      // curWindow.showInformationMessage(
-      // `Time limit of ${timeLimit}ms exceeded`
-      // );
-      // return;
-      // }
+      if (Date.now() > startTime + timeLimit) {
+        curWindow.showInformationMessage(
+          `Time limit of ${timeLimit}ms exceeded`
+        );
+        return;
+      }
 
       let curIterationIndex =
         Math.trunc(curIterationVal / frequencyValue) % repeatValue;
 
-      const rangeSel = !REVERSE
-        ? sortSelections[curIterationVal]
-        : sortSelections[sortSelections.length - 1 - curIterationVal];
+      let selectedText: string = '';
+      if (curIterationVal < sortSelections.length) {
+        const rangeSel = !REVERSE
+          ? sortSelections[curIterationVal]
+          : sortSelections[sortSelections.length - 1 - curIterationVal];
 
-      const selectedText =
-        cast.length === 1
-          ? castTable[cast] &&
-            castTable[cast](curTextEditor?.document.getText(rangeSel))
-          : curTextEditor?.document.getText(rangeSel) || '';
+        selectedText =
+          cast.length === 1
+            ? castTable[cast] &&
+              castTable[cast](curTextEditor?.document.getText(rangeSel))
+            : curTextEditor?.document.getText(rangeSel) || '';
+      }
 
       let exprValueStr: string = '';
 
@@ -682,11 +675,6 @@ function InsertSequenceCommand({
 
         // if expression is available, calculat value based on expression result
         if (exprValueStr.length > 0) {
-          if (EXPRMODE && Number.isFinite(+exprValueStr)) {
-            let value: number = 0;
-            value = +exprValueStr + (parseFloat(selectedText) || 0);
-            exprValueStr = value.toString();
-          }
           curValueStr = exprValueStr;
           curValueIsNumber = Number.isFinite(+exprValueStr);
         } else {
@@ -706,6 +694,9 @@ function InsertSequenceCommand({
         }
       }
 
+      // get current value as previous value for next expression
+      prevValue = parseFloat(curValueStr) || 0;
+
       // format string available format curValueStr
       if (format?.length > 0) {
         // if the curValue is a
@@ -716,89 +707,88 @@ function InsertSequenceCommand({
         }
       }
 
+      if (ISHEXMODE && Number.isFinite(+curValueStr)) {
+        curValueStr = numToHex(+curValueStr);
+      }
       values.push(curValueStr.toString());
-      selectedRegions.push(rangeSel);
-      prevValue = parseFloat(start) + curIterationIndex * parseFloat(step);
 
       curIterationVal += 1;
     }
 
     if (curTextEditor) {
+      if (REVERSE) {
+        sortSelections.reverse();
+      }
       if (EXPRMODE) {
         // substitution mode
-        if (REVERSE) {
-          sortSelections.reverse();
-        }
-        let lastPosition: vscode.Selection = selectedRegions[0];
+        let curPosition: vscode.Selection = sortSelections[0];
         sortSelections.forEach(function (
           element: vscode.Selection,
           index: number
         ) {
-          lastPosition = selectedRegions[index];
           WSPedit.replace(
             curTextEditor.document.uri,
-            new vscode.Range(
-              selectedRegions[index].start,
-              selectedRegions[index].end
-            ),
+            new vscode.Range(element.start, element.end),
             values[index]
           );
+          curPosition = element;
         });
-        for (
-          let i = sortSelections.length;
-          sortSelections.length < values.length;
-          i++
-        ) {
+
+        let additionalLines: vscode.Position = curPosition.active;
+
+        for (let i = sortSelections.length; i < values.length; i++) {
           if (values[i] != undefined) {
             values[i] = '\n';
           }
+
+          additionalLines = new vscode.Position(
+            additionalLines.line + 1,
+            additionalLines.character
+          );
+
           WSPedit.insert(
             curTextEditor.document.uri,
-            lastPosition.end,
+            additionalLines,
             values[i]
           );
         }
       } else {
         // insert mode (numberic or alpha)
-        let lastPosition: vscode.Position;
+        let curPosition: vscode.Position;
         let selectionCounter: number = 0;
         values.forEach(function (element: string, index: number) {
-          if (selectedRegions && selectedRegions[index]) {
-            lastPosition = selectedRegions[index].active;
+          if (sortSelections && sortSelections[index]) {
+            curPosition = sortSelections[index].active;
             WSPedit.replace(
               curTextEditor.document.uri,
               new vscode.Range(
-                selectedRegions[index].start,
-                selectedRegions[index].end
+                sortSelections[index].start,
+                sortSelections[index].end
               ),
               element
             );
             selectionCounter++;
           } else {
-            let newElement = element;
-            if (lastPosition.line + 1 >= curTextEditor.document.lineCount) {
-              newElement = '\n' + element;
+            if (curPosition.line + 1 < curTextEditor.document.lineCount) {
+              curPosition = new vscode.Position(
+                curPosition.line + 1,
+                curPosition.character
+              );
+            } else {
+              element = '\n' + element;
             }
-            lastPosition = new vscode.Position(
-              lastPosition.line + 1,
-              lastPosition.character
-            );
             WSPedit.replace(
               curTextEditor.document.uri,
               // lastPosition,
-              new vscode.Range(lastPosition, lastPosition),
-              newElement
+              new vscode.Range(curPosition, curPosition),
+              element
             );
           }
         });
-        for (
-          let i = selectionCounter;
-          selectionCounter < selectedRegions.length;
-          i++
-        ) {
+        for (let i = selectionCounter; i < sortSelections.length; i++) {
           WSPedit.replace(
             curTextEditor.document.uri,
-            new vscode.Range(selectedRegions[i].start, selectedRegions[i].end),
+            new vscode.Range(sortSelections[i].start, sortSelections[i].end),
             ''
           );
         }

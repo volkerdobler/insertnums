@@ -2,6 +2,19 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.9.0
+  New: I have decided to change the command name to "insertseq", because the command does not only insert numbers, but complet sequences (numbers, alpha chars, regular expressions, etc.)
+
+  New: read configuration for default values:
+
+  - "insertseq.start" : default <start> value (1)
+  - "insertseq.step" : default <step> value (1)
+  - "insertseq.cast" : default <cast> value (s)
+  - "insertseq.centerString" : default "left" - value, how to center odd text length in an even length field (l)
+
+  Bugfix: random numbers always started with <start> - fixed to a random number
+  Bugfix: expression mode did not work correctly - fixed now to adjust to original ideas from James Brooks
+
 - 0.6.4
   Bugfix: command did not start
 
