@@ -474,7 +474,11 @@ function InsertSequenceCommand({
         : config_step || defaultStep;
 
     // convert all values later to hex number, because we found a hex in the input
-    const ISHEXMODE = isHex(groups.start) || isHex(groups.step) || false;
+    const ISHEXMODE = groups.start
+      ? isHex(groups.start)
+      : false || groups.step
+      ? isHex(groups.step)
+      : false || false;
     // check, if random number is used
     const ISRANDOM = groups.random != undefined;
     // upper bound of random number range
