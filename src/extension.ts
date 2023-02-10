@@ -79,6 +79,8 @@ export function deactivate(): void {
   return;
 }
 
+const appName: string = 'insertseq';
+
 function InsertSequenceCommand({
   context,
   value,
@@ -102,7 +104,7 @@ function InsertSequenceCommand({
     histories.unshift(value);
 
     const historyLimit: number | undefined =
-      vscode.workspace.getConfiguration('insertseq').get('historyLimit') ||
+      vscode.workspace.getConfiguration(appName).get('historyLimit') ||
       vscode.workspace.getConfiguration('insertnums').get('historyLimit') ||
       0;
     if (historyLimit && historyLimit !== 0 && histories.length > historyLimit) {
@@ -229,6 +231,26 @@ function InsertSequenceCommand({
     };
   }
 
+  function getMonth(
+    idx: number,
+    format: 'long' | 'short',
+    country?: string
+  ): string {
+    let objDate = new Date();
+
+    objDate.setDate(1);
+    objDate.setMonth(idx - 1);
+
+    let locale =
+      country ||
+      vscode.workspace.getConfiguration(appName).get('defaultlang') ||
+      'en-US';
+
+    let output = objDate.toLocaleString(locale, { month: format });
+
+    return output.toLocaleUpperCase();
+  }
+
   function getValidInputRegExp(): { [key: string]: any } {
     type RuleTemplate = {
       [key: string]: string;
@@ -253,6 +275,8 @@ function InsertSequenceCommand({
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
         '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{integer}))?',
+      monthstart: '[a-zA-Z][a-zA-Z][a-zA-Z]+',
+      monthformat: '[ls]',
       cast: '[ifsb]',
       expr: '.+?',
       stopExpr: '.+?',
@@ -262,12 +286,15 @@ function InsertSequenceCommand({
         '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (\\?(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
         '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+      insertMonth:
+        '^(?<start> {monthstart})(:(?<step> {signedint}))? (\\&(?<lang> \\w+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {monthformat}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     const result: RuleTemplate = {
       exprMode: '',
       insertNum: '',
       insertAlpha: '',
+      insertMonth: '',
     };
 
     for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -298,7 +325,7 @@ function InsertSequenceCommand({
   const curTextEditor = curWindow.activeTextEditor;
   if (!curTextEditor) {
     curWindow.showErrorMessage(
-      '[insertseq] Extension only available with an active Texteditor'
+      `[${appName}] Extension only available with an active Texteditor`
     );
     return;
   }
@@ -307,7 +334,7 @@ function InsertSequenceCommand({
   const selections = curTextEditor.selections;
   if (!selections) {
     curWindow.showErrorMessage(
-      '[insertseq] No selection available! Is Texteditor active?'
+      `[${appName}] No selection available! Is Texteditor active?`
     );
     return;
   }
@@ -326,27 +353,27 @@ function InsertSequenceCommand({
 
   // read configuration
   const config_editHistory: boolean =
-    vscode.workspace.getConfiguration('insertseq').get('editHistory') ||
+    vscode.workspace.getConfiguration(appName).get('editHistory') ||
     vscode.workspace.getConfiguration('insertnums').get('editHistory') ||
     false;
 
   const config_start: string =
-    vscode.workspace.getConfiguration('insertseq').get('start') ||
+    vscode.workspace.getConfiguration(appName).get('start') ||
     vscode.workspace.getConfiguration('insertnums').get('start') ||
     defaultStart;
 
   const config_step: string =
-    vscode.workspace.getConfiguration('insertseq').get('step') ||
+    vscode.workspace.getConfiguration(appName).get('step') ||
     vscode.workspace.getConfiguration('insertnums').get('step') ||
     defaultStep;
 
   const config_cast: string =
-    vscode.workspace.getConfiguration('insertseq').get('cast') ||
+    vscode.workspace.getConfiguration(appName).get('cast') ||
     vscode.workspace.getConfiguration('insertnums').get('cast') ||
     defaultCast;
 
   const config_centerString: string =
-    vscode.workspace.getConfiguration('insertseq').get('centerString') ||
+    vscode.workspace.getConfiguration(appName).get('centerString') ||
     vscode.workspace.getConfiguration('insertnums').get('centerString') ||
     defaultCenterString;
 
@@ -424,35 +451,56 @@ function InsertSequenceCommand({
     let matchNum: RegExpExecArray | null = null;
     let matchAlpha: RegExpExecArray | null = null;
     let matchExpr: RegExpExecArray | null = null;
+    let matchMonth: RegExpExecArray | null = null;
 
     matchNum = new RegExp(regResult.result.insertNum).exec(eingabe);
     matchAlpha = new RegExp(regResult.result.insertAlpha).exec(eingabe);
     matchExpr = new RegExp(regResult.result.exprMode).exec(eingabe);
+    matchMonth = new RegExp(regResult.result.insertMonth, 'i').exec(eingabe);
 
     let groups = matchNum?.groups ||
       matchAlpha?.groups ||
-      matchExpr?.groups || { start: config_start, step: config_step };
+      matchExpr?.groups ||
+      matchMonth?.groups || { start: config_start, step: config_step };
 
-    if (!matchNum && !matchAlpha && !matchExpr) {
+    if (!matchNum && !matchAlpha && !matchExpr && !matchMonth) {
       let errorMsg =
-        '[insertseq] No valid regular expression: >' + eingabe + '<. ';
+        `[${appName}] No valid regular expression: >` + eingabe + '<. ';
       errorMsg += `DEFAULT: ${config_start}:${config_step} `;
       errorMsg +=
         'Options: NUMBERS:  [<start>][:<step>][~<format>][r[<from>,<to>]|[+?<to>]][*<frequency>][#repetitions][::<expr>][@<stopexpr>][$][!] or ';
       errorMsg +=
         'ALPHA:  <start>[:<step>][~<format>][*<frequency>][#repetitions][@<stopexpr>][w][$][!] or ';
       errorMsg +=
-        'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] ';
+        'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] or ';
       errorMsg +=
-        'or (deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
+        'MONTH:  <start>[:<step>][&<lang>][~<format>][*<frequency>][#repetitions][@<stopexpr>][$][!] or ';
+      errorMsg +=
+        '(deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
       curWindow.showErrorMessage(errorMsg);
       return;
     }
 
+    const allMonths: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      allMonths.push(
+        getMonth(
+          i + 1,
+          (groups?.monthformat as 'long' | 'short') || 'short',
+          groups?.lang ||
+            vscode.workspace.getConfiguration(appName).get('defaultlang')
+        )
+      );
+    }
+
     // check if substitution
     const EXPRMODE = !!matchExpr;
-    // check if alpha
-    const ALPHA = !!matchAlpha;
+    // check if month
+    const MONTH =
+      !!matchMonth &&
+      allMonths.includes(groups?.start.toLocaleUpperCase() || '§');
+    // check if alpha (not allowed with month!)
+    const ALPHA = !MONTH && !!matchAlpha;
     // check if reverse is on
     const REVERSE = groups.reverse === '!';
     // check, if selections/multilines needs to be sorted before insertation

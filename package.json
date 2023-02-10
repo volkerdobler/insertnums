@@ -73,6 +73,11 @@
 						"l (default): e.g. a 1 char string centered in a 4 char field is left oriented",
 						"r: e.g. a 1 char string centered in a 4 char field is right oriented"
 					]
+				},
+				"insertseq.defaultlang": {
+					"type": "string",
+					"default": "de",
+					"description": "Default language format for months"
 				}
 			}
 		},
