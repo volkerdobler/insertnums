@@ -2,6 +2,10 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.9.2
+
+  Fixed: but in syntax for random numbers
+
 - 0.9.1
 
   Fixed: last minute bug in 0.9.0 :-(
