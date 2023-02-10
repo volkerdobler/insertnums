@@ -141,6 +141,45 @@ function InsertSequenceCommand({
     return res;
   }
 
+  function monthToNum(month: string, lang: string): number {
+    for (let i = 1; i <= 12; i++) {
+      if (
+        getMonth(
+          i,
+          'l',
+          lang,
+          Math.max(month.length, config_minmonthlength)
+        ).toLocaleUpperCase() === month.toLocaleUpperCase()
+      ) {
+        return i;
+      }
+      if (
+        getMonth(
+          i,
+          's',
+          lang,
+          Math.max(month.length, config_minmonthlength)
+        ).toLocaleUpperCase() === month.toLocaleUpperCase()
+      ) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+  function numToMonth(m: number, form?: 's' | 'l', lang?: string): string {
+    m = ((m - 1) % 12) + 1;
+    if (m >= 1 && m <= 12) {
+      let f: 's' | 'l' = form || (config_defaultLangFormat as 's' | 'l');
+      let l = lang || config_defaultLang;
+
+      return getMonth(m, f, l);
+    } else {
+      return '';
+    }
+  }
+
   function numToHex(num: number, len: number = 0): string {
     let res = '';
 
@@ -233,22 +272,30 @@ function InsertSequenceCommand({
 
   function getMonth(
     idx: number,
-    format: 'long' | 'short',
-    country?: string
+    format: 's' | 'l',
+    country?: string,
+    finish?: number
   ): string {
     let objDate = new Date();
+
+    let end: number = finish || Number.MAX_SAFE_INTEGER;
 
     objDate.setDate(1);
     objDate.setMonth(idx - 1);
 
+    let f: 'short' | 'long' = 'short';
+    if (format === 'l') {
+      f = 'long';
+    }
+
     let locale =
       country ||
       vscode.workspace.getConfiguration(appName).get('defaultlang') ||
-      'en-US';
+      config_defaultLang;
 
-    let output = objDate.toLocaleString(locale, { month: format });
+    let output = objDate.toLocaleString(locale, { month: f });
 
-    return output.toLocaleUpperCase();
+    return output.slice(0, end);
   }
 
   function getValidInputRegExp(): { [key: string]: any } {
@@ -263,31 +310,31 @@ function InsertSequenceCommand({
     const ruleTemplate: RuleTemplate = {
       integer: '[1-9]\\d* | 0',
       hexdigits: '[1-9a-fA-F][0-9a-fA-F]*',
-      signedint: '[+-]? {integer}',
-      pointfloat: '({integer})? \\. \\d+ | {integer} \\.',
-      exponentfloat: '(?:{integer} | {pointfloat}) [eE] [+-]? \\d+',
-      float: '{pointfloat} | {exponentfloat}',
-      hexNum: '0[xX]{hexdigits}',
-      numeric: '{integer} | {float}',
-      signedNum: '([+-]? {numeric})|{hexNum}',
+      signedint: '[+-]? {{integer}}',
+      pointfloat: '({{integer}})? \\. \\d+ | {{integer}} \\.',
+      exponentfloat: '(?:{{integer}} | {{pointfloat}}) [eE] [+-]? \\d+',
+      float: '{{pointfloat}} | {{exponentfloat}}',
+      hexNum: '0[xX]{{hexdigits}}',
+      numeric: '{{integer}} | {{float}}',
+      signedNum: '([+-]? {{numeric}})|{{hexNum}}',
       format:
-        '((?<format_padding> [^}}])? (?<format_align> [<>^=]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {integer})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
+        '((?<format_padding> [^}}])? (?<format_align> [<>^=]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {{integer}})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
-        '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{integer}))?',
-      monthstart: '[a-zA-Z][a-zA-Z][a-zA-Z]+',
-      monthformat: '[ls]',
+        '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{{integer}}))?',
+      monthstart: `[\\p{L}\\p{M}]{${config_minmonthlength},}`,
+      monthformat: '(?:l(ong)?|s(hort)?)\\b',
       cast: '[ifsb]',
       expr: '.+?',
       stopExpr: '.+?',
       exprMode:
-        '^(?<cast> {cast})?\\|(~(?<format> {format})::)? (?<expr> {expr}) (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<cast> {{cast}})?\\|(~(?<format> {{format}})::)? (?<expr> {{expr}}) (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {signedNum})? (:(?<step> {signedNum}))? (r(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {format}))? (::(?<expr> {expr}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {{signedNum}})? (:(?<step> {{signedNum}}))? (r(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{format}}))? (::(?<expr> {{expr}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {alphastart})(:(?<step> {signedint}))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {alphaformat})(?<wrap> w)?)? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {{alphastart}})(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{alphaformat}})(?<wrap> w)?)? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertMonth:
-        '^(?<start> {monthstart})(:(?<step> {signedint}))? (\\&(?<lang> \\w+))? (\\*(?<frequency> {integer}))? (#(?<repeat> {integer}))? (~(?<format> {monthformat}))? (@(?<stopExpr> {stopExpr}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {{monthstart}})(:(?<step> {{signedint}}))? (\\[(?<lang> [\\w-]+)\\])? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     const result: RuleTemplate = {
@@ -298,11 +345,11 @@ function InsertSequenceCommand({
     };
 
     for (let [key, value] of Object.entries(ruleTemplate)) {
-      while (value.indexOf('{') > -1) {
-        const start: number = value.indexOf('{');
-        const ende: number = value.indexOf('}', start + 1) + 1;
+      while (value.indexOf('{{') > -1) {
+        const start: number = value.indexOf('{{');
+        const ende: number = value.indexOf('}}', start + 2) + 2;
         const replace: string = value.slice(start, ende);
-        const rule: string = replace.slice(1, replace.length - 1);
+        const rule: string = replace.slice(2, replace.length - 2);
         if (hasKey(ruleTemplate, rule)) {
           value = value.replace(replace, ruleTemplate[rule]); // works fine!
         }
@@ -348,6 +395,12 @@ function InsertSequenceCommand({
   const defaultCast: string = 's';
   // when a string is centered, but is not perfectly possible, move one character to the left (true) or right (false) - e.g. true => | a  |; false => |  a |
   const defaultCenterString: string = 'l';
+  // minimale Stringlänge für einen Monat
+  const defaultMinMonthLength: number = 3;
+  // default Language for months
+  const defaultLang: string = 'de';
+  // default Language Format (short - 3 chars) for months
+  const defaultLangFormat: string = 's';
   // how many selections do we have?
   const selLen = selections.length;
 
@@ -376,6 +429,21 @@ function InsertSequenceCommand({
     vscode.workspace.getConfiguration(appName).get('centerString') ||
     vscode.workspace.getConfiguration('insertnums').get('centerString') ||
     defaultCenterString;
+
+  const config_minmonthlength: number =
+    vscode.workspace.getConfiguration(appName).get('minMonthLength') ||
+    vscode.workspace.getConfiguration('insertnums').get('minMonthLength') ||
+    defaultMinMonthLength;
+
+  const config_defaultLang: string =
+    vscode.workspace.getConfiguration(appName).get('language') ||
+    vscode.workspace.getConfiguration('insertnums').get('language') ||
+    defaultLang;
+
+  const config_defaultLangFormat: string =
+    vscode.workspace.getConfiguration(appName).get('languageFormat') ||
+    vscode.workspace.getConfiguration('insertnums').get('languageFormat') ||
+    defaultLangFormat;
 
   // Direct start of command is without value, so the inputbox is shown.
   if (value.length === 0 || config_editHistory) {
@@ -456,7 +524,7 @@ function InsertSequenceCommand({
     matchNum = new RegExp(regResult.result.insertNum).exec(eingabe);
     matchAlpha = new RegExp(regResult.result.insertAlpha).exec(eingabe);
     matchExpr = new RegExp(regResult.result.exprMode).exec(eingabe);
-    matchMonth = new RegExp(regResult.result.insertMonth, 'i').exec(eingabe);
+    matchMonth = new RegExp(regResult.result.insertMonth, 'iu').exec(eingabe);
 
     let groups = matchNum?.groups ||
       matchAlpha?.groups ||
@@ -474,37 +542,31 @@ function InsertSequenceCommand({
       errorMsg +=
         'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] or ';
       errorMsg +=
-        'MONTH:  <start>[:<step>][&<lang>][~<format>][*<frequency>][#repetitions][@<stopexpr>][$][!] or ';
+        'MONTH:  <start>[:<step>][[<lang>]][~<format>][*<frequency>][#repetitions][@<stopexpr>][$][!] or ';
       errorMsg +=
         '(deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
       curWindow.showErrorMessage(errorMsg);
       return;
     }
 
-    const allMonths: string[] = [];
-    for (let i = 0; i < 12; i++) {
-      allMonths.push(
-        getMonth(
-          i + 1,
-          (groups?.monthformat as 'long' | 'short') || 'short',
-          groups?.lang ||
-            vscode.workspace.getConfiguration(appName).get('defaultlang')
-        )
-      );
-    }
-
+    // language settings (for months sequences)
+    const LANG = groups?.lang || config_defaultLang;
     // check if substitution
     const EXPRMODE = !!matchExpr;
     // check if month
-    const MONTH =
-      !!matchMonth &&
-      allMonths.includes(groups?.start.toLocaleUpperCase() || '§');
+    const MONTH = !!matchMonth && monthToNum(groups?.start, LANG) > 0;
     // check if alpha (not allowed with month!)
-    const ALPHA = !MONTH && !!matchAlpha;
+    const ALPHA = !!matchAlpha || MONTH;
     // check if reverse is on
     const REVERSE = groups.reverse === '!';
     // check, if selections/multilines needs to be sorted before insertation
     const SORTSEL = groups.sort_selections === '$';
+    // Long or Short format for months
+    const LANGFORMAT: 's' | 'l' =
+      (MONTH && groups?.format && groups?.format[0] === 'l') ||
+      config_defaultLangFormat === 'l'
+        ? 'l'
+        : 's';
 
     // start value (also re-start for frequency)
     const start = isHex(groups.start)
@@ -552,7 +614,9 @@ function InsertSequenceCommand({
     const cast = EXPRMODE && groups.cast ? groups.cast : config_cast;
     // does the alpha input starts with a uppercase letter?
     const UPPER =
-      (ALPHA && start && start[0] === start[0].toUpperCase()) || false;
+      (!MONTH && ALPHA && start && start[0] === start[0].toUpperCase()) ||
+      (MONTH && start.toLocaleUpperCase() === start) ||
+      false;
     // wrap alpha input
     const WRAP = ALPHA && groups.wrap === 'w';
     // which format should be used
@@ -658,7 +722,7 @@ function InsertSequenceCommand({
         // unserscoreValue depends on mode: expremode => selected text as number; else => (start + i * step)
         let underscoreValue = EXPRMODE
           ? parseFloat(selectedText) || 0
-          : parseFloat(start) + curIterationIndex * parseFloat(step);
+          : startValue + curIterationIndex * parseFloat(step);
 
         // tmp Variables, replace internal variables in the expression
         let tmpString = expr
@@ -682,8 +746,7 @@ function InsertSequenceCommand({
       // if stop expression is available, calculate it
       if (stopExpr) {
         // calculate the current value
-        let underscoreValue =
-          parseFloat(start) + curIterationIndex * parseFloat(step);
+        let underscoreValue = startValue + curIterationIndex * parseFloat(step);
 
         let tmpString = stopExpr
           .replace(/\b_\b/g, underscoreValue.toString())
@@ -714,10 +777,16 @@ function InsertSequenceCommand({
       if (ALPHA) {
         // alpha mode
 
-        let value = alphaToNum(start) + curIterationIndex * parseInt(step);
+        let value: number = 0;
 
-        // Alpha Mode - get current Step as Alpha-String
-        curValueStr = numToAlpha(value, WRAP ? 1 : 0);
+        if (MONTH) {
+          value = monthToNum(start, LANG) + curIterationIndex * parseInt(step);
+          curValueStr = numToMonth(value, LANGFORMAT, LANG);
+        } else {
+          value = alphaToNum(start) + curIterationIndex * parseInt(step);
+          curValueStr = numToAlpha(value, WRAP ? 1 : 0);
+        }
+
         if (UPPER) {
           curValueStr = curValueStr.toLocaleUpperCase();
         }
@@ -733,9 +802,9 @@ function InsertSequenceCommand({
           // if random option is choosen, value is a random number
           let value: number;
           if (ISRANDOM) {
-            value = getRandomNumber(parseFloat(start), randomTo);
+            value = getRandomNumber(startValue, randomTo);
           } else {
-            value = parseFloat(start) + curIterationIndex * parseFloat(step);
+            value = startValue + curIterationIndex * parseFloat(step);
           }
 
           // when substitution, try to add the current value to the new value

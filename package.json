@@ -74,10 +74,27 @@
 						"r: e.g. a 1 char string centered in a 4 char field is right oriented"
 					]
 				},
-				"insertseq.defaultlang": {
+				"insertseq.minMonthLength": {
+					"type": "number",
+					"default": 3,
+					"description": "Minimum length of a string to identify a month (e.g. Apr => 3)"
+				},
+				"insertseq.language": {
 					"type": "string",
 					"default": "de",
 					"description": "Default language format for months"
+				},
+				"insertseq.languageFormat": {
+					"type": "string",
+					"default": "s",
+					"enum": [
+						"l",
+						"s"
+					],
+					"enumdescription": [
+						"s (default): month only as short name (e.g. Jan)",
+						"l: month as long name (e.g. January)"
+					]
 				}
 			}
 		},
