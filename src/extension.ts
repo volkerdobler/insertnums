@@ -148,7 +148,7 @@ function InsertSequenceCommand({
           i,
           'l',
           lang,
-          Math.max(month.length, config_minmonthlength)
+          Math.max(month.length, 1)
         ).toLocaleUpperCase() === month.toLocaleUpperCase()
       ) {
         return i;
@@ -158,7 +158,7 @@ function InsertSequenceCommand({
           i,
           's',
           lang,
-          Math.max(month.length, config_minmonthlength)
+          Math.max(month.length, 1)
         ).toLocaleUpperCase() === month.toLocaleUpperCase()
       ) {
         return i;
@@ -322,7 +322,7 @@ function InsertSequenceCommand({
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
         '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{{integer}}))?',
-      monthstart: `[\\p{L}\\p{M}]{${config_minmonthlength},}`,
+      monthstart: '[\\p{L}\\p{M}]',
       monthformat: '(?:l(ong)?|s(hort)?)\\b',
       cast: '[ifsb]',
       expr: '.+?',
@@ -334,7 +334,7 @@ function InsertSequenceCommand({
       insertAlpha:
         '^(?<start> {{alphastart}})(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{alphaformat}})(?<wrap> w)?)? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertMonth:
-        '^(?<start> {{monthstart}})(:(?<step> {{signedint}}))? (\\[(?<lang> [\\w-]+)\\])? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(;(?<start> {{monthstart}}+))(:(?<step> {{signedint}}))? (\\[(?<lang> [\\w-]+)\\])? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     const result: RuleTemplate = {
@@ -395,8 +395,6 @@ function InsertSequenceCommand({
   const defaultCast: string = 's';
   // when a string is centered, but is not perfectly possible, move one character to the left (true) or right (false) - e.g. true => | a  |; false => |  a |
   const defaultCenterString: string = 'l';
-  // minimale Stringlänge für einen Monat
-  const defaultMinMonthLength: number = 3;
   // default Language for months
   const defaultLang: string = 'de';
   // default Language Format (short - 3 chars) for months
@@ -429,11 +427,6 @@ function InsertSequenceCommand({
     vscode.workspace.getConfiguration(appName).get('centerString') ||
     vscode.workspace.getConfiguration('insertnums').get('centerString') ||
     defaultCenterString;
-
-  const config_minmonthlength: number =
-    vscode.workspace.getConfiguration(appName).get('minMonthLength') ||
-    vscode.workspace.getConfiguration('insertnums').get('minMonthLength') ||
-    defaultMinMonthLength;
 
   const config_defaultLang: string =
     vscode.workspace.getConfiguration(appName).get('language') ||
@@ -522,7 +515,7 @@ function InsertSequenceCommand({
     let matchMonth: RegExpExecArray | null = null;
 
     matchNum = new RegExp(regResult.result.insertNum).exec(eingabe);
-    matchAlpha = new RegExp(regResult.result.insertAlpha).exec(eingabe);
+    matchAlpha = new RegExp(regResult.result.insertAlpha, 'u').exec(eingabe);
     matchExpr = new RegExp(regResult.result.exprMode).exec(eingabe);
     matchMonth = new RegExp(regResult.result.insertMonth, 'iu').exec(eingabe);
 
@@ -538,11 +531,11 @@ function InsertSequenceCommand({
       errorMsg +=
         'Options: NUMBERS:  [<start>][:<step>][~<format>][r+?<to>]][*<frequency>][#repetitions][::<expr>][@<stopexpr>][$][!] or ';
       errorMsg +=
-        'ALPHA:  <start>[:<step>][~<format>][*<frequency>][#repetitions][@<stopexpr>][w][$][!] or ';
+        'ALPHA:  <a-z+|A-Z+> [:<step>][~<format>][*<frequency>][#repetitions][@<stopexpr>][w][$][!] or ';
       errorMsg +=
         'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] or ';
       errorMsg +=
-        'MONTH:  <start>[:<step>][[<lang>]][~<format>][*<frequency>][#repetitions][@<stopexpr>][$][!] or ';
+        'MONTH:  ;<monthname> [:<step>][[<lang>]][~<format>][*<frequency>][#repetitions][@<stopexpr>][$][!] or ';
       errorMsg +=
         '(deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
       curWindow.showErrorMessage(errorMsg);
@@ -573,6 +566,13 @@ function InsertSequenceCommand({
       ? hexToNum(groups.start).toString()
       : groups.start || config_start;
     const startValue = parseFloat(start);
+    if (!ALPHA && !MONTH && Number.isNaN(startValue)) {
+      curWindow.showErrorMessage(
+        `[Month]: ${start} is not a valid month or beginning of month name]!`
+      );
+      return;
+    }
+
     // the incrementation
     const step =
       groups.step && groups.step.length > 0

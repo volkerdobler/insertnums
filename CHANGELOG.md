@@ -4,7 +4,15 @@ All notable changes to this extension (newest on top):
 
 - 0.9.2
 
-  Fixed: but in syntax for random numbers
+  New: (experimental) Starting with a semicolon, the sequenzer assume a month and will increase month-names. You can format the output with ~l to get long month names.
+
+  Additional: configurations:
+
+  - "insertseq.editHistory": default "false" - if true, all history commands will be editable and changable before running
+  - "insertseq.language" : default to "de" - language for month name output (can be changed with [lang] after a month name)
+  - "insertseq.languageFormat" : default to "s" (short version - only first letters of month)
+
+    Fixed: bug in syntax definition of random numbers
 
 - 0.9.1
 
@@ -17,9 +25,9 @@ All notable changes to this extension (newest on top):
 
   New: read configuration for default values:
 
-  - "insertseq.start" : default <start> value (1)
-  - "insertseq.step" : default <step> value (1)
-  - "insertseq.cast" : default <cast> value (s)
+  - "insertseq.start" : default <start> value ("1")
+  - "insertseq.step" : default <step> value ("1")
+  - "insertseq.cast" : default <cast> value ("s")
   - "insertseq.centerString" : default "left" - value, how to center odd text length in an even length field (l)
 
   Bugfix: random numbers always started with <start> - fixed to a random number
