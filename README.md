@@ -9,14 +9,16 @@ I used this extension intensively in the past within sublime text and I could no
 
 ---
 
+## Newest Feature:
+
 Since version 0.9 you can configure the behavior of this extension with configuration variables:
 
-> `insertseq.start` the start value, if no value is provided (default "1")
-> `insertseq.step` the step value, if no value is provided (default "1")
-> `insertseq.cast` the cast value, if no value is provided (default "s" - only for expression mode)
-> `insertseq.centerString` how to center strings if a string is odd and the space is even or vice versa (default "l")
-> `insertseq.language` language for month names (default "de" for Germany)
-> `insertseq.languageFormat` format of month name output (default "short" - in most languages 3 chars)
+- `insertseq.start` the start value, if no value is provided (default "1")
+- `insertseq.step` the step value, if no value is provided (default "1")
+- `insertseq.cast` the cast value, if no value is provided (default "s" - only for expression mode)
+- `insertseq.centerString` how to center strings if a string is odd and the space is even or vice versa (default "l")
+- `insertseq.language` language for month names (default "de" for Germany)
+- `insertseq.languageFormat` format of month name output (default "short" - in most languages 3 chars)
 
 ---
 
