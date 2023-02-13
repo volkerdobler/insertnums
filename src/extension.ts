@@ -334,9 +334,10 @@ function InsertSequenceCommand({
       insertAlpha:
         '^(?<start> {{alphastart}})(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{alphaformat}})(?<wrap> w)?)? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertMonth:
-        '^(;(?<start> {{monthstart}}+))(:(?<step> {{signedint}}))? (\\[(?<lang> [\\w-]+)\\])? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(;(?<start> {{monthstart}}+))(:(?<step> {{signedint}}))? (\\[(?<lang> [\\w-]+)\\])? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<monthformat> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
+    // TODO - linesplit einfügen (?:\\|(?<line_split>[^\\|]+)\\|)?
     const result: RuleTemplate = {
       exprMode: '',
       insertNum: '',
@@ -556,7 +557,7 @@ function InsertSequenceCommand({
     const SORTSEL = groups.sort_selections === '$';
     // Long or Short format for months
     const LANGFORMAT: 's' | 'l' =
-      (MONTH && groups?.format && groups?.format[0] === 'l') ||
+      (MONTH && groups?.monthformat && groups?.monthformat[0] === 'l') ||
       config_defaultLangFormat === 'l'
         ? 'l'
         : 's';
@@ -621,6 +622,12 @@ function InsertSequenceCommand({
     const WRAP = ALPHA && groups.wrap === 'w';
     // which format should be used
     const format = groups.format || '';
+    // which split char should be used?
+    const linesplit: string = groups?.line_split
+      ? groups?.line_split
+      : curTextEditor?.document.eol === 1
+      ? '\n'
+      : '\r\n';
 
     // string formatting
     const alphaFormat = {
@@ -875,9 +882,11 @@ function InsertSequenceCommand({
         }
       } else {
         // insert mode (numberic or alpha)
-        let curPosition: vscode.Position;
+        let curPosition: vscode.Position = sortSelections[0].active;
         let selectionCounter: number = 0;
+        let restStr: string = '';
         values.forEach(function (element: string, index: number) {
+          // as long as we have another selection, replace this selection
           if (sortSelections && sortSelections[index]) {
             curPosition = sortSelections[index].active;
             WSPedit.replace(
@@ -890,28 +899,35 @@ function InsertSequenceCommand({
             );
             selectionCounter++;
           } else {
-            if (curPosition.line + 1 < curTextEditor.document.lineCount) {
-              curPosition = new vscode.Position(
-                curPosition.line + 1,
-                curPosition.character
-              );
-            } else {
-              element = '\n' + element;
-            }
-            WSPedit.replace(
-              curTextEditor.document.uri,
-              // lastPosition,
-              new vscode.Range(curPosition, curPosition),
-              element
-            );
+            // we don't have any addition selection left -
+            // collect all other elements with the newline character
+            restStr += element + (index < values.length ? linesplit : '');
           }
         });
+        // if the selection is more than the insertation, add empty strings
         for (let i = selectionCounter; i < sortSelections.length; i++) {
           WSPedit.replace(
             curTextEditor.document.uri,
             new vscode.Range(sortSelections[i].start, sortSelections[i].end),
             ''
           );
+        }
+        // if we have to insert additional elements,
+        // insert them now ...
+        if (restStr.length > 0) {
+          // we are not at the last line,
+          // write the additional elements to the next line
+          if (curPosition.line + 1 < curTextEditor.document.lineCount) {
+            curPosition = new vscode.Position(
+              curPosition.line + 1,
+              curPosition.character
+            );
+          } else {
+            // we are at the last line, so we need to include an linesplit first,
+            // then insert the rest
+            restStr = linesplit + restStr;
+          }
+          WSPedit.insert(curTextEditor.document.uri, curPosition, restStr);
         }
       }
       vscode.workspace.applyEdit(WSPedit);
