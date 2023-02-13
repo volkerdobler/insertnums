@@ -134,6 +134,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
 		"lint": "eslint src --ext ts",
 		"pretest": "npm run compile && npm run lint",
 		"test": "node ./out/test/runTest.js"
