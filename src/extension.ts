@@ -658,7 +658,7 @@ function InsertSequenceCommand({
     const values: string[] = [];
 
     const sortSelections: vscode.Selection[] = SORTSEL
-      ? quicksort({ arr: selections, low: 0, high: selections.length })
+      ? quicksort({ arr: selections, low: 0, high: selections.length - 1 })
       : selections.slice();
 
     // stores prev value for expression calculation (of next value)
@@ -866,7 +866,7 @@ function InsertSequenceCommand({
 
         for (let i = sortSelections.length; i < values.length; i++) {
           if (values[i] != undefined) {
-            values[i] = '\n';
+            values[i] = linesplit;
           }
 
           additionalLines = new vscode.Position(
@@ -901,7 +901,13 @@ function InsertSequenceCommand({
           } else {
             // we don't have any addition selection left -
             // collect all other elements with the newline character
-            restStr += element + (index < values.length ? linesplit : '');
+            if (!REVERSE) {
+              restStr += element + (index < values.length ? linesplit : '');
+              /*            } else {
+              restStr =
+                element + (restStr.length > 0 ? linesplit : '') + restStr;
+*/
+            }
           }
         });
         // if the selection is more than the insertation, add empty strings
@@ -919,13 +925,13 @@ function InsertSequenceCommand({
           // write the additional elements to the next line
           if (curPosition.line + 1 < curTextEditor.document.lineCount) {
             curPosition = new vscode.Position(
-              curPosition.line + 1,
+              REVERSE ? curPosition.line - 1 : curPosition.line + 1,
               curPosition.character
             );
           } else {
             // we are at the last line, so we need to include an linesplit first,
             // then insert the rest
-            restStr = linesplit + restStr;
+            restStr = REVERSE ? restStr + linesplit : linesplit + restStr;
           }
           WSPedit.insert(curTextEditor.document.uri, curPosition, restStr);
         }
@@ -1003,28 +1009,24 @@ function quicksort({
       : a.anchor.line - b.anchor.line;
   }
 
-  function swap(arr: vscode.Selection[], x: number, y: number) {
-    [arr[x], arr[y]] = [arr[y], arr[x]];
-  }
-
-  function partition(arr: vscode.Selection[], low: number, high: number) {
-    let pivot: vscode.Selection = arr[high];
-    let i = low - 1;
-
-    for (let j = low; j < high; j++) {
-      if (compare(arr[j], pivot) < 0) {
-        i++;
-        swap(arr, i, j);
-      }
-    }
-    swap(arr, i + 1, high);
-    return i + 1;
-  }
-
   let arrreturn: vscode.Selection[] = arr.slice(); // Object.assign([], arr);
-  if (low >= high || low < 0) return arrreturn;
-  let pIndex = partition(arrreturn, low, high);
-  quicksort({ arr: arrreturn, low, high: pIndex - 1 });
-  quicksort({ arr: arrreturn, low: pIndex + 1, high });
-  return arrreturn;
+  if (arrreturn.length <= 1) return arrreturn;
+
+  let pivot: vscode.Selection = arrreturn[Math.floor((low + high) / 2)];
+  let left: vscode.Selection[] = [];
+  let right: vscode.Selection[] = [];
+  for (let i = low; i <= high; i++) {
+    let cmp = compare(arrreturn[i], pivot);
+    if (cmp > 0) {
+      right.push(arrreturn[i]);
+    }
+    if (cmp < 0) {
+      left.push(arrreturn[i]);
+    }
+  }
+  return [
+    ...quicksort({ arr: left, low: 0, high: left.length - 1 }),
+    pivot,
+    ...quicksort({ arr: right, low: 0, high: right.length - 1 }),
+  ];
 }
