@@ -142,6 +142,8 @@ function InsertSequenceCommand({
   }
 
   function monthToNum(month: string, lang: string): number {
+    if (Number.isInteger(+month)) return -1;
+
     for (let i = 1; i <= 12; i++) {
       if (
         getMonth(
@@ -322,19 +324,19 @@ function InsertSequenceCommand({
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
         '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{{integer}}))?',
-      monthstart: '[\\p{L}\\p{M}]',
+      month: '[\\p{L}\\p{M}]+|\\d{1,2}',
       monthformat: '(?:l(ong)?|s(hort)?)\\b',
-      cast: '[ifsb]',
+      cast: '[ifsbm]',
       expr: '.+?',
       stopExpr: '.+?',
       exprMode:
-        '^(?<cast> {{cast}})?\\|(~(?<format> {{format}})::)? (?<expr> {{expr}}) (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<cast> {{cast}})?\\|(~(?:(?<monthformat> {{monthformat}})|(?<format> {{format}}))::)? (?<expr> {{expr}}) (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (\\[(?<lang> [\\w-]+)\\])? (?<reverse> !)?$',
       insertNum:
         '^(?<start> {{signedNum}})? (:(?<step> {{signedNum}}))? (r(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{format}}))? (::(?<expr> {{expr}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
         '^(?<start> {{alphastart}})(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{alphaformat}})(?<wrap> w)?)? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertMonth:
-        '^(;(?<start> {{monthstart}}+))(:(?<step> {{signedint}}))? (\\[(?<lang> [\\w-]+)\\])? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<monthformat> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(;(?<start> {{month}}))(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<monthformat> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (\\[(?<lang> [\\w-]+)\\])? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     // TODO - linesplit einfügen (?:\\|(?<line_split>[^\\|]+)\\|)?
@@ -536,7 +538,7 @@ function InsertSequenceCommand({
       errorMsg +=
         'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] or ';
       errorMsg +=
-        'MONTH:  ;<monthname> [:<step>][[<lang>]][~<format>][*<frequency>][#repetitions][@<stopexpr>][$][!] or ';
+        'MONTH:  ;<monthname>|<monthnumber> [:<step>][~<format>][*<frequency>][#repetitions][@<stopexpr>][[<lang>]][$][!] or ';
       errorMsg +=
         '(deprecated) HISTORY: !(!|pd+|c|d+ with !! = prev. command, !c = clear history ';
       curWindow.showErrorMessage(errorMsg);
@@ -548,7 +550,10 @@ function InsertSequenceCommand({
     // check if substitution
     const EXPRMODE = !!matchExpr;
     // check if month
-    const MONTH = !!matchMonth && monthToNum(groups?.start, LANG) > 0;
+    const MONTH =
+      !!matchMonth &&
+      ((Number.isNaN(+groups?.start) && monthToNum(groups?.start, LANG) > 0) ||
+        (+groups?.start > 0 && +groups?.start <= 12));
     // check if alpha (not allowed with month!)
     const ALPHA = !!matchAlpha || MONTH;
     // check if reverse is on
@@ -557,15 +562,16 @@ function InsertSequenceCommand({
     const SORTSEL = groups.sort_selections === '$';
     // Long or Short format for months
     const LANGFORMAT: 's' | 'l' =
-      (MONTH && groups?.monthformat && groups?.monthformat[0] === 'l') ||
+      (groups?.monthformat && groups?.monthformat[0] === 'l') ||
       config_defaultLangFormat === 'l'
         ? 'l'
         : 's';
 
+    groups.start ||= config_start;
     // start value (also re-start for frequency)
     const start = isHex(groups.start)
       ? hexToNum(groups.start).toString()
-      : groups.start || config_start;
+      : groups.start;
     const startValue = parseFloat(start);
     if (!ALPHA && !MONTH && Number.isNaN(startValue)) {
       curWindow.showErrorMessage(
@@ -574,15 +580,11 @@ function InsertSequenceCommand({
       return;
     }
 
+    groups.step ||= config_step;
     // the incrementation
-    const step =
-      groups.step && groups.step.length > 0
-        ? isHex(groups.step)
-          ? hexToNum(groups.step).toString()
-          : groups.step
-        : isHex(config_step)
-        ? hexToNum(config_step).toString()
-        : config_step || defaultStep;
+    const step = isHex(groups.step)
+      ? hexToNum(groups.step).toString()
+      : groups.step;
 
     // convert all values later to hex number, because we found a hex in the input
     const ISHEXMODE = groups.start
@@ -616,7 +618,7 @@ function InsertSequenceCommand({
     // does the alpha input starts with a uppercase letter?
     const UPPER =
       (!MONTH && ALPHA && start && start[0] === start[0].toUpperCase()) ||
-      (MONTH && start.toLocaleUpperCase() === start) ||
+      (MONTH && Number.isNaN(+start) && start.toLocaleUpperCase() === start) ||
       false;
     // wrap alpha input
     const WRAP = ALPHA && groups.wrap === 'w';
@@ -677,6 +679,11 @@ function InsertSequenceCommand({
       b: function (value: string): string {
         return Boolean(value).toString();
       },
+      m: function (value: string): string {
+        return monthToNum(value, LANGFORMAT) > -1
+          ? monthToNum(value, LANGFORMAT).toString()
+          : numToMonth(+value, LANGFORMAT, LANG);
+      },
     };
 
     const WSPedit = new vscode.WorkspaceEdit();
@@ -699,13 +706,13 @@ function InsertSequenceCommand({
         loopContinue = false;
         break;
       }
-      if (Date.now() > startTime + timeLimit) {
+      /*       if (Date.now() > startTime + timeLimit) {
         curWindow.showInformationMessage(
           `Time limit of ${timeLimit}ms exceeded`
         );
         return;
       }
-
+ */
       let curIterationIndex =
         Math.trunc(curIterationVal / frequencyValue) % repeatValue;
 
@@ -719,7 +726,7 @@ function InsertSequenceCommand({
           cast.length === 1
             ? castTable[cast] &&
               castTable[cast](curTextEditor?.document.getText(rangeSel))
-            : curTextEditor?.document.getText(rangeSel) || '';
+            : parseInt(curTextEditor?.document.getText(rangeSel) || '') || '';
       }
 
       let exprValueStr: string = '';
@@ -728,7 +735,9 @@ function InsertSequenceCommand({
       if (expr) {
         // unserscoreValue depends on mode: expremode => selected text as number; else => (start + i * step)
         let underscoreValue = EXPRMODE
-          ? parseFloat(selectedText) || 0
+          ? monthToNum(selectedText, LANG) > -1
+            ? monthToNum(selectedText, LANG)
+            : selectedText
           : startValue + curIterationIndex * parseFloat(step);
 
         // tmp Variables, replace internal variables in the expression
@@ -741,7 +750,14 @@ function InsertSequenceCommand({
           .replace(/\bi\b/gi, curIterationVal.toString());
         try {
           let evalResult = eval(tmpString);
-          exprValueStr = evalResult.toString();
+          if (
+            monthToNum(selectedText, LANG) > -1 &&
+            Number.isInteger(evalResult)
+          ) {
+            exprValueStr = numToMonth(evalResult, LANGFORMAT, LANG);
+          } else {
+            exprValueStr = evalResult.toString();
+          }
         } catch (e) {
           curWindow.showErrorMessage(
             `[${expr}] Invalid Expression. Exception is: ` + e
@@ -778,7 +794,7 @@ function InsertSequenceCommand({
       }
 
       let curValueStr: string = '';
-      let curValueIsNumber: boolean;
+      let curValueIsNumber: boolean = false;
 
       // get curValue as string
       if (ALPHA) {
@@ -787,7 +803,12 @@ function InsertSequenceCommand({
         let value: number = 0;
 
         if (MONTH) {
-          value = monthToNum(start, LANG) + curIterationIndex * parseInt(step);
+          if (Number.isNaN(+start)) {
+            value =
+              monthToNum(start, LANG) + curIterationIndex * parseInt(step);
+          } else {
+            value = parseInt(start) + curIterationIndex * parseInt(step);
+          }
           curValueStr = numToMonth(value, LANGFORMAT, LANG);
         } else {
           value = alphaToNum(start) + curIterationIndex * parseInt(step);
@@ -814,11 +835,19 @@ function InsertSequenceCommand({
             value = startValue + curIterationIndex * parseFloat(step);
           }
 
-          // when substitution, try to add the current value to the new value
-          value += EXPRMODE ? parseFloat(selectedText) || 0 : 0;
-
-          curValueStr = value.toString();
           curValueIsNumber = true;
+          if (EXPRMODE) {
+            if (cast === 's') {
+              curValueStr = selectedText + value.toString();
+              curValueIsNumber = false;
+            } else {
+              value += parseFloat(selectedText) || 0;
+              curValueStr = value.toString();
+            }
+          } else {
+            curValueStr = value.toString();
+            curValueIsNumber = Number.isFinite(+curValueStr);
+          }
         }
       }
 
@@ -827,7 +856,7 @@ function InsertSequenceCommand({
 
       // format string available format curValueStr
       if (format?.length > 0) {
-        // if the curValue is a
+        // if the curValueStr is a number, use d3.format
         if (curValueIsNumber) {
           curValueStr = d3.format(format)(+curValueStr);
         } else {
@@ -889,24 +918,26 @@ function InsertSequenceCommand({
           // as long as we have another selection, replace this selection
           if (sortSelections && sortSelections[index]) {
             curPosition = sortSelections[index].active;
-            WSPedit.replace(
-              curTextEditor.document.uri,
-              new vscode.Range(
-                sortSelections[index].start,
-                sortSelections[index].end
-              ),
-              element
-            );
+            if (index + 1 < sortSelections.length || !REVERSE) {
+              WSPedit.replace(
+                curTextEditor.document.uri,
+                new vscode.Range(
+                  sortSelections[index].start,
+                  sortSelections[index].end
+                ),
+                element
+              );
+            } else {
+              restStr = element;
+            }
             selectionCounter++;
           } else {
             // we don't have any addition selection left -
             // collect all other elements with the newline character
             if (!REVERSE) {
               restStr += element + (index < values.length ? linesplit : '');
-              /*            } else {
-              restStr =
-                element + (restStr.length > 0 ? linesplit : '') + restStr;
-*/
+            } else {
+              restStr = element + linesplit + restStr;
             }
           }
         });
@@ -925,7 +956,7 @@ function InsertSequenceCommand({
           // write the additional elements to the next line
           if (curPosition.line + 1 < curTextEditor.document.lineCount) {
             curPosition = new vscode.Position(
-              REVERSE ? curPosition.line - 1 : curPosition.line + 1,
+              REVERSE ? curPosition.line : curPosition.line + 1,
               curPosition.character
             );
           } else {
