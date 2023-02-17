@@ -698,7 +698,10 @@ function InsertSequenceCommand({
     const startTime = Date.now();
     const timeLimit = 1000; // max. 1 second in the while loop
 
+    // to end end-less loop (beside time limit of 1 second)
     let loopContinue = true;
+    // rest of selection in expression mode should be replaced with ''
+    let removeRestOfSubstitution = false;
 
     while (loopContinue) {
       // no stop expression available and we already have reached the final selection/cursor position => break
@@ -706,13 +709,13 @@ function InsertSequenceCommand({
         loopContinue = false;
         break;
       }
-      /*       if (Date.now() > startTime + timeLimit) {
+      if (Date.now() > startTime + timeLimit) {
         curWindow.showInformationMessage(
           `Time limit of ${timeLimit}ms exceeded`
         );
         return;
       }
- */
+
       let curIterationIndex =
         Math.trunc(curIterationVal / frequencyValue) % repeatValue;
 
@@ -781,7 +784,12 @@ function InsertSequenceCommand({
           .replace(/\bi\b/gi, curIterationVal.toString());
         try {
           let stopResult = eval(tmpString);
-          if (stopResult && stopResult != '') {
+          if (stopResult) {
+            loopContinue = false;
+            break;
+          }
+          if (stopResult === '') {
+            removeRestOfSubstitution = true;
             loopContinue = false;
             break;
           }
@@ -852,7 +860,7 @@ function InsertSequenceCommand({
       }
 
       // get current value as previous value for next expression
-      prevValue = parseFloat(curValueStr) || 0;
+      prevValue = parseFloat(curValueStr) || parseFloat(exprValueStr) || 0;
 
       // format string available format curValueStr
       if (format?.length > 0) {
@@ -867,8 +875,10 @@ function InsertSequenceCommand({
       if (ISHEXMODE && Number.isFinite(+curValueStr)) {
         curValueStr = numToHex(+curValueStr);
       }
+      // new output to the stack
       values.push(curValueStr.toString());
 
+      // iteration number for expression replacement
       curIterationVal += 1;
     }
 
@@ -879,36 +889,28 @@ function InsertSequenceCommand({
       if (EXPRMODE) {
         // substitution mode
         let curPosition: vscode.Selection = sortSelections[0];
+        // replace all selections
         sortSelections.forEach(function (
           element: vscode.Selection,
           index: number
         ) {
-          WSPedit.replace(
-            curTextEditor.document.uri,
-            new vscode.Range(element.start, element.end),
-            values[index]
-          );
+          if (index < values.length) {
+            WSPedit.replace(
+              curTextEditor.document.uri,
+              new vscode.Range(element.start, element.end),
+              values[index]
+            );
+          } else {
+            if (removeRestOfSubstitution) {
+              WSPedit.replace(
+                curTextEditor.document.uri,
+                new vscode.Range(element.start, element.end),
+                ''
+              );
+            }
+          }
           curPosition = element;
         });
-
-        let additionalLines: vscode.Position = curPosition.active;
-
-        for (let i = sortSelections.length; i < values.length; i++) {
-          if (values[i] != undefined) {
-            values[i] = linesplit;
-          }
-
-          additionalLines = new vscode.Position(
-            additionalLines.line + 1,
-            additionalLines.character
-          );
-
-          WSPedit.insert(
-            curTextEditor.document.uri,
-            additionalLines,
-            values[i]
-          );
-        }
       } else {
         // insert mode (numberic or alpha)
         let curPosition: vscode.Position = sortSelections[0].active;
