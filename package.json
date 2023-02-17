@@ -140,7 +140,7 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/d3-format": "^3.0.1",
+		"@types/d3-format": "^2.0.2",
 		"@types/node": "^18.11.9",
 		"@types/vscode": "^1.49.0",
 		"eslint": "^8.27.0",
