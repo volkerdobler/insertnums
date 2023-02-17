@@ -2,6 +2,12 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.9.3
+
+  New: add the possibility to add month with numbers (integers from 1 to 12)
+
+  Fixed: some minor bugs and stability
+
 - 0.9.2
 
   New: (experimental) Starting with a semicolon, the sequenzer assume a month and will increase month-names. You can format the output with ~l to get long month names.

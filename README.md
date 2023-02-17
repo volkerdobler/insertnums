@@ -173,9 +173,20 @@ Example (5 multi-lines are selected):
 
 Each time you run this command new random numbers will be created.
 
-Since version 0.9 you can also insert month names (January, February, etc.). To do this, you put a semi-colon in front of it and start with a known month name (e.g. oct for October). The `<step>` is also available to skip some months.
+Since version 0.9 you can also insert month names (January, February, etc.) or numbers. To do this, you put a semi-colon in front of it and start with a known month name (e.g. oct for October) or an integer from 1 to 12. The `<step>` is also available to skip some months.
 
-Example with an input `;Sep@i>5`:
+Example with a name `;Sep@i>5`:
+
+```
+Sep
+Oct
+Nov
+Dec
+Jan
+Feb
+```
+
+Example with an integer `;9@i>5`:
 
 ```
 Sep
@@ -255,11 +266,11 @@ or if you want to format the alpha chars left side: `z~<6` (the : just underline
 
 ```
 
-:z :
-:aa :
-:ab :
-:ac :
-:ad :
+:z     :
+:aa    :
+:ab    :
+:ac    :
+:ad    :
 
 ```
 
@@ -428,7 +439,7 @@ with
 
 ```
 
-<start> ::= any start of a month name
+<start> ::= any start of a month name or an integer from 1 to 12
 <step> ::= any integer (positive or negative)
 <repeat> ::= any positive integer
 <frequency>::= any positive integer
@@ -439,9 +450,7 @@ $ ::= the selections will be "sorted" (without this option, new chars will be in
 
 ```
 
----
-
-Formatting can be done with the following options:
+Formatting of month output can be done with the following options:
 
 ```
 
@@ -473,7 +482,7 @@ $ ::= the selections will be "sorted" (without this option, new chars will be in
 
 ```
 
-_Be aware: You can use the stop expression in expressions, but in contrast to numbers, the stop expression cannot extend the current selection (just stop before the end)_
+_Be aware: You can use the stop expression in expressions, but in contrast to numbers, the stop expression cannot extend the current selection (just stop at last selection). If the stop expression is shorter than the selection, the rest will not be changed. If you want to delete the rest, you have to provide an empty string as return code instead of true for the expression._
 
 The _"cast"_ information for expressions defines the output:
 
