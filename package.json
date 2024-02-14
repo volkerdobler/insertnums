@@ -155,6 +155,7 @@
 		"theme": "dark"
 	},
 	"dependencies": {
-		"d3-format": "^2.0.0"
+		"d3-format": "^2.0.0",
+		"vscode": "^1.1.37"
 	}
 }
