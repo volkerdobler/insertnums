@@ -12,6 +12,7 @@
 		"expressions",
 		"frequencies"
 	],
+	"activationEvents": [],
 	"license": "MIT",
 	"bugs": {
 		"url": "https://github.com/volkerdobler/insertnums/issues",
