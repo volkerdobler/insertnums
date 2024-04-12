@@ -13,6 +13,8 @@ original from May 2020
 rewritten February 2023
  */
 
+const debug = false;
+
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
@@ -25,8 +27,9 @@ import * as d3 from 'd3-format';
 export function activate(context: vscode.ExtensionContext): void {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "insertseq" is now active!');
-
+  if (debug) {
+    console.log('Congratulations, your extension "insertseq" is now active!');
+  }
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
@@ -34,7 +37,7 @@ export function activate(context: vscode.ExtensionContext): void {
     'extension.insertSeq',
     (value: string = '') => {
       InsertSequenceCommand({ context, value, version: 'insertseq' });
-    }
+    },
   );
 
   const insertNums = vscode.commands.registerCommand(
@@ -42,11 +45,11 @@ export function activate(context: vscode.ExtensionContext): void {
     (value: string = '') => {
       // Display a message box to the user
       vscode.window.showInformationMessage(
-        'The command has changed to insertSeq. insertNums is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)'
+        'The command has changed to insertSeq. insertNums is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
       );
 
       InsertSequenceCommand({ context, value, version: 'insertnums' });
-    }
+    },
   );
 
   context.subscriptions.push(insertSeq);
@@ -56,18 +59,18 @@ export function activate(context: vscode.ExtensionContext): void {
     'extension.insertSeq.showHistory',
     () => {
       insertSequenceHistory({ context });
-    }
+    },
   );
 
   const showNumHistoryCommand = vscode.commands.registerCommand(
     'extension.insertNums.showHistory',
     () => {
       vscode.window.showInformationMessage(
-        'The command has changed to insertSeq.showHistory. insertNums.showHistory is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)'
+        'The command has changed to insertSeq.showHistory. insertNums.showHistory is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
       );
 
       insertSequenceHistory({ context, version: 'insertnums' });
-    }
+    },
   );
 
   context.subscriptions.push(showSeqHistoryCommand);
@@ -150,7 +153,7 @@ function InsertSequenceCommand({
           i,
           'l',
           lang,
-          Math.max(month.length, 1)
+          Math.max(month.length, 1),
         ).toLocaleUpperCase() === month.toLocaleUpperCase()
       ) {
         return i;
@@ -160,7 +163,7 @@ function InsertSequenceCommand({
           i,
           's',
           lang,
-          Math.max(month.length, 1)
+          Math.max(month.length, 1),
         ).toLocaleUpperCase() === month.toLocaleUpperCase()
       ) {
         return i;
@@ -230,7 +233,7 @@ function InsertSequenceCommand({
 
   function formatString(
     format: { fill: string; align: string; length: number; adjust: boolean },
-    text: string
+    text: string,
   ): string {
     let str: string = text;
 
@@ -276,7 +279,7 @@ function InsertSequenceCommand({
     idx: number,
     format: 's' | 'l',
     country?: string,
-    finish?: number
+    finish?: number,
   ): string {
     let objDate = new Date();
 
@@ -365,30 +368,42 @@ function InsertSequenceCommand({
     return { result };
   }
 
+  if (debug) {
+    console.log('vor curWindow');
+  }
   // check if vscode is available (should be ;-) )
   const curWindow = vscode?.window;
   if (!curWindow) {
     return;
   }
 
+  if (debug) {
+    console.log('vor curTextEditor');
+  }
   // check if TextEditor is available/open
   const curTextEditor = curWindow.activeTextEditor;
   if (!curTextEditor) {
     curWindow.showErrorMessage(
-      `[${appName}] Extension only available with an active Texteditor`
+      `[${appName}] Extension only available with an active Texteditor`,
     );
     return;
   }
 
+  if (debug) {
+    console.log('vor Selection');
+  }
   // check if selection is available (should be ;-) )
   const selections = curTextEditor.selections;
   if (!selections) {
     curWindow.showErrorMessage(
-      `[${appName}] No selection available! Is Texteditor active?`
+      `[${appName}] No selection available! Is Texteditor active?`,
     );
     return;
   }
 
+  if (debug) {
+    console.log('vor const');
+  }
   // default values (can be change via configuration)
   // where to start
   const defaultStart: string = '1';
@@ -402,9 +417,15 @@ function InsertSequenceCommand({
   const defaultLang: string = 'de';
   // default Language Format (short - 3 chars) for months
   const defaultLangFormat: string = 's';
+  // default insertOrder (either: cursor, firstLast, lastFirst)
+  const defaultInsertOrder: string = 'cursor';
+  
   // how many selections do we have?
   const selLen = selections.length;
 
+  if (debug) {
+    console.log('vor config read');
+  }
   // read configuration
   const config_editHistory: boolean =
     vscode.workspace.getConfiguration(appName).get('editHistory') ||
@@ -440,7 +461,15 @@ function InsertSequenceCommand({
     vscode.workspace.getConfiguration(appName).get('languageFormat') ||
     vscode.workspace.getConfiguration('insertnums').get('languageFormat') ||
     defaultLangFormat;
+    
+  const config_defaultInsertOrder: string =
+    vscode.workspace.getConfiguration(appName).get('insertOrder') ||
+    vscode.workspace.getConfiguration('insertnums').get('insertOrder') ||
+    defaultInsertOrder;
 
+  if (debug) {
+    console.log('vor showInputBox');
+  }
   // Direct start of command is without value, so the inputbox is shown.
   if (value.length === 0 || config_editHistory) {
     curWindow
@@ -558,8 +587,9 @@ function InsertSequenceCommand({
     const ALPHA = !!matchAlpha || MONTH;
     // check if reverse is on
     const REVERSE = groups.reverse === '!';
+    
     // check, if selections/multilines needs to be sorted before insertation
-    const SORTSEL = groups.sort_selections === '$';
+    const SORTSEL = (groups.sort_selections === '$' && config_defaultInsertOrder === "cursor") || (groups.sort_selections != '$' && config_defaultInsertOrder === "sorted");
     // Long or Short format for months
     const LANGFORMAT: 's' | 'l' =
       (groups?.monthformat && groups?.monthformat[0] === 'l') ||
@@ -575,7 +605,7 @@ function InsertSequenceCommand({
     const startValue = parseFloat(start);
     if (!ALPHA && !MONTH && Number.isNaN(startValue)) {
       curWindow.showErrorMessage(
-        `[Month]: ${start} is not a valid month or beginning of month name]!`
+        `[Month]: ${start} is not a valid month or beginning of month name]!`,
       );
       return;
     }
@@ -590,8 +620,8 @@ function InsertSequenceCommand({
     const ISHEXMODE = groups.start
       ? isHex(groups.start)
       : false || groups.step
-      ? isHex(groups.step)
-      : false || false;
+        ? isHex(groups.step)
+        : false || false;
     // check, if random number is used
     const ISRANDOM = groups.random != undefined;
     // upper bound of random number range
@@ -628,8 +658,8 @@ function InsertSequenceCommand({
     const linesplit: string = groups?.line_split
       ? groups?.line_split
       : curTextEditor?.document.eol === 1
-      ? '\n'
-      : '\r\n';
+        ? '\n'
+        : '\r\n';
 
     // string formatting
     const alphaFormat = {
@@ -651,7 +681,7 @@ function InsertSequenceCommand({
     // check if RandomTo larger than RandomFrom (startValue) - if not, stop
     if (randomTo > 0 && randomTo <= startValue) {
       curWindow.showErrorMessage(
-        `[Random sequence]: From ${startValue} is larger then To: ${randomTo}]!`
+        `[Random sequence]: From ${startValue} is larger then To: ${randomTo}]!`,
       );
       return;
     }
@@ -711,7 +741,7 @@ function InsertSequenceCommand({
       }
       if (Date.now() > startTime + timeLimit) {
         curWindow.showInformationMessage(
-          `Time limit of ${timeLimit}ms exceeded`
+          `Time limit of ${timeLimit}ms exceeded`,
         );
         return;
       }
@@ -763,7 +793,7 @@ function InsertSequenceCommand({
           }
         } catch (e) {
           curWindow.showErrorMessage(
-            `[${expr}] Invalid Expression. Exception is: ` + e
+            `[${expr}] Invalid Expression. Exception is: ` + e,
           );
           return;
         }
@@ -795,7 +825,7 @@ function InsertSequenceCommand({
           }
         } catch (e) {
           curWindow.showErrorMessage(
-            `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e
+            `[${stopExpr}] Invalid Stop Expression. Exception is: ` + e,
           );
           return;
         }
@@ -892,20 +922,20 @@ function InsertSequenceCommand({
         // replace all selections
         sortSelections.forEach(function (
           element: vscode.Selection,
-          index: number
+          index: number,
         ) {
           if (index < values.length) {
             WSPedit.replace(
               curTextEditor.document.uri,
               new vscode.Range(element.start, element.end),
-              values[index]
+              values[index],
             );
           } else {
             if (removeRestOfSubstitution) {
               WSPedit.replace(
                 curTextEditor.document.uri,
                 new vscode.Range(element.start, element.end),
-                ''
+                '',
               );
             }
           }
@@ -925,9 +955,9 @@ function InsertSequenceCommand({
                 curTextEditor.document.uri,
                 new vscode.Range(
                   sortSelections[index].start,
-                  sortSelections[index].end
+                  sortSelections[index].end,
                 ),
-                element
+                element,
               );
             } else {
               restStr = element;
@@ -948,7 +978,7 @@ function InsertSequenceCommand({
           WSPedit.replace(
             curTextEditor.document.uri,
             new vscode.Range(sortSelections[i].start, sortSelections[i].end),
-            ''
+            '',
           );
         }
         // if we have to insert additional elements,
@@ -959,7 +989,7 @@ function InsertSequenceCommand({
           if (curPosition.line + 1 < curTextEditor.document.lineCount) {
             curPosition = new vscode.Position(
               REVERSE ? curPosition.line : curPosition.line + 1,
-              curPosition.character
+              curPosition.character,
             );
           } else {
             // we are at the last line, so we need to include an linesplit first,
@@ -1021,7 +1051,7 @@ function insertSequenceHistory({
     curWindow.showQuickPick(histories, options).then((item) => {
       vscode.commands.executeCommand(
         'extension.insertSeq',
-        item ? item.commandParam : ''
+        item ? item.commandParam : '',
       );
     });
   }

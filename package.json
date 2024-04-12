@@ -28,10 +28,6 @@
 	"categories": [
 		"Other"
 	],
-	"activationEvents": [
-		"onCommand:extension.insertNums",
-		"onCommand:extension.insertNums.showHistory"
-	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"configuration": {
@@ -95,6 +91,19 @@
 						"s (default): month only as short name (e.g. Jan)",
 						"l: month as long name (e.g. January)"
 					]
+				},
+				"insertseq.insertOrder": {
+					"type": "string",
+					"default": "cursor",
+					"description": "Default order of insertation",
+					"enum": [
+						"cursor",
+						"sorted"
+					],
+					"enumdescription": [
+						"cursor (default): insertation is based on multi cursor click order",
+						"sorted: insertation is from top most click down (reverse is possible with option '!')"
+					]
 				}
 			}
 		},
@@ -141,14 +150,13 @@
 	},
 	"devDependencies": {
 		"@types/d3-format": "^2.0.2",
-		"@types/node": "^18.11.9",
+		"@types/node": "^20.9.0",
 		"@types/vscode": "^1.49.0",
 		"eslint": "^8.27.0",
 		"eslint-config-airbnb": "^19.0.4",
 		"eslint-config-prettier": "^8.6.0",
 		"eslint-plugin-import": "^2.27.5",
-		"eslint-plugin-prettier": "^4.2.1",
-		"typescript": "^4.8.4"
+		"eslint-plugin-prettier": "^4.2.1"
 	},
 	"icon": "insertnums.png",
 	"galleryBanner": {
@@ -156,6 +164,7 @@
 		"theme": "dark"
 	},
 	"dependencies": {
-		"d3-format": "^2.0.0"
+		"d3-format": "^2.0.0",
+		"vscode": "^1.1.37"
 	}
 }
