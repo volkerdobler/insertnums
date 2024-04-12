@@ -151,12 +151,7 @@
 	"devDependencies": {
 		"@types/d3-format": "^2.0.2",
 		"@types/node": "^20.9.0",
-		"@types/vscode": "^1.49.0",
-		"eslint": "^8.27.0",
-		"eslint-config-airbnb": "^19.0.4",
-		"eslint-config-prettier": "^8.6.0",
-		"eslint-plugin-import": "^2.27.5",
-		"eslint-plugin-prettier": "^4.2.1"
+		"@types/vscode": "^1.88.0"
 	},
 	"icon": "insertnums.png",
 	"galleryBanner": {
@@ -164,7 +159,6 @@
 		"theme": "dark"
 	},
 	"dependencies": {
-		"d3-format": "^2.0.0",
-		"vscode": "^1.1.37"
+		"d3-format": "^2.0.0"
 	}
 }
