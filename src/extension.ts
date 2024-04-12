@@ -417,6 +417,9 @@ function InsertSequenceCommand({
   const defaultLang: string = 'de';
   // default Language Format (short - 3 chars) for months
   const defaultLangFormat: string = 's';
+  // default insertOrder (either: cursor, firstLast, lastFirst)
+  const defaultInsertOrder: string = 'cursor';
+  
   // how many selections do we have?
   const selLen = selections.length;
 
@@ -458,6 +461,11 @@ function InsertSequenceCommand({
     vscode.workspace.getConfiguration(appName).get('languageFormat') ||
     vscode.workspace.getConfiguration('insertnums').get('languageFormat') ||
     defaultLangFormat;
+    
+  const config_defaultInsertOrder: string =
+    vscode.workspace.getConfiguration(appName).get('insertOrder') ||
+    vscode.workspace.getConfiguration('insertnums').get('insertOrder') ||
+    defaultInsertOrder;
 
   if (debug) {
     console.log('vor showInputBox');
@@ -579,8 +587,9 @@ function InsertSequenceCommand({
     const ALPHA = !!matchAlpha || MONTH;
     // check if reverse is on
     const REVERSE = groups.reverse === '!';
+    
     // check, if selections/multilines needs to be sorted before insertation
-    const SORTSEL = groups.sort_selections === '$';
+    const SORTSEL = (groups.sort_selections === '$' && config_defaultInsertOrder === "cursor") || (groups.sort_selections != '$' && config_defaultInsertOrder === "sorted");
     // Long or Short format for months
     const LANGFORMAT: 's' | 'l' =
       (groups?.monthformat && groups?.monthformat[0] === 'l') ||

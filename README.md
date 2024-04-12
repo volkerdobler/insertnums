@@ -1,11 +1,11 @@
-# insertNums
+# insertSeq
 
-Inserts or changes **integers**, **Ascii chars**, **hex numbers**, **month names** ,or any **javascript expressions** in any text file.
+Inserts or changes **integers**, **Ascii chars**, **hex numbers**, **month names**, or any **javascript expressions** in any text file.
 It is very helpful if you need to insert numbers or sequences of Ascii chars or want to change some selected numbers/chars based on a javascript expression.
 
 This extension is based on the wonderful sublimetext extension from James Books (https://github.com/jbrooksuk/InsertNums).
 
-I used this extension intensively in the past within sublime text and I could not find such a flexible extension for VSCode. I rewrote this python extension in javascript and extended it further.
+I used this extension intensively in the past within sublime text and I could not find such a flexible extension for VSCode. I rewrote this Python extension in JavaScript and extended it further.
 
 ---
 
@@ -19,12 +19,13 @@ Since version 0.9 you can configure the behavior of this extension with configur
 - `insertseq.centerString` how to center strings if a string is odd and the space is even or vice versa (default "l")
 - `insertseq.language` language for month names (default "de" for Germany)
 - `insertseq.languageFormat` format of month name output (default "short" - in most languages 3 chars)
+- `insertseq.insertOrder` how to insert the values (default "cursor" which inserts the sequence in the click order, alternative: 'sorted')
 
 ---
 
 ## Usage:
 
-The extension implements the command "insertNums" and has a default key binding of `CTRL+ALT+DOT` (or `CMD+ALT+DOT` on Mac). (`DOT` is the period char on the keyboard)
+The extension implements the command "insertSeq" and has a default key binding of `CTRL+ALT+DOT` (or `CMD+ALT+DOT` on Mac). (`DOT` is the period char on the keyboard)
 
 The easiest usage is to insert a sequence of integers, starting with "1" when selecting multiple cursors:
 
@@ -88,7 +89,7 @@ e.g. an input "`1~05d`" will get (starting with 1, default step is 1 and format 
 The _d_ at the end stands for "decimal" output. If you need the numbers as hex, replace the d with an _x_. If you need the output as octal, put an _o_ at the end and binary numbers can be inserted with a _b_ at the end.
 
 Sometimes, you might need to start the sequence again after a fixed number of repetitions. _(this feature is new and not included in the original sublimetext extension!)_
-An example would be if you want to include the numbers 1, 2 and 3 only, and after the 3, it should start from 1 again.
+An example would be if you want to include the numbers 1, 2, and 3 only, and after the 3, it should start from 1 again.
 This can be done with the optional **#{REPEATS}**.
 Typing `1#3` results in:
 
@@ -117,7 +118,7 @@ Typing `1*3` when 9 multi selections are marked, results in:
 3
 ```
 
-Another possible need is to add the numbers 1 3-times, 4 3-times, and so on. Again, if you type `1:4*3` the program will insert 1, 1, 1, then add 4, and insert 5, 5, 5, add 4 and insert digit 9 3 times.
+Another possible need is to add the numbers 1 three times, 4 three times, and so on. Again, if you type `1:4*3` the program will insert 1, 1, 1, then add 4, and insert 5, 5, 5, add 4, and insert digit 9 3 times.
 
 It is also possible to have a stop criterion with the option **@{STOPEXPRESSION}**.
 _STOPEXPRESSION_ can be any regular javascript but has the advantage, that some special chars can be used (details in the **SYNTAX** chapter below).
@@ -154,6 +155,61 @@ With one cursor selected and the following command `3:2*2#4@i>10` results in:
 3
 3
 5
+```
+
+The order of the input is also important. By default, the extension inserts in the order of the click order. An example would be, you click 3 times, first in line 7, then in line 2, and third click in line 4. After the command `1` the result is (the number and the column count the line numbers):
+
+```
+1: 
+2: 2
+3: 
+4: 3
+5: 
+6: 
+7: 1
+8: 
+```
+
+If you want to insert the number always starting from the top click, you can add the `$` at the end of the command. Same example as above but with the command `1$` results in:
+
+```
+1: 
+2: 1
+3: 
+4: 2
+5: 
+6: 
+7: 3
+8: 
+```
+
+You can set this second behavior as default with a config-switch ("insertOrder").
+
+It's also possible to reverse the input if you add an `!` at the end of the command.
+An example with the same situation (you click in lines 7, 2, and 4) and insert the command `1!`, the result is:
+
+```
+1: 
+2: 2
+3: 
+4: 1
+5: 
+6: 
+7: 3
+8: 
+```
+
+And in combination with the `$` or the config-switch "insertOrder", it looks like this:
+
+```
+1: 
+2: 3
+3: 
+4: 2
+5: 
+6: 
+7: 1
+8: 
 ```
 
 A special sequence of integers is a random sequence. Insertnums can do this easily with the option **r{UNTIL}** option.
@@ -239,7 +295,7 @@ After typing `::_+50`
 
 ```
 
-But _not only numbers_ can be included with this extension. The extension is flexible and is able to **handle Ascii chars**, so same selection as above but with `CTRL+ALT+DOT a RETURN`
+But _not only numbers_ can be included with this extension. The extension is flexible and can **handle Ascii chars**, so same selection as above but with `CTRL+ALT+DOT a RETURN`
 
 ```
 
