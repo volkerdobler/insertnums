@@ -476,7 +476,8 @@ function InsertSequenceCommand({
       .showInputBox({
         prompt: `Enter format string (default: '${config_start}:${config_step}')`,
         value: value,
-        placeHolder: `${config_start}:${config_step}`,
+        // placeHolder: `${config_start}:${config_step}`,
+        placeHolder: '[<start>][:<step>][#<repeat>][*<frequency>][~<format>]r[+]<random>][::<expr>][@<stopexpr>][$][!]'
       })
       .then((value) => {
         if (value === '') {

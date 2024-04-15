@@ -2,6 +2,14 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.9.5
+
+  Update: new placeholder text
+  
+- 0.9.4
+
+  Last minute fix
+  
 - 0.9.3
 
   New: add the possibility to add month with numbers (integers from 1 to 12)
