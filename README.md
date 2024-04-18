@@ -581,7 +581,7 @@ A big thanks to the people that have contributed to this project:
 
 - Yu [(@codingyu)](https://github.com/codingyu) &mdash; [contribution](https://github.com/codingyu/insertnums) (added first version of history picklist in version 0.5.0)
 
-- [(@JessePeden)](https://github.com/JessePeden) @mdash; [contribution](https://github.com/volkerdobler/insertnums/pull/12) corrected spelling errors in package.json file
+- Jesse Peden [(@JessePeden)](https://github.com/JessePeden) &mdash; [contribution](https://github.com/volkerdobler/insertnums/pull/12) corrected spelling errors in package.json file
 
 ## Special thanks!
 
