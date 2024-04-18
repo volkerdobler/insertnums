@@ -57,7 +57,7 @@
 				"insertseq.cast": {
 					"type": "string",
 					"default": "s",
-					"description": "Default substituion function [S = String, I = Integer, F = Float, B = Boolean]"
+					"description": "Default substitution function [S = String, I = Integer, F = Float, B = Boolean]"
 				},
 				"insertseq.centerString": {
 					"type": "string",
@@ -96,14 +96,14 @@
 				"insertseq.insertOrder": {
 					"type": "string",
 					"default": "cursor",
-					"description": "Default order of insertation",
+					"description": "Default order of insertion",
 					"enum": [
 						"cursor",
 						"sorted"
 					],
 					"enumdescription": [
-						"cursor (default): insertation is based on multi cursor click order",
-						"sorted: insertation is from top most click down (reverse is possible with option '!')"
+						"cursor (default): insertion is based on multi cursor click order",
+						"sorted: insertion is from top most click down (reverse is possible with option '!')"
 					]
 				}
 			}
