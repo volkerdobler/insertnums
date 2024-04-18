@@ -5,6 +5,8 @@ All notable changes to this extension (newest on top):
 - 0.9.5
 
   Update: new placeholder text
+
+  Fixed: spelling corrections in package.json file - thanks to @JessePeden
   
 - 0.9.4
 
