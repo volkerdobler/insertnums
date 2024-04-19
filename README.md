@@ -9,20 +9,6 @@ I used this extension intensively in the past within sublime text and I could no
 
 ---
 
-## Newest Feature:
-
-Since version 0.9 you can configure the behavior of this extension with configuration variables:
-
-- `insertseq.start` the start value, if no value is provided (default "1")
-- `insertseq.step` the step value, if no value is provided (default "1")
-- `insertseq.cast` the cast value, if no value is provided (default "s" - only for expression mode)
-- `insertseq.centerString` how to center strings if a string is odd and the space is even or vice versa (default "l")
-- `insertseq.language` language for month names (default "de" for Germany)
-- `insertseq.languageFormat` format of month name output (default "short" - in most languages 3 chars)
-- `insertseq.insertOrder` how to insert the values (default "cursor" which inserts the sequence in the click order, alternative: 'sorted')
-
----
-
 ## Usage:
 
 The extension implements the command "insertSeq" and has a default key binding of `CTRL+ALT+DOT` (or `CMD+ALT+DOT` on Mac). (`DOT` is the period char on the keyboard)
@@ -157,7 +143,7 @@ With one cursor selected and the following command `3:2*2#4@i>10` results in:
 5
 ```
 
-The order of the input is also important. By default, the extension inserts in the order of the click order. An example would be, you click 3 times, first in line 7, then in line 2, and third click in line 4. After the command `1` the result is (the number and the column count the line numbers):
+The order of the input is also important. By default, the extension inserts the sequence in the order of the click order. Example: first click in line 7, then line 2, and third line 4. After the command `1` the result is (first column shows the line numbers):
 
 ```
 1: 
@@ -170,7 +156,7 @@ The order of the input is also important. By default, the extension inserts in t
 8: 
 ```
 
-If you want to insert the number always starting from the top click, you can add the `$` at the end of the command. Same example as above but with the command `1$` results in:
+If you want to insert the number from the top down (independent of your click order), you can add the `$` at the end of the command. Same example as above but with the command `1$` results in:
 
 ```
 1: 
@@ -183,7 +169,7 @@ If you want to insert the number always starting from the top click, you can add
 8: 
 ```
 
-You can set this second behavior as default with a config-switch ("insertOrder").
+You can set both behaviors as default with a config-switch `insertOrder`.
 
 It's also possible to reverse the input if you add an `!` at the end of the command.
 An example with the same situation (you click in lines 7, 2, and 4) and insert the command `1!`, the result is:
@@ -356,6 +342,20 @@ _(for the first 3 numbers 100 will be added, for all others 200 will be added)_
 205|
 
 ```
+
+---
+
+## Configuration:
+
+Since version 0.9 you can configure the behavior of this extension with configuration variables:
+
+- `insertseq.start` the start value, if no value is provided (default "1")
+- `insertseq.step` the step value, if no value is provided (default "1")
+- `insertseq.cast` the cast value, if no value is provided (default "s" - only for expression mode)
+- `insertseq.centerString` how to center strings if a string is odd and the space is even or vice versa (default "l")
+- `insertseq.language` language for month names (default "de" for Germany)
+- `insertseq.languageFormat` format of month name output (default "short" - in most languages 3 chars)
+- `insertseq.insertOrder` how to insert the values (default "cursor" which inserts the sequence in the click order, alternative: 'sorted')
 
 ---
 

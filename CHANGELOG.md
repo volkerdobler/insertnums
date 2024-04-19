@@ -2,6 +2,10 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.10.0
+
+  Update: delete history insertnums command from package.json
+  
 - 0.9.5
 
   Update: new placeholder text

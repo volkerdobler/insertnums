@@ -111,19 +111,11 @@
 		"commands": [
 			{
 				"command": "extension.insertSeq",
-				"title": "Insert Numbers"
-			},
-			{
-				"command": "extension.insertNums",
-				"title": "Insert Numbers"
+				"title": "Insert Sequences"
 			},
 			{
 				"command": "extension.insertSeq.showHistory",
-				"title": "Insert Numbers Show History"
-			},
-			{
-				"command": "extension.insertNums.showHistory",
-				"title": "Insert Numbers Show History"
+				"title": "Insert Sequences Show History"
 			}
 		],
 		"keybindings": [
@@ -146,13 +138,13 @@
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"lint": "eslint src --ext ts",
-		"pretest": "npm run compile && npm run lint",
-		"test": "node ./out/test/runTest.js"
+		"pretest": "npm run compile && npm run lint"
 	},
 	"devDependencies": {
 		"@types/d3-format": "^2.0.2",
 		"@types/node": "^20.9.0",
-		"@types/vscode": "^1.88.0"
+		"@types/vscode": "^1.88.0",
+		"luxon": "^3.4.4"
 	},
 	"icon": "insertnums.png",
 	"galleryBanner": {
