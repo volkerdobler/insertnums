@@ -322,24 +322,33 @@ function InsertSequenceCommand({
       hexNum: '0[xX]{{hexdigits}}',
       numeric: '{{integer}} | {{float}}',
       signedNum: '([+-]? {{numeric}})|{{hexNum}}',
+      startNum: '([+-]? (?<lead_char> 0+|\\s+|\\.+){{numeric}})|{{hexNum}}',
       format:
         '((?<format_padding> [^}}])? (?<format_align> [<>^=]))? (?<format_sign> [-+ ])? #? (?<format_filled> 0)? (?<format_integer> {{integer}})? (\\.(?<format_precision> \\d+))? (?<format_type> [bcdeEfFgGnoxX%])?',
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
         '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{{integer}}))?',
-      month: '[\\p{L}\\p{M}]+|\\d{1,2}',
+      monthtxt: '[\\p{L}\\p{M}]+|\\d{1,2}',
       monthformat: '(?:l(ong)?|s(hort)?)\\b',
+      year: '(?:\\d{1,4}?)',
+      month: '(?:0\\d|10|11|12)?',
+      day: '(?:0?\\d|[12]\\d|3[012])?',
+      date: '(?<date> (?<year> {{year}}?)(?:-(?<months>{{month}})(?:-(?<day>{{day}}))?))?',
+      datestep:
+        '(?:d(?<stepdays> {{signedint}}))?(?:w(?<stepweeks> {{signedint}}))?(?:m(?<stepmonths> {{signedint}}))?(?:y(?<stepyears> {{signedint}}))?',
       cast: '[ifsbm]',
       expr: '.+?',
       stopExpr: '.+?',
       exprMode:
         '^(?<cast> {{cast}})?\\|(~(?:(?<monthformat> {{monthformat}})|(?<format> {{format}}))::)? (?<expr> {{expr}}) (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (\\[(?<lang> [\\w-]+)\\])? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {{signedNum}})? (:(?<step> {{signedNum}}))? (r(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{format}}))? (::(?<expr> {{expr}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {{startNum}})? (:(?<step> {{signedNum}}))? (r(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{format}}))? (::(?<expr> {{expr}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {{alphastart}})(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{alphaformat}})(?<wrap> w)?)? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {{alphastart}}) (:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{alphaformat}})(?<wrap> w)?)? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertMonth:
-        '^(;(?<start> {{month}}))(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<monthformat> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (\\[(?<lang> [\\w-]+)\\])? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(;(?<start> {{monthtxt}}))(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<monthformat> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (\\[(?<lang> [\\w-]+)\\])? (?<sort_selections> \\$)? (?<reverse> !)?$',
+      insertDate:
+        '^(%(?<start> {{date}}|{{integer}})) (:(?<step> {{datestep}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{format}}))? (::(?<expr> {{expr}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     // TODO - linesplit einfügen (?:\\|(?<line_split>[^\\|]+)\\|)?
@@ -348,6 +357,7 @@ function InsertSequenceCommand({
       insertNum: '',
       insertAlpha: '',
       insertMonth: '',
+      insertDate: '',
     };
 
     for (let [key, value] of Object.entries(ruleTemplate)) {
@@ -419,7 +429,9 @@ function InsertSequenceCommand({
   const defaultLangFormat: string = 's';
   // default insertOrder (either: cursor, firstLast, lastFirst)
   const defaultInsertOrder: string = 'cursor';
-  
+  // default century, if year is only with 1 or 2 digits
+  const defaultCentury: string = '20';
+
   // how many selections do we have?
   const selLen = selections.length;
 
@@ -461,11 +473,16 @@ function InsertSequenceCommand({
     vscode.workspace.getConfiguration(appName).get('languageFormat') ||
     vscode.workspace.getConfiguration('insertnums').get('languageFormat') ||
     defaultLangFormat;
-    
+
   const config_defaultInsertOrder: string =
     vscode.workspace.getConfiguration(appName).get('insertOrder') ||
     vscode.workspace.getConfiguration('insertnums').get('insertOrder') ||
     defaultInsertOrder;
+
+  const config_defaultCentury: string =
+    vscode.workspace.getConfiguration(appName).get('century') ||
+    vscode.workspace.getConfiguration('insertnums').get('century') ||
+    defaultCentury;
 
   if (debug) {
     console.log('vor showInputBox');
@@ -474,10 +491,13 @@ function InsertSequenceCommand({
   if (value.length === 0 || config_editHistory) {
     curWindow
       .showInputBox({
-        prompt: `Enter format string (default: '${config_start}:${config_step}')`,
+        prompt:
+          'Syntax: [<start>][:<step>][#<repeat>][*<frequency>][~<format>]r[+]<random>][::<expr>][@<stopexpr>][$][!]',
+        // prompt: `Enter format string (default: '${config_start}:${config_step}')`,
         value: value,
         // placeHolder: `${config_start}:${config_step}`,
-        placeHolder: '[<start>][:<step>][#<repeat>][*<frequency>][~<format>]r[+]<random>][::<expr>][@<stopexpr>][$][!]'
+        placeHolder: `${config_start}:${config_step}`,
+        // '[<start>][:<step>][#<repeat>][*<frequency>][~<format>]r[+]<random>][::<expr>][@<stopexpr>][$][!]',
       })
       .then((value) => {
         if (value === '') {
@@ -546,18 +566,21 @@ function InsertSequenceCommand({
     let matchAlpha: RegExpExecArray | null = null;
     let matchExpr: RegExpExecArray | null = null;
     let matchMonth: RegExpExecArray | null = null;
+    let matchDate: RegExpExecArray | null = null;
 
     matchNum = new RegExp(regResult.result.insertNum).exec(eingabe);
     matchAlpha = new RegExp(regResult.result.insertAlpha, 'u').exec(eingabe);
     matchExpr = new RegExp(regResult.result.exprMode).exec(eingabe);
     matchMonth = new RegExp(regResult.result.insertMonth, 'iu').exec(eingabe);
+    matchDate = new RegExp(regResult.result.insertDate, 'iu').exec(eingabe);
 
     let groups = matchNum?.groups ||
       matchAlpha?.groups ||
       matchExpr?.groups ||
-      matchMonth?.groups || { start: config_start, step: config_step };
+      matchMonth?.groups ||
+      matchDate?.groups || { start: config_start, step: config_step };
 
-    if (!matchNum && !matchAlpha && !matchExpr && !matchMonth) {
+    if (!matchNum && !matchAlpha && !matchExpr && !matchMonth && !matchDate) {
       let errorMsg =
         `[${appName}] No valid regular expression: >` + eingabe + '<. ';
       errorMsg += `DEFAULT: ${config_start}:${config_step} `;
@@ -586,11 +609,51 @@ function InsertSequenceCommand({
         (+groups?.start > 0 && +groups?.start <= 12));
     // check if alpha (not allowed with month!)
     const ALPHA = !!matchAlpha || MONTH;
+    // check if date is inserted
+    const DATE = !!matchDate;
+
+    // if groups.year is undefined, a "normal" integer was detected. Now let's see,
+    // if it is a 4-digit number (probably a year) or a two-digit (a short year)
+    // or anything else.
+    if (!groups?.year) {
+      switch (true) {
+        case groups?.start.length === 4:
+          groups.year = groups.start;
+          break;
+        case groups?.start.length === 2:
+          groups.year = config_defaultCentury + groups.start;
+          break;
+        default:
+          groups.year = String(new Date().getFullYear() + +groups.start);
+      }
+    }
+
+    // if year is only 1 digit, add 0 to have at least 2 digits (excl. century)
+    if (groups?.year?.length === 1) {
+      groups.year = '0' + groups.year;
+    }
+
+    const currYear = DATE
+      ? groups?.year?.length <= 2
+        ? config_defaultCentury + groups.year
+        : groups.year
+      : new Date().getFullYear();
+
+    const currMonth: string =
+      DATE && groups?.month ? groups.month : String(new Date().getMonth() + 1);
+
+    const currDay: string =
+      DATE && groups?.day ? groups.day : String(new Date().getDate());
+
+    // TODO: HIER WEITER: Datum wird erkannt, aber noch nicht korrekt interpretiert
     // check if reverse is on
     const REVERSE = groups.reverse === '!';
-    
+
     // check, if selections/multilines needs to be sorted before insertation
-    const SORTSEL = (groups.sort_selections === '$' && config_defaultInsertOrder === "cursor") || (groups.sort_selections != '$' && config_defaultInsertOrder === "sorted");
+    const SORTSEL =
+      (groups.sort_selections === '$' &&
+        config_defaultInsertOrder === 'cursor') ||
+      (groups.sort_selections != '$' && config_defaultInsertOrder === 'sorted');
     // Long or Short format for months
     const LANGFORMAT: 's' | 'l' =
       (groups?.monthformat && groups?.monthformat[0] === 'l') ||
@@ -599,15 +662,23 @@ function InsertSequenceCommand({
         : 's';
 
     groups.start ||= config_start;
+
+    // do we have a leading Character for formatting?
+    const leadingChar = groups.lead_char || null;
+    const startLength = leadingChar ? groups.start.length : 0;
+
+    if (leadingChar) {
+      groups.start = groups.start.replace(leadingChar, '');
+    }
+
     // start value (also re-start for frequency)
     const start = isHex(groups.start)
       ? hexToNum(groups.start).toString()
       : groups.start;
+
     const startValue = parseFloat(start);
     if (!ALPHA && !MONTH && Number.isNaN(startValue)) {
-      curWindow.showErrorMessage(
-        `[Month]: ${start} is not a valid month or beginning of month name]!`,
-      );
+      curWindow.showErrorMessage(`${start} is not a valid start number]!`);
       return;
     }
 
@@ -654,7 +725,10 @@ function InsertSequenceCommand({
     // wrap alpha input
     const WRAP = ALPHA && groups.wrap === 'w';
     // which format should be used
-    const format = groups.format || '';
+    const format =
+      groups.format ||
+      (leadingChar ? leadingChar[0] + '>' + startLength : null);
+
     // which split char should be used?
     const linesplit: string = groups?.line_split
       ? groups?.line_split
@@ -894,7 +968,7 @@ function InsertSequenceCommand({
       prevValue = parseFloat(curValueStr) || parseFloat(exprValueStr) || 0;
 
       // format string available format curValueStr
-      if (format?.length > 0) {
+      if (format) {
         // if the curValueStr is a number, use d3.format
         if (curValueIsNumber) {
           curValueStr = d3.format(format)(+curValueStr);
