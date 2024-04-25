@@ -21,6 +21,7 @@ import * as vscode from 'vscode';
 
 // don't update this module!!! Starting with version 3, it will currently not work anymore!
 import * as d3 from 'd3-format';
+import * as datefns from 'date-fns';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -328,14 +329,15 @@ function InsertSequenceCommand({
       alphastart: '[a-z]+ | [A-Z]+',
       alphaformat:
         '((?<alphaformat_padding>[^}}])? (?<alphaformat_align>[<>^])(?<alphaformat_correct> [lr])?)? ((?<alphaformat_integer>{{integer}}))?',
+      dateformat:
+        '(?:G{1,5}|y{1,5}|R{1,5}|u{1,5}|Q{1,5}|q{1,5}|M{1,5}|L{1,5}|w{1,2}|l{1,2}|d{1,2}|E{1,6}|i{1,5}|e{1,6}|c{1,6}|a{1,5}|b{1,5}|B{1,5}|h{1,2}|H{1,2}|k{1,2}|K{1,2}|m{1,2}|s{1,2}|S{1,4}|X{1,5}|x{1,5}|O{1,4}|z{1,4}|t{1,2}|T{1,2}|P{1,4}|p{1,4}|yo|qo|Qo|Mo|lo|Lo|wo|do|io|eo|co|ho|Ho|Ko|ko|mo|so|Pp|PPpp|PPPppp|PPPPpppp|.)*',
       monthtxt: '[\\p{L}\\p{M}]+|\\d{1,2}',
       monthformat: '(?:l(ong)?|s(hort)?)\\b',
-      year: '(?:\\d{1,4}?)',
-      month: '(?:0\\d|10|11|12)?',
-      day: '(?:0?\\d|[12]\\d|3[012])?',
-      date: '(?<date> (?<year> {{year}}?)(?:-(?<months>{{month}})(?:-(?<day>{{day}}))?))?',
-      datestep:
-        '(?:d(?<stepdays> {{signedint}}))?(?:w(?<stepweeks> {{signedint}}))?(?:m(?<stepmonths> {{signedint}}))?(?:y(?<stepyears> {{signedint}}))?',
+      year: '(?:\\d{1,4})',
+      month: '(?:12|11|10|0?[1-9])',
+      day: '(?:3[012]|[12]\\d|0?[1-9])',
+      date: '(?<date> (?<year> {{year}}?)(?:(?<datedelimiter>[-.])(?<month>{{month}})(?:\\k<datedelimiter>(?<day>{{day}}))?)?)?',
+      datestep: '(?:(?<datestepunit>[dwmy])(?<datestepvalue>{{signedint}}))?',
       cast: '[ifsbm]',
       expr: '.+?',
       stopExpr: '.+?',
@@ -348,7 +350,7 @@ function InsertSequenceCommand({
       insertMonth:
         '^(;(?<start> {{monthtxt}}))(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<monthformat> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (\\[(?<lang> [\\w-]+)\\])? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertDate:
-        '^(%(?<start> {{date}}|{{integer}})) (:(?<step> {{datestep}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{format}}))? (::(?<expr> {{expr}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(%(?<start> {{date}}|{{integer}})) (:(?<step> {{datestep}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<dateformat> {{dateformat}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     // TODO - linesplit einfügen (?:\\|(?<line_split>[^\\|]+)\\|)?
@@ -378,18 +380,12 @@ function InsertSequenceCommand({
     return { result };
   }
 
-  if (debug) {
-    console.log('vor curWindow');
-  }
   // check if vscode is available (should be ;-) )
   const curWindow = vscode?.window;
   if (!curWindow) {
     return;
   }
 
-  if (debug) {
-    console.log('vor curTextEditor');
-  }
   // check if TextEditor is available/open
   const curTextEditor = curWindow.activeTextEditor;
   if (!curTextEditor) {
@@ -399,9 +395,6 @@ function InsertSequenceCommand({
     return;
   }
 
-  if (debug) {
-    console.log('vor Selection');
-  }
   // check if selection is available (should be ;-) )
   const selections = curTextEditor.selections;
   if (!selections) {
@@ -411,9 +404,6 @@ function InsertSequenceCommand({
     return;
   }
 
-  if (debug) {
-    console.log('vor const');
-  }
   // default values (can be change via configuration)
   // where to start
   const defaultStart: string = '1';
@@ -431,13 +421,14 @@ function InsertSequenceCommand({
   const defaultInsertOrder: string = 'cursor';
   // default century, if year is only with 1 or 2 digits
   const defaultCentury: string = '20';
+  // default dateStep (1 day)
+  const defaultDateStepUnit: string = 'd';
+  // default date format
+  const defaultDateFormat: string = 'dd.MM.yyyy';
 
   // how many selections do we have?
   const selLen = selections.length;
 
-  if (debug) {
-    console.log('vor config read');
-  }
   // read configuration
   const config_editHistory: boolean =
     vscode.workspace.getConfiguration(appName).get('editHistory') ||
@@ -484,9 +475,16 @@ function InsertSequenceCommand({
     vscode.workspace.getConfiguration('insertnums').get('century') ||
     defaultCentury;
 
-  if (debug) {
-    console.log('vor showInputBox');
-  }
+  const config_defaultDateStepUnit: string =
+    vscode.workspace.getConfiguration(appName).get('dateStepUnit') ||
+    vscode.workspace.getConfiguration('insertnums').get('dateStepUnit') ||
+    defaultDateStepUnit;
+
+  const config_defaultDateFormat: string =
+    vscode.workspace.getConfiguration(appName).get('dateFormat') ||
+    vscode.workspace.getConfiguration('insertnums').get('dateFormat') ||
+    defaultDateFormat;
+
   // Direct start of command is without value, so the inputbox is shown.
   if (value.length === 0 || config_editHistory) {
     curWindow
@@ -588,8 +586,10 @@ function InsertSequenceCommand({
         'Options: NUMBERS:  [<start>][:<step>][~<format>][r+?<to>]][*<frequency>][#repetitions][::<expr>][@<stopexpr>][$][!] or ';
       errorMsg +=
         'ALPHA:  <a-z+|A-Z+> [:<step>][~<format>][*<frequency>][#repetitions][@<stopexpr>][w][$][!] or ';
-      errorMsg +=
-        'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] or ';
+      (errorMsg +=
+        '<year>[-<month>[-<day>]] [:<datestep>] [~<dateformat>] [*<frequency>][#repetitions][$][!]'),
+        (errorMsg +=
+          'SUBSTITUTION: [<cast>]|[~<format>::]<expr>[@<stopexpr>][$][!] or ');
       errorMsg +=
         'MONTH:  ;<monthname>|<monthnumber> [:<step>][~<format>][*<frequency>][#repetitions][@<stopexpr>][[<lang>]][$][!] or ';
       errorMsg +=
@@ -645,7 +645,31 @@ function InsertSequenceCommand({
     const currDay: string =
       DATE && groups?.day ? groups.day : String(new Date().getDate());
 
-    // TODO: HIER WEITER: Datum wird erkannt, aber noch nicht korrekt interpretiert
+    // look for currDateStepUnit which makes sense
+    groups.datestepunit ||= config_defaultDateStepUnit;
+
+    switch (true) {
+      case groups.datestepunit === 'd' || groups.datestepunit === 'w':
+        if (groups?.day) break;
+
+        groups.datestepunit = 'm';
+        if (groups?.month) break;
+
+        groups.datestepunit = 'y';
+        break;
+      case groups.datestepunit === 'm':
+        if (groups?.month) break;
+
+        groups.datestepunit = 'y';
+        break;
+    }
+
+    const currDateStepUnit: string = groups.datestepunit;
+
+    const currDateStepValue: number = Number(groups?.datestepvalue)
+      ? Number(groups.datestepvalue)
+      : Number(config_step);
+
     // check if reverse is on
     const REVERSE = groups.reverse === '!';
 
@@ -676,7 +700,18 @@ function InsertSequenceCommand({
       ? hexToNum(groups.start).toString()
       : groups.start;
 
-    const startValue = parseFloat(start);
+    const startDate = new Date(
+      Number(currYear),
+      Number(currMonth) - 1,
+      Number(currDay),
+      0,
+      0,
+      0,
+    );
+
+    const startValue = !DATE
+      ? parseFloat(start)
+      : datefns.getUnixTime(startDate);
     if (!ALPHA && !MONTH && Number.isNaN(startValue)) {
       curWindow.showErrorMessage(`${start} is not a valid start number]!`);
       return;
@@ -728,6 +763,8 @@ function InsertSequenceCommand({
     const format =
       groups.format ||
       (leadingChar ? leadingChar[0] + '>' + startLength : null);
+
+    const dateformat = groups?.dateformat || config_defaultDateFormat;
 
     // which split char should be used?
     const linesplit: string = groups?.line_split
@@ -814,7 +851,7 @@ function InsertSequenceCommand({
         loopContinue = false;
         break;
       }
-      if (Date.now() > startTime + timeLimit) {
+      if (!debug && Date.now() > startTime + timeLimit) {
         curWindow.showInformationMessage(
           `Time limit of ${timeLimit}ms exceeded`,
         );
@@ -909,59 +946,100 @@ function InsertSequenceCommand({
       let curValueStr: string = '';
       let curValueIsNumber: boolean = false;
 
+      let value: number;
+
       // get curValue as string
-      if (ALPHA) {
-        // alpha mode
+      switch (true) {
+        case ALPHA:
+          // alpha mode
 
-        let value: number = 0;
-
-        if (MONTH) {
-          if (Number.isNaN(+start)) {
-            value =
-              monthToNum(start, LANG) + curIterationIndex * parseInt(step);
-          } else {
-            value = parseInt(start) + curIterationIndex * parseInt(step);
-          }
-          curValueStr = numToMonth(value, LANGFORMAT, LANG);
-        } else {
-          value = alphaToNum(start) + curIterationIndex * parseInt(step);
-          curValueStr = numToAlpha(value, WRAP ? 1 : 0);
-        }
-
-        if (UPPER) {
-          curValueStr = curValueStr.toLocaleUpperCase();
-        }
-        curValueIsNumber = false;
-      } else {
-        // numeric mode or substitution mode
-
-        // if expression is available, calculat value based on expression result
-        if (exprValueStr.length > 0) {
-          curValueStr = exprValueStr;
-          curValueIsNumber = Number.isFinite(+exprValueStr);
-        } else {
-          // if random option is choosen, value is a random number
-          let value: number;
-          if (ISRANDOM) {
-            value = getRandomNumber(startValue, randomTo);
-          } else {
-            value = startValue + curIterationIndex * parseFloat(step);
-          }
-
-          curValueIsNumber = true;
-          if (EXPRMODE) {
-            if (cast === 's') {
-              curValueStr = selectedText + value.toString();
-              curValueIsNumber = false;
+          if (MONTH) {
+            if (Number.isNaN(+start)) {
+              value =
+                monthToNum(start, LANG) + curIterationIndex * parseInt(step);
             } else {
-              value += parseFloat(selectedText) || 0;
-              curValueStr = value.toString();
+              value = parseInt(start) + curIterationIndex * parseInt(step);
             }
+            curValueStr = numToMonth(value, LANGFORMAT, LANG);
           } else {
-            curValueStr = value.toString();
-            curValueIsNumber = Number.isFinite(+curValueStr);
+            value = alphaToNum(start) + curIterationIndex * parseInt(step);
+            curValueStr = numToAlpha(value, WRAP ? 1 : 0);
           }
-        }
+
+          if (UPPER) {
+            curValueStr = curValueStr.toLocaleUpperCase();
+          }
+          curValueIsNumber = false;
+          break;
+        case DATE:
+          let datestr: Date;
+
+          switch (currDateStepUnit) {
+            case 'd':
+              datestr = datefns.addDays(
+                startDate,
+                curIterationIndex * Number(currDateStepValue),
+              );
+              break;
+            case 'w':
+              datestr = datefns.addWeeks(
+                startDate,
+                curIterationIndex * Number(currDateStepValue),
+              );
+              break;
+            case 'm':
+              datestr = datefns.addMonths(
+                startDate,
+                curIterationIndex * Number(currDateStepValue),
+              );
+              break;
+            case 'y':
+              datestr = datefns.addYears(
+                startDate,
+                curIterationIndex * Number(currDateStepValue),
+              );
+              break;
+            default:
+              datestr = datefns.addDays(
+                startDate,
+                curIterationIndex * Number(currDateStepValue),
+              );
+              break;
+          }
+
+          value = datefns.getUnixTime(datestr);
+          curValueStr = datefns.format(datestr, dateformat);
+
+          break;
+        default:
+          // numeric mode or substitution mode
+
+          // if expression is available, calculat value based on expression result
+          if (exprValueStr.length > 0) {
+            curValueStr = exprValueStr;
+            curValueIsNumber = Number.isFinite(+exprValueStr);
+          } else {
+            // if random option is choosen, value is a random number
+            if (ISRANDOM) {
+              value = getRandomNumber(startValue, randomTo);
+            } else {
+              value = startValue + curIterationIndex * parseFloat(step);
+            }
+
+            curValueIsNumber = true;
+            if (EXPRMODE) {
+              if (cast === 's') {
+                curValueStr = selectedText + value.toString();
+                curValueIsNumber = false;
+              } else {
+                value += parseFloat(selectedText) || 0;
+                curValueStr = value.toString();
+              }
+            } else {
+              curValueStr = value.toString();
+              curValueIsNumber = Number.isFinite(+curValueStr);
+            }
+          }
       }
 
       // get current value as previous value for next expression
