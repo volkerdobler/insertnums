@@ -41,20 +41,20 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
-  const insertNums = vscode.commands.registerCommand(
-    'extension.insertNums',
-    (value: string = '') => {
-      // Display a message box to the user
-      vscode.window.showInformationMessage(
-        'The command has changed to insertSeq. insertNums is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
-      );
+  // const insertNums = vscode.commands.registerCommand(
+  //   'extension.insertNums',
+  //   (value: string = '') => {
+  //     // Display a message box to the user
+  //     vscode.window.showInformationMessage(
+  //       'The command has changed to insertSeq. insertNums is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
+  //     );
 
-      InsertSequenceCommand({ context, value, version: 'insertnums' });
-    },
-  );
+  //     InsertSequenceCommand({ context, value, version: 'insertnums' });
+  //   },
+  // );
 
   context.subscriptions.push(insertSeq);
-  context.subscriptions.push(insertNums);
+  // context.subscriptions.push(insertNums);
 
   const showSeqHistoryCommand = vscode.commands.registerCommand(
     'extension.insertSeq.showHistory',
@@ -63,19 +63,19 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
-  const showNumHistoryCommand = vscode.commands.registerCommand(
-    'extension.insertNums.showHistory',
-    () => {
-      vscode.window.showInformationMessage(
-        'The command has changed to insertSeq.showHistory. insertNums.showHistory is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
-      );
+  // const showNumHistoryCommand = vscode.commands.registerCommand(
+  //   'extension.insertNums.showHistory',
+  //   () => {
+  //     vscode.window.showInformationMessage(
+  //       'The command has changed to insertSeq.showHistory. insertNums.showHistory is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
+  //     );
 
-      insertSequenceHistory({ context, version: 'insertnums' });
-    },
-  );
+  //     insertSequenceHistory({ context, version: 'insertnums' });
+  //   },
+  // );
 
   context.subscriptions.push(showSeqHistoryCommand);
-  context.subscriptions.push(showNumHistoryCommand);
+  // context.subscriptions.push(showNumHistoryCommand);
 }
 
 // this method is called when your extension is deactivated

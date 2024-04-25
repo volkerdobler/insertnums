@@ -2,6 +2,10 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.9.7
+
+  Last minute fix
+
 - 0.9.6
 
   New: add new formating - you can now format also with leading zeros, blanks or dots
