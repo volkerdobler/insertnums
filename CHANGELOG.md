@@ -2,10 +2,12 @@
 
 All notable changes to this extension (newest on top):
 
-- 0.10.0
+- 0.9.6
 
   New: add new formating - you can now format also with leading zeros, blanks or dots
-  New: add support for ISO date syntax
+  New: add support for Date expressions (see Readme, still in alpha, without expr and stop-expression)
+
+  New: two additional configuration variables "insertseq.dateStepUnit" and "insertseq.dateFormat". _dateStepUnit_ defines the default unit (day, week, month or year) for one iteration (default: day) and _dateFormat_ defines the default output format (default: dd.MM.yyyy, validation of output format is not checked, so it is your responsibility to use a valid format-string if you change it)
 
   Update: new visible command "Insert Sequence" instead of "Insert Numbers"
   Update: delete history insertnums command from package.json

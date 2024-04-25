@@ -1,13 +1,21 @@
 # insertSeq
 
-Inserts or changes **integers**, **Ascii chars**, **hex numbers**, **month names**, or any **javascript expressions** in any text file.
-It is very helpful if you need to insert numbers or sequences of Ascii chars or want to change some selected numbers/chars based on a javascript expression.
+Inserts or changes **integers**, **Ascii chars**, **hex numbers**, **month names**, **dates** or any **javascript expressions** in any text file.
+It is very helpful if you need to insert sequences or want to change some selected numbers/chars based on a javascript expression.
 
 This extension is based on the wonderful sublimetext extension from James Books (https://github.com/jbrooksuk/InsertNums).
 
 I used this extension intensively in the past within sublime text and I could not find such a flexible extension for VSCode. I rewrote this Python extension in JavaScript and extended it further.
 
 ---
+
+## New in 0.9.6
+
+I implemented an easy way to insert date sequences. The start date has to be in the format <year>[-<month>[-<day>]] (e.g. 2024-4-25 for 25th April 2024). Month and day are optional.
+
+Instead of numbers as step, you can decide if you want to add days, weeks, months or years. The format is [:<dwmy>integer]. If you want to add 2 days, you have to type ":d2". If you want to subtract 3 days, use "d-3". The first char has to be the unit (first letter of day, week, month or year).
+
+You can combine date sequences also with frequency and repetitions, but not (in this version) with expressions or stop-expressions!
 
 ## Usage:
 
@@ -104,7 +112,7 @@ Typing `1*3` when 9 multi selections are marked, results in:
 3
 ```
 
-Another possible need is to add the numbers 1 three times, 4 three times, and so on. Again, if you type `1:4*3` the program will insert 1, 1, 1, then add 4, and insert 5, 5, 5, add 4, and insert digit 9 3 times.
+Another possible need is to add the numbers 1 three times, 5 three times, and so on. Again, if you type `1:4*3` the program will insert 1, 1, 1, then add 4, and insert 5, 5, 5, add 4, and insert digit 9 3 times.
 
 It is also possible to have a stop criterion with the option **@{STOPEXPRESSION}**.
 _STOPEXPRESSION_ can be any regular javascript but has the advantage, that some special chars can be used (details in the **SYNTAX** chapter below).
@@ -146,27 +154,27 @@ With one cursor selected and the following command `3:2*2#4@i>10` results in:
 The order of the input is also important. By default, the extension inserts the sequence in the order of the click order. Example: first click in line 7, then line 2, and third line 4. After the command `1` the result is (first column shows the line numbers):
 
 ```
-1: 
+1:
 2: 2
-3: 
+3:
 4: 3
-5: 
-6: 
+5:
+6:
 7: 1
-8: 
+8:
 ```
 
 If you want to insert the number from the top down (independent of your click order), you can add the `$` at the end of the command. Same example as above but with the command `1$` results in:
 
 ```
-1: 
+1:
 2: 1
-3: 
+3:
 4: 2
-5: 
-6: 
+5:
+6:
 7: 3
-8: 
+8:
 ```
 
 You can set both behaviors as default with a config-switch `insertOrder`.
@@ -175,27 +183,27 @@ It's also possible to reverse the input if you add an `!` at the end of the comm
 An example with the same situation (you click in lines 7, 2, and 4) and insert the command `1!`, the result is:
 
 ```
-1: 
+1:
 2: 2
-3: 
+3:
 4: 1
-5: 
-6: 
+5:
+6:
 7: 3
-8: 
+8:
 ```
 
 And in combination with the `$` or the config-switch "insertOrder", it looks like this:
 
 ```
-1: 
+1:
 2: 3
-3: 
+3:
 4: 2
-5: 
-6: 
+5:
+6:
 7: 1
-8: 
+8:
 ```
 
 A special sequence of integers is a random sequence. Insertnums can do this easily with the option **r{UNTIL}** option.
@@ -248,6 +256,29 @@ Nov
 Dec
 Jan
 Feb
+```
+
+Another sequence are dates (not only months names). To insert dates, you can start the expression with _%_. As step-counter you can decided if \_d_ays, \_w_eeks, \_m_onths or \_y_ears should be added. As example, you want to insert days, starting 25th April 2024, increasing 2 weeks for each step, and output the date in the format <year><month><day>, you can insert `%2005-4-25:w2~yyyyMMdd` and get the following result:
+
+```
+20050425
+20050509
+20050523
+20050606
+20050620
+20050704
+```
+
+The same result, as with the month names input can be achieved with this date sequence insertion: `%2005-4:m1~MMM`:
+
+```
+Apr
+May
+Jun
+Jul
+Aug
+Sep
+Oct
 ```
 
 And there is an even more complex feature called "expressions" you can use. Within such an expression, you can use some (internal) "variables". (see [Syntax section](#Syntaxes:))
@@ -483,6 +514,33 @@ Formatting can be done with the following options:
 
 ---
 
+Syntax for **dates**:
+
+```
+
+%[<year>[-<month>[-<day>]]][:[dwmy]<step>][#<repeat>][*<frequency>][~<format>][$][!]
+
+```
+
+with
+
+```
+
+<year> ::= 2 digit year or 4 digit year
+<month> ::= any integer from 1 to 12
+<day> ::= any integer from 1 to 31 (attention, there is no check for a valid date, e.g. 31.2. is possible!)
+[dwmy] ::= unit to increament or decrement (_d_ay, _w_eek, _m_onth or _y_ear)
+<step> ::= any integer (positive or negative)
+<repeat> ::= any positive integer
+<frequency>::= any positive integer
+<format> ::= any valid date format. Internally, datefns.format is used, so have a look at [datefns documentation](https://date-fns.org/v3.6.0/docs/format)
+$ ::= the selections will be "sorted" (without this option, new chars will be inserted in the order of the multiline clicks)
+! ::= reverts the output
+
+```
+
+---
+
 Syntax for **month names**:
 
 ```
@@ -577,11 +635,13 @@ All release notes are in the Changelog file
 
 ## Contributors 🙏
 
-A big thanks to the people that have contributed to this project:
+A big thanks to the people that have contributed to improve this project:
 
-- Yu [(@codingyu)](https://github.com/codingyu) &mdash; [contribution](https://github.com/codingyu/insertnums) (added first version of history picklist in version 0.5.0)
+- Yu [(@codingyu)](https://github.com/codingyu) &mdash; [contribution](https://github.com/codingyu/insertnums) added first version of history picklist in version 0.5.0
 
 - Jesse Peden [(@JessePeden)](https://github.com/JessePeden) &mdash; [contribution](https://github.com/volkerdobler/insertnums/pull/12) corrected spelling errors in package.json file
+
+- Noah [(@nmay231)](https://github.com/nmay231) &mdash; inspired me to implement the date sequences
 
 ## Special thanks!
 
