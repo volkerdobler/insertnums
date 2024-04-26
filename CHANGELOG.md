@@ -2,28 +2,38 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.9.6
+
+  New: add new formating - you can now format also with leading zeros, blanks or dots
+  New: add support for Date expressions (see Readme, still in alpha, without expr and stop-expression)
+
+  New: two additional configuration variables "insertseq.dateStepUnit" and "insertseq.dateFormat". _dateStepUnit_ defines the default unit (day, week, month or year) for one iteration (default: day) and _dateFormat_ defines the default output format (default: dd.MM.yyyy, validation of output format is not checked, so it is your responsibility to use a valid format-string if you change it)
+
+  Update: new visible command "Insert Sequence" instead of "Insert Numbers"
+  Update: delete history insertnums command from package.json
+
 - 0.9.5
 
   Update: new placeholder text
 
   Fixed: spelling corrections in package.json file - thanks to @JessePeden
-  
+
 - 0.9.4
 
   Last minute fix
-  
+
 - 0.9.3
 
   New: add the possibility to add month with numbers (integers from 1 to 12)
 
   New: Configuration "insertseq.insertOrder"
-  
-    - "cursor" will insert the sequence in the click order; "sorted" will insert the sequence always from the topmost click down.
-    
+
+  - "cursor" will insert the sequence in the click order; "sorted" will insert the sequence always from the topmost click down.
+
   Fixed: some minor bugs and stability
 
   Fixed: some typos in the README.md and CHANGELOG.md
-             
+
 - 0.9.2
 
   New: (experimental) Starting with a semicolon, the sequenzer assumes a month and will increase month-names. You can format the output with ~l to get long month names.

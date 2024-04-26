@@ -2,7 +2,7 @@
 	"name": "insertnums",
 	"version": "0.9.8",
 	"publisher": "volkerdobler",
-	"displayName": "Insert Seq",
+	"displayName": "Insert Sequences",
 	"description": "Insert sequences of any kind (numberic, alpha, expressions) to VSCode textdocuments",
 	"keywords": [
 		"sequences",
@@ -105,25 +105,39 @@
 						"cursor (default): insertion is based on multi cursor click order",
 						"sorted: insertion is from top most click down (reverse is possible with option '!')"
 					]
+				},
+				"insertseq.dateStepUnit": {
+					"type": "string",
+					"default": "d",
+					"description": "Default unit as date step",
+					"enum": [
+						"d",
+						"w",
+						"m",
+						"y"
+					],
+					"enumdescription": [
+						"d (default): days",
+						"w: weeks",
+						"m: months",
+						"y: years"
+					]
+				},
+				"insertseq.dateFormat": {
+					"type": "string",
+					"default": "dd.MM.yyyy",
+					"description": "Default date format"
 				}
 			}
 		},
 		"commands": [
 			{
 				"command": "extension.insertSeq",
-				"title": "Insert Numbers"
-			},
-			{
-				"command": "extension.insertNums",
-				"title": "Insert Numbers"
+				"title": "Insert Sequences"
 			},
 			{
 				"command": "extension.insertSeq.showHistory",
-				"title": "Insert Numbers Show History"
-			},
-			{
-				"command": "extension.insertNums.showHistory",
-				"title": "Insert Numbers Show History"
+				"title": "Insert Sequences Show History"
 			}
 		],
 		"keybindings": [
@@ -146,13 +160,16 @@
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"lint": "eslint src --ext ts",
-		"pretest": "npm run compile && npm run lint",
-		"test": "node ./out/test/runTest.js"
+		"pretest": "npm run compile && npm run lint"
 	},
 	"devDependencies": {
 		"@types/d3-format": "^2.0.2",
 		"@types/node": "^20.9.0",
-		"@types/vscode": "^1.88.0"
+		"@types/vscode": "^1.88.0",
+		"date-fns": "^3.6.0",
+		"eslint": "^9.1.0",
+		"luxon": "^3.4.4",
+		"prettier": "^3.2.5"
 	},
 	"icon": "insertnums.png",
 	"galleryBanner": {
