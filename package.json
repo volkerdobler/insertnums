@@ -166,9 +166,7 @@
 		"@types/d3-format": "^2.0.2",
 		"@types/node": "^20.9.0",
 		"@types/vscode": "^1.88.0",
-		"date-fns": "^3.6.0",
 		"eslint": "^9.1.0",
-		"luxon": "^3.4.4",
 		"prettier": "^3.2.5"
 	},
 	"icon": "insertnums.png",
@@ -177,6 +175,7 @@
 		"theme": "dark"
 	},
 	"dependencies": {
-		"d3-format": "^2.0.0"
+		"d3-format": "^2.0.0",
+		"date-fns": "^3.6.0"
 	}
 }
