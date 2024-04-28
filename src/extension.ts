@@ -339,18 +339,19 @@ function InsertSequenceCommand({
       date: '(?<date> (?<year> {{year}}?)(?:(?<datedelimiter>[-.])(?<month>{{month}})(?:\\k<datedelimiter>(?<day>{{day}}))?)?)?',
       datestep: '(?:(?<datestepunit>[dwmy])(?<datestepvalue>{{signedint}}))?',
       cast: '[ifsbm]',
+      delimiter: '\\s*[,;]?\\s*',
       expr: '.+?',
       stopExpr: '.+?',
       exprMode:
-        '^(?<cast> {{cast}})?\\|(~(?:(?<monthformat> {{monthformat}})|(?<format> {{format}}))::)? (?<expr> {{expr}}) (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (\\[(?<lang> [\\w-]+)\\])? (?<reverse> !)?$',
+        '^(?<cast> {{cast}})?\\|((?:~|{{delimiter}}format:)(?:(?<monthformat> {{monthformat}})|(?<format> {{format}}))::)? (?<expr> {{expr}}) (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (\\[(?<lang> [\\w-]+)\\])? (?<reverse> !)?$',
       insertNum:
-        '^(?<start> {{startNum}})? (:(?<step> {{signedNum}}))? (r(?<random> \\+?[1-9]\\d*))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{format}}))? (::(?<expr> {{expr}}))? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {{startNum}})? (?<steporrandom>((?::|{{delimiter}}step[s]?:)(?<step> {{signedNum}}))?|({{delimiter}}(?:r|\\s*rand(?:om)?:)(?<random> \\+?[1-9]\\d*))?) ((?:\\*|{{delimiter}}freq(?:uency)?:)(?<frequency> {{integer}}))? ((?:#|{{delimiter}}rep(?:eat)?:)(?<repeat> {{integer}}))? ((?:~|{{delimiter}}format:)(?<format> {{format}}))? ((?:::|{{delimiter}}expr(?:ession)?:)(?<expr> {{expr}}))? ((?:@|{{delimiter}}stop[p]?:)(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertAlpha:
-        '^(?<start> {{alphastart}}) (:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<format> {{alphaformat}})(?<wrap> w)?)? (@(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(?<start> {{alphastart}}) ((?::|{{delimiter}}step[s]?:)(?<step> {{signedint}}))? ((?:\\*|{{delimiter}}freq(?:uency)?:)(?<frequency> {{integer}}))? ((?:#|{{delimiter}}rep(?:eat)?:)(?<repeat> {{integer}}))? ((?:~|{{delimiter}}format:)(?<format> {{alphaformat}}))? (?<wrap> w)? ((?:@|{{delimiter}}stop[p]?:)(?<stopExpr> {{stopExpr}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertMonth:
-        '^(;(?<start> {{monthtxt}}))(:(?<step> {{signedint}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<monthformat> {{monthformat}}))? (@(?<stopExpr> {{stopExpr}}))? (\\[(?<lang> [\\w-]+)\\])? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(;(?<start> {{monthtxt}})) ((?::|{{delimiter}}step[s]?:)(?<step> {{signedint}}))? ((?:\\*|{{delimiter}}freq(?:uency)?:)(?<frequency> {{integer}}))? ((?:#|{{delimiter}}rep(?:eat)?:)(?<repeat> {{integer}}))? ((?:~|{{delimiter}}(?:month)?format:)(?<monthformat> {{monthformat}}))? ((?:@|{{delimiter}}stop[p]?:)(?<stopExpr> {{stopExpr}}))? (\\[(?<lang> [\\w-]+)\\])? (?<sort_selections> \\$)? (?<reverse> !)?$',
       insertDate:
-        '^(%(?<start> {{date}}|{{integer}})) (:(?<step> {{datestep}}))? (\\*(?<frequency> {{integer}}))? (#(?<repeat> {{integer}}))? (~(?<dateformat> {{dateformat}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
+        '^(%(?<start> {{date}}|{{integer}})) ((?::|{{delimiter}}(?:date)?step[s]?:)(?<step> {{datestep}}))? ((?:\\*|{{delimiter}}freq(?:uency)?:)(?<frequency> {{integer}}))? ((?:#|{{delimiter}}rep(?:eat)?:)(?<repeat> {{integer}}))? ((?:~|{{delimiter}}(?:date)?format:)(?<dateformat> {{dateformat}}))? (?<sort_selections> \\$)? (?<reverse> !)?$',
     };
 
     // TODO - linesplit einfügen (?:\\|(?<line_split>[^\\|]+)\\|)?
@@ -496,6 +497,15 @@ function InsertSequenceCommand({
         // placeHolder: `${config_start}:${config_step}`,
         placeHolder: `${config_start}:${config_step}`,
         // '[<start>][:<step>][#<repeat>][*<frequency>][~<format>]r[+]<random>][::<expr>][@<stopexpr>][$][!]',
+        validateInput: function (input) {
+          // if (input === '') {
+          //   input = `${config_start}:${config_step}`;
+          // }
+          // if (input) {
+          //   renderResult({ result: input });
+          // }
+          return '';
+        },
       })
       .then((value) => {
         if (value === '') {
@@ -730,7 +740,8 @@ function InsertSequenceCommand({
         ? isHex(groups.step)
         : false || false;
     // check, if random number is used
-    const ISRANDOM = groups.random != undefined;
+    const ISRANDOM =
+      groups.random != undefined && groups.steporrandom.search(/:|step/) === -1;
     // upper bound of random number range
     const randomTo =
       groups.random && groups.random[0] === '+'
@@ -894,7 +905,8 @@ function InsertSequenceCommand({
           .replace(/\ba\b/gi, startValue.toString())
           .replace(/\bi\b/gi, curIterationVal.toString());
         try {
-          let evalResult = eval(tmpString);
+          // let evalResult = eval(tmpString);
+          let evalResult = [eval][0](tmpString);
           if (
             monthToNum(selectedText, LANG) > -1 &&
             Number.isInteger(evalResult)
@@ -925,7 +937,8 @@ function InsertSequenceCommand({
           .replace(/\ba\b/gi, startValue.toString())
           .replace(/\bi\b/gi, curIterationVal.toString());
         try {
-          let stopResult = eval(tmpString);
+          // let stopResult = eval(tmpString);
+          let stopResult = [eval][0](tmpString);
           if (stopResult) {
             loopContinue = false;
             break;
