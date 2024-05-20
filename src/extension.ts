@@ -15,67 +15,49 @@ rewritten February 2023
 
 const debug = false;
 
+const maxSteps = Number.MAX_SAFE_INTEGER;
+
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// don't update this module!!! Starting with version 3, it will currently not work anymore!
 import * as d3 from 'd3-format';
 import * as datefns from 'date-fns';
+import * as math from 'mathjs';
+
+function printToConsole(str: string): void {
+  if (debug) console.log('Debugging: ' + str);
+}
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext): void {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
-  if (debug) {
-    console.log('Congratulations, your extension "insertseq" is now active!');
-  }
+  printToConsole('Congratulations, extension "insertseq" is now active!');
+
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  const insertSeq = vscode.commands.registerCommand(
+  const insertSeqCmd = vscode.commands.registerCommand(
     'extension.insertSeq',
     (value: string = '') => {
       InsertSequenceCommand({ context, value, version: 'insertseq' });
     },
   );
 
-  const insertNums = vscode.commands.registerCommand(
-    'extension.insertNums',
-    (value: string = '') => {
-      // Display a message box to the user
-      vscode.window.showInformationMessage(
-        'The command has changed to insertSeq. insertNums is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
-      );
+  context.subscriptions.push(insertSeqCmd);
 
-      InsertSequenceCommand({ context, value, version: 'insertnums' });
-    },
-  );
-
-  context.subscriptions.push(insertSeq);
-  context.subscriptions.push(insertNums);
-
+  /* 
   const showSeqHistoryCommand = vscode.commands.registerCommand(
     'extension.insertSeq.showHistory',
     () => {
       insertSequenceHistory({ context });
     },
   );
+ */
 
-  const showNumHistoryCommand = vscode.commands.registerCommand(
-    'extension.insertNums.showHistory',
-    () => {
-      vscode.window.showInformationMessage(
-        'The command has changed to insertSeq.showHistory. insertNums.showHistory is depreciated but currently still possible. Please change your keymap (CTRL-K CTRL-K)',
-      );
-
-      insertSequenceHistory({ context, version: 'insertnums' });
-    },
-  );
-
-  context.subscriptions.push(showSeqHistoryCommand);
-  context.subscriptions.push(showNumHistoryCommand);
+  // context.subscriptions.push(showSeqHistoryCommand);
 }
 
 // this method is called when your extension is deactivated
@@ -84,6 +66,51 @@ export function deactivate(): void {
 }
 
 const appName: string = 'insertseq';
+
+interface IInput {
+  start?: string;
+  stop?: string;
+  format?: string;
+  frequency?: string;
+  repeat?: string;
+  expr?: string;
+  stopExpr?: string;
+  randomMax?: string;
+  sorted?: string;
+  inverse?: string;
+  noNewline?: string;
+  [key: string]: string | number | undefined;
+}
+
+interface IConfig extends IInput {
+  start: string;
+  step: string;
+  centerString: string;
+  language: string;
+  insertOrder: string;
+  century: number;
+  dateStepUnit: string;
+  dateFormat: string;
+  delimiter: string;
+  [key: string]: string | number | undefined;
+}
+
+interface IParameter extends Partial<IConfig> {
+  type?: TInputType;
+  [key: string]: string | number | undefined;
+}
+
+interface ISelectedElement {
+  pos: vscode.Selection;
+  str: string | undefined;
+  [key: string]: vscode.Selection | string | undefined;
+}
+
+type TRegExpTemplate = {
+  [key: string]: string;
+};
+
+type TInputType = 'num' | 'alpha' | 'expr' | 'date' | 'own' | undefined;
 
 function InsertSequenceCommand({
   context,
@@ -94,10 +121,480 @@ function InsertSequenceCommand({
   value: string;
   version?: string;
 }): void {
-  type valueType = {
-    value: string;
+  if (!checkAvailability(context)) {
+    return;
+  }
+
+  const origElements = getElements(vscode.window.activeTextEditor?.selections);
+  if (!origElements) return;
+
+  let currElements =
+    getElements(vscode.window.activeTextEditor?.selections) || origElements;
+
+  const validInput = getValidInputRegExp();
+  const configValues = getConfigValues();
+
+  const inputOptions: vscode.InputBoxOptions = {
+    placeHolder: '1:1',
+    validateInput: function (input) {
+      currElements = render(
+        input,
+        currElements,
+        origElements,
+        validInput,
+        configValues,
+        false,
+      );
+      return '';
+    },
+    prompt:
+      'Syntax: [<start>][:<step>][#<repeat>][*<frequency>][~<format>]r[+]<random>][::<expr>][@<stopexpr>][$][!]',
+    value: value,
   };
 
+  vscode.window.showInputBox(inputOptions).then((input) => {
+    render(input, currElements, origElements, validInput, configValues, true);
+  });
+}
+
+function render(
+  input: string | undefined,
+  currElements: ISelectedElement[],
+  origElements: ISelectedElement[],
+  validInput: TRegExpTemplate,
+  configValues: IConfig,
+  final: boolean,
+): ISelectedElement[] {
+  if (input === undefined) {
+    replaceContent(
+      origElements.map((v) => v.str || ''),
+      currElements,
+      currElements,
+      1,
+      configValues,
+    );
+    return origElements;
+  }
+
+  const elements = getInputElements(input, validInput, configValues);
+  let newElements: string[];
+
+  switch (elements.type) {
+    case 'num':
+      newElements = getNumSeq(elements, currElements);
+      break;
+    case 'alpha':
+      newElements = getAlphaSeq(elements, currElements);
+      break;
+    case 'date':
+      newElements = getDateSeq(elements, currElements);
+      break;
+    case 'expr':
+      newElements = getExprSeq(elements, currElements);
+      break;
+    case 'own':
+      newElements = getOwnSeq(elements, currElements);
+      break;
+    default:
+      newElements = origElements.map((s) => s.str || '');
+  }
+
+  let selections: ISelectedElement[] = JSON.parse(JSON.stringify(currElements));
+
+  if (
+    elements.sorted
+      ? elements.sorted === '$'
+      : elements.insertOrder === 'sorted'
+  ) {
+    selections.sort(sortSelectedElements);
+  }
+
+  if (elements.inverse === '!') {
+    selections.reverse();
+  }
+
+  replaceContent(
+    newElements,
+    currElements,
+    selections,
+    elements.noNewline === '_' ? 0 : 1,
+    configValues,
+  );
+
+  return currElements;
+}
+
+function replaceContent(
+  newElements: string[],
+  currElements: ISelectedElement[],
+  selections: ISelectedElement[],
+  noNewLine: number,
+  configValues: IConfig,
+): void {
+  vscode.window.activeTextEditor?.edit(
+    function (builder) {
+      selections.forEach(function (selection, index) {
+        builder.replace(
+          new vscode.Range(selection.pos.start, selection.pos.end),
+          newElements[index],
+        );
+        currElements[index].str = newElements[index];
+        const newEnd = currElements[index].pos.end.translate(
+          0,
+          newElements[index].length,
+        );
+        currElements[index].pos = new vscode.Selection(
+          currElements[index].pos.start,
+          newEnd,
+        );
+      });
+      if (newElements.length > selections.length) {
+        // es wurden noch mehr Elemente gebildet, als vorhandene Selections => neue Elemnte anfügen
+        let currPos = selections[selections.length - 1].pos;
+        let addLines = noNewLine;
+        let addChars = 0;
+        for (let l = selections.length; l < newElements.length; l++) {
+          if (addLines === 0) {
+            newElements[l] = configValues.delimiter + newElements[l];
+            addChars = newElements[l].length;
+          }
+          builder.replace(
+            new vscode.Range(currPos.active, currPos.active),
+            newElements[l],
+          );
+          const newPosition = currPos.active.translate(addLines, addChars);
+          currElements.push({
+            pos: new vscode.Selection(newPosition, newPosition),
+            str: newElements[l],
+          });
+        }
+      }
+    },
+    {
+      undoStopBefore: false,
+      undoStopAfter: false,
+    },
+  );
+}
+function sortSelectedElements(
+  a: ISelectedElement,
+  b: ISelectedElement,
+): number {
+  return a.pos.anchor.line === b.pos.anchor.line
+    ? a.pos.anchor.character - b.pos.anchor.character
+    : a.pos.anchor.line - b.pos.anchor.line;
+}
+
+function checkAvailability(cxt: vscode.ExtensionContext): boolean {
+  const currWindow = vscode?.window;
+
+  if (!currWindow) return false;
+
+  const currTextEditor = currWindow.activeTextEditor;
+
+  if (!currTextEditor) {
+    currWindow.showErrorMessage(
+      `[${appName}] Extension only available with an active Texteditor`,
+    );
+    return false;
+  }
+
+  if (!currTextEditor.selections) {
+    currWindow.showErrorMessage(
+      `[${appName}] No selection available! Is Texteditor active?`,
+    );
+    return false;
+  }
+
+  return true;
+}
+
+function getElements(
+  selections: readonly vscode.Selection[] | undefined,
+): ISelectedElement[] | undefined {
+  const originalSelection: ISelectedElement[] | undefined = selections?.map(
+    (s, i) => {
+      const text = vscode.window.activeTextEditor?.document.getText(
+        new vscode.Range(s.start, s.end),
+      );
+
+      return {
+        pos: new vscode.Selection(s.start, s.end),
+        str: text,
+      };
+    },
+  );
+
+  return originalSelection;
+}
+
+function getValidInputRegExp(): TRegExpTemplate {
+  const template: TRegExpTemplate = {
+    intdigits: '[1-9]\\d* | 0',
+    hexdigits: '[1-9a-f][0-9a-f]*',
+    octdigits: '[1-7][0-7]*',
+    bindigits: '[01]+',
+    integer:
+      '(?:{{intdigits}}|(?:0[x]{{hexdigits}})|(?:0[o]{{octdigits}})|(?:0[b]{{bindigits}}))',
+    signedint: '[+-]? {{integer}}',
+    pointfloat: '({{intdigits}})? \\. \\d+ | {{intdigits}} \\.',
+    exponentfloat: '(?:{{intdigits}} | {{pointfloat}}) [e] [+-]? \\d+',
+    float: '{{pointfloat}} | {{exponentfloat}}',
+    numeric: '{{integer}} | {{float}}',
+    signedNum: '(?:[+-]? {{numeric}})',
+    parenthesisExpr: '(?:(?<!\\\\)\\(.+?(?<!\\\\)\\))',
+    doubleQuotedStr: '(?:(?<!\\\\)".+?(?<!\\\\)")',
+    singleQuotedStr: "(?:(?<!\\\\)'.+?(?<!\\\\)')",
+    exprStr: '(?:{{parenthesisExpr}}|{{doubleQuotedStr}}|{{singleQuotedStr}})',
+    charsInExpr: '(?:[^\\s:~\\*#@r\\$!_]+)',
+    year: '(?:\\d{2,4})',
+    months: '(?:1[0-2]|[1-9])',
+    days: '(?:3[01]|[12][0-9]|0?[1-9]|)',
+    hours: '(?:2[0-3]|[01][0-9])',
+    minutes_seconds: '(?:[1-5][0-9]|0?[0-9])',
+    dateExpr:
+      '(?:{{year}}(?:(?<datedelimiter>[-.\\/]){{months}}(?:\\k<datedelimiter>{{days}})?)?)',
+    timeExpr1:
+      '(?:{{hours}}(?:(?<timedelimiter1>[:.]){{minutes_seconds}}(?:\\k<timedelimiter1>{{minutes_seconds}})?)?)',
+    timeExpr2:
+      '(?:{{hours}}(?:(?<timedelimiter2>[:.]){{minutes_seconds}}(?:\\k<timedelimiter2>{{minutes_seconds}})?)?)',
+    startDate:
+      '(?:(?:%%{{timeExpr1}})|(?:%{{dateExpr}}(?:\\s?{{timeExpr2}})?))',
+    startExpr:
+      '(?:\\|(?:[\\p{L}\\p{M}\\p{Nd}\\p{Pc}\\p{Pd}\\p{Sm}]+)|{{exprStr}})',
+    startOwnList:
+      '(?:(?:,[\\p{L}\\p{M}\\p{N}\\p{Pc}\\p{Pd}\\p{Ps}\\p{Pe}\\p{Pi}\\p{Pf}\\p{S}\\p{Zs}]+?)+)',
+    startAlpha: '(?:[\\p{L}\\p{M}\\p{Pc}\\p{Pd}]+?)',
+    startNum: '(?:[+-]? (?<lead_char> 0+|\\s+|\\.+){{numeric}})',
+    stepDate: '(?:[dwmy] {{signedNum}})',
+    start:
+      '^(?<start>(?<startDatum>{{startDate}})|(?<startExpr>{{startExpr}})|(?<startOwnList>{{startOwnList}})|(?<startAlpha>{{startAlpha}})|(?<startNum>{{startNum}}))',
+    step: ':(?<step>(?<stepNum>{{signedNum}})|(?<stepDate>{{stepDate}})|(?::(?<stepExpr>{{exprStr}})))',
+    format:
+      '~(?<format>(?:(?<format_align> [<>^=])[\\d\\w]+)|{{doubleQuotedStr}}|{{singleQuotedStr}})',
+    frequency: '\\*(?<frequency>\\d+)',
+    repeat: '#(?<repeat>\\d+)',
+    stopExpr: '@(?<stopExpr>{{charsInExpr}}|{{exprStr}})',
+    randomMax: 'r(?<randomMax>\\d+)',
+    sorted: '\\$[!_]*$',
+    inverse: '![\\$_]*$',
+    noNewLine: '_[\\$!]*$',
+  };
+
+  const result: TRegExpTemplate = {};
+
+  const allowedKeys = [
+    'start',
+    'step',
+    'format',
+    'frequency',
+    'repeat',
+    'expr',
+    'stopExpr',
+    'randomMax',
+    'sorted',
+    'inverse',
+    'noNewline',
+  ];
+
+  for (let [key, value] of Object.entries(template)) {
+    while (value.indexOf('{{') > -1) {
+      const start: number = value.indexOf('{{');
+      const ende: number = value.indexOf('}}', start + 2) + 2;
+      const replace: string = value.slice(start, ende);
+      const rule: string = replace.slice(2, replace.length - 2);
+      if (template[rule]) {
+        value = value.replace(replace, template[rule]);
+      }
+    }
+    if (allowedKeys.indexOf(key) >= 0) {
+      result[key] = value.replace(/\s/gi, '');
+    }
+  }
+
+  return result;
+}
+
+function getConfigValues(): IConfig {
+  return {
+    start:
+      vscode.workspace.getConfiguration(appName).get('start') ||
+      vscode.workspace.getConfiguration('insertnums').get('start') ||
+      '1',
+    step:
+      vscode.workspace.getConfiguration(appName).get('step') ||
+      vscode.workspace.getConfiguration('insertnums').get('step') ||
+      '1',
+    centerString:
+      vscode.workspace.getConfiguration(appName).get('centerString') ||
+      vscode.workspace.getConfiguration('insertnums').get('centerString') ||
+      'l',
+    language:
+      vscode.workspace.getConfiguration(appName).get('language') ||
+      vscode.workspace.getConfiguration('insertnums').get('language') ||
+      'de-De',
+    insertOrder:
+      vscode.workspace.getConfiguration(appName).get('insertOrder') ||
+      vscode.workspace.getConfiguration('insertnums').get('insertOrder') ||
+      'cursor',
+    century:
+      vscode.workspace.getConfiguration(appName).get('century') ||
+      vscode.workspace.getConfiguration('insertnums').get('century') ||
+      20,
+    dateStepUnit:
+      vscode.workspace.getConfiguration(appName).get('dateStepUnit') ||
+      vscode.workspace.getConfiguration('insertnums').get('dateStepUnit') ||
+      'd',
+    dateFormat:
+      vscode.workspace.getConfiguration(appName).get('dateFormat') ||
+      vscode.workspace.getConfiguration('insertnums').get('dateFormat') ||
+      'yyyyMMdd',
+    delimiter:
+      vscode.workspace.getConfiguration(appName).get('delimiter') ||
+      vscode.workspace.getConfiguration('insertnums').get('delimiter') ||
+      ' ',
+  };
+}
+
+function getInputElements(
+  input: string,
+  validInput: IParameter,
+  config: IConfig,
+): IParameter {
+  let result: IParameter = {};
+
+  for (let [key, value] of Object.entries(validInput)) {
+    if (typeof value === 'string') {
+      result = Object.assign(
+        result,
+        input.match(new RegExp(value, 'iu'))?.groups,
+      );
+    }
+  }
+
+  for (let keys of Object.keys(config)) {
+    if (!result[keys]) {
+      result[keys] = config[keys];
+    }
+  }
+
+  result['type'] = getInputType(result['start']);
+
+  return result;
+}
+
+function getInputType(str: string | undefined): TInputType {
+  if (!str) return undefined;
+
+  const regWord = new RegExp(/\p{M}\p{L}/u);
+
+  switch (true) {
+    case /^%\d{2,4}/.test(str):
+      return 'date';
+    case /^\|/.test(str):
+      return 'expr';
+    case /^,/.test(str):
+      return 'own';
+    case /^[0\s_]?\d/.test(str):
+      return 'num';
+    case regWord.test(str):
+      return 'alpha';
+    default:
+      return undefined;
+  }
+}
+
+function getNumSeq(
+  elements: IParameter,
+  currElements: ISelectedElement[],
+): string[] {
+  const str: string[] = [];
+  let j: number = 0;
+  let freq: number = Number(elements.frequency) || 1;
+  let repeat: number = Number(elements.repeat) || 0;
+  let freqCounter: number = freq;
+
+  for (let i = 0; i < currElements.length; i++) {
+    if (
+      elements['stopExpr'] &&
+      math.evaluate(elements['stopExpr'] as math.MathExpression)
+    )
+      return str;
+
+    const formatStr = formatNum(
+      Number(elements.start) + j * Number(elements['step']),
+      elements['format'] || '',
+    );
+    str.push(formatStr);
+    if (freqCounter === 1) {
+      j++;
+      freqCounter = freq;
+    } else {
+      freqCounter--;
+    }
+    if (j === repeat) {
+      j = 0;
+    }
+  }
+
+  if (
+    !elements['stopExpr'] ||
+    math.evaluate(elements['stopExpr'] as math.MathExpression)
+  )
+    return str;
+
+  while (
+    !math.evaluate(elements['stop'] as math.MathExpression) &&
+    j < maxSteps
+  ) {
+    const formatStr = formatNum(
+      Number(elements.start) + j * Number(elements['step']),
+      elements['format'] || '',
+    );
+    str.push(formatStr);
+    if (freqCounter === 0) {
+      j++;
+      freqCounter = freq;
+    } else {
+      freqCounter--;
+    }
+    if (j === repeat) {
+      j = 0;
+    }
+  }
+
+  return str;
+}
+
+function getAlphaSeq(
+  elements: IParameter,
+  currElements: ISelectedElement[],
+): string[] {
+  return [];
+}
+function getDateSeq(
+  elements: IParameter,
+  currElements: ISelectedElement[],
+): string[] {
+  return [];
+}
+function getExprSeq(
+  elements: IParameter,
+  currElements: ISelectedElement[],
+): string[] {
+  return [];
+}
+function getOwnSeq(
+  elements: IParameter,
+  currElements: ISelectedElement[],
+): string[] {
+  return [];
+}
+function formatNum(num: number, formatStr: string): string {
+  return num.toString();
+}
+
+/*
   function addHistory({ value }: valueType) {
     let histories: string[] = context.globalState.get('histories', []);
 
@@ -116,120 +613,6 @@ function InsertSequenceCommand({
     }
 
     context.globalState.update('histories', histories);
-  }
-
-  function numToAlpha(num: number, len = 0): string {
-    let res = '';
-    while (num > 0) {
-      --num;
-      res = String.fromCharCode(97 + (num % 26)) + res;
-      num = Math.floor(num / 26);
-    }
-
-    if (res.length > len) {
-      res = res.slice(-len);
-    }
-    return res;
-  }
-
-  function alphaToNum(alpha: string): number {
-    let res = 0;
-
-    alpha = alpha.toLocaleLowerCase();
-
-    for (let i = 0; i < alpha.length; i++) {
-      res *= 26;
-      res += alpha.charCodeAt(i) - 96;
-    }
-
-    return res;
-  }
-
-  function monthToNum(month: string, lang: string): number {
-    if (Number.isInteger(+month)) return -1;
-
-    for (let i = 1; i <= 12; i++) {
-      if (
-        getMonth(
-          i,
-          'l',
-          lang,
-          Math.max(month.length, 1),
-        ).toLocaleUpperCase() === month.toLocaleUpperCase()
-      ) {
-        return i;
-      }
-      if (
-        getMonth(
-          i,
-          's',
-          lang,
-          Math.max(month.length, 1),
-        ).toLocaleUpperCase() === month.toLocaleUpperCase()
-      ) {
-        return i;
-      }
-    }
-
-    return -1;
-  }
-
-  function numToMonth(m: number, form?: 's' | 'l', lang?: string): string {
-    m = ((m - 1) % 12) + 1;
-    if (m >= 1 && m <= 12) {
-      let f: 's' | 'l' = form || (config_defaultLangFormat as 's' | 'l');
-      let l = lang || config_defaultLang;
-
-      return getMonth(m, f, l);
-    } else {
-      return '';
-    }
-  }
-
-  function numToHex(num: number, len: number = 0): string {
-    let res = '';
-
-    while (num > 0) {
-      const divRest = num % 16;
-      if (divRest >= 10) {
-        res = String.fromCharCode(87 + divRest) + res;
-      } else {
-        res = String.fromCharCode(48 + divRest) + res;
-      }
-      num = Math.floor(num / 16);
-    }
-
-    while (res.length < len) {
-      res = '0' + res;
-    }
-
-    return '0x' + res;
-  }
-
-  function isHex(hex: string): boolean {
-    return hex.substring(0, 2).toLocaleLowerCase() === '0x';
-  }
-
-  function hexToNum(hex: string): number {
-    let res = 0;
-
-    for (let i = 2; i < hex.length; i++) {
-      res *= 16;
-      const curCharCode = hex.toLocaleLowerCase().charCodeAt(i);
-
-      switch (true) {
-        case curCharCode >= 48 && curCharCode <= 57:
-          res += curCharCode - 48;
-          break;
-        case curCharCode >= 97 && curCharCode <= 102:
-          res += curCharCode - 87;
-          break;
-        default:
-          curWindow.showErrorMessage('Wrong hex number: ${hey}');
-      }
-    }
-
-    return res;
   }
 
   function formatString(
@@ -262,18 +645,6 @@ function InsertSequenceCommand({
 
   function getRandomNumber(from: number, to: number): number {
     return Math.round(Math.random() * (to - from) + from);
-  }
-
-  if (!Object.entries) {
-    Object.entries = function (obj: any): any {
-      const ownProps = Object.keys(obj);
-      let i = ownProps.length;
-      const resArray = new Array(i); // preallocate the Array
-      while (i--) {
-        resArray[i] = [ownProps[i], obj[ownProps[i]]];
-      }
-      return resArray;
-    };
   }
 
   function getMonth(
@@ -1157,6 +1528,8 @@ function InsertSequenceCommand({
   }
 }
 
+*/
+
 function insertSequenceHistory({
   context,
   version,
@@ -1210,6 +1583,7 @@ function insertSequenceHistory({
   }
 }
 
+/*
 function quicksort({
   arr,
   low,
@@ -1246,3 +1620,4 @@ function quicksort({
     ...quicksort({ arr: right, low: 0, high: right.length - 1 }),
   ];
 }
+*/

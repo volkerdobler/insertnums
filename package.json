@@ -1,5 +1,5 @@
 {
-	"name": "insertnums",
+	"name": "insertseq",
 	"version": "0.10.0",
 	"publisher": "volkerdobler",
 	"displayName": "Insert Sequences",
@@ -34,32 +34,27 @@
 		"configuration": {
 			"title": "insertseq",
 			"properties": {
-				"insertseq.historyLimit": {
+				"historyLimit": {
 					"type": "number",
 					"default": 100,
 					"description": "Maximum number of historical records, 0 is unlimited"
 				},
-				"insertseq.editHistory": {
+				"editHistory": {
 					"type": "boolean",
 					"default": false,
 					"description": "Items from PickHistory are editable (default: false)"
 				},
-				"insertseq.start": {
+				"start": {
 					"type": "string",
 					"default": "1",
 					"description": "Default start"
 				},
-				"insertseq.step": {
+				"step": {
 					"type": "string",
 					"default": "1",
 					"description": "Default increment"
 				},
-				"insertseq.cast": {
-					"type": "string",
-					"default": "s",
-					"description": "Default substitution function [S = String, I = Integer, F = Float, B = Boolean]"
-				},
-				"insertseq.centerString": {
+				"centerString": {
 					"type": "string",
 					"default": "l",
 					"enum": [
@@ -71,29 +66,12 @@
 						"r: e.g. a 1 char string centered in a 4 char field is right oriented"
 					]
 				},
-				"insertseq.minMonthLength": {
-					"type": "number",
-					"default": 3,
-					"description": "Minimum length of a string to identify a month (e.g. Apr => 3)"
-				},
-				"insertseq.language": {
+				"language": {
 					"type": "string",
 					"default": "de",
 					"description": "Default language format for months"
 				},
-				"insertseq.languageFormat": {
-					"type": "string",
-					"default": "s",
-					"enum": [
-						"l",
-						"s"
-					],
-					"enumdescription": [
-						"s (default): month only as short name (e.g. Jan)",
-						"l: month as long name (e.g. January)"
-					]
-				},
-				"insertseq.insertOrder": {
+				"insertOrder": {
 					"type": "string",
 					"default": "cursor",
 					"description": "Default order of insertion",
@@ -106,7 +84,12 @@
 						"sorted: insertion is from top most click down (reverse is possible with option '!')"
 					]
 				},
-				"insertseq.dateStepUnit": {
+				"century": {
+					"type": "number",
+					"default": 20,
+					"description": "Default century if year has only 2 digits - default: 20"
+				},
+				"dateStepUnit": {
 					"type": "string",
 					"default": "d",
 					"description": "Default unit as date step",
@@ -123,10 +106,15 @@
 						"y: years"
 					]
 				},
-				"insertseq.dateFormat": {
+				"dateFormat": {
 					"type": "string",
 					"default": "dd.MM.yyyy",
 					"description": "Default date format"
+				},
+				"delimiter": {
+					"type": "string",
+					"default": " ",
+					"description": "Delimiter, if no newlines should be inserted"
 				}
 			}
 		},
@@ -169,13 +157,14 @@
 		"eslint": "^9.1.0",
 		"prettier": "^3.2.5"
 	},
-	"icon": "insertnums.png",
+	"icon": "insertseq.png",
 	"galleryBanner": {
 		"color": "#5757ff",
 		"theme": "dark"
 	},
 	"dependencies": {
 		"d3-format": "^2.0.0",
-		"date-fns": "^3.6.0"
+		"date-fns": "^3.6.0",
+		"mathjs": "^12.4.2"
 	}
 }
