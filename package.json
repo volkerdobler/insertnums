@@ -151,10 +151,10 @@
 		"pretest": "npm run compile && npm run lint"
 	},
 	"devDependencies": {
-		"@types/d3-format": "^2.0.2",
-		"@types/node": "^20.9.0",
-		"@types/vscode": "^1.88.0",
-		"eslint": "^9.1.0",
+		"@types/d3-format": "^2.0.5",
+		"@types/node": "^20.12.11",
+		"@types/vscode": "^1.89.0",
+		"eslint": "^9.2.0",
 		"prettier": "^3.2.5"
 	},
 	"icon": "insertseq.png",
