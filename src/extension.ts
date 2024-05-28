@@ -92,6 +92,7 @@ interface IConfig extends IInput {
   dateStepUnit: string;
   dateFormat: string;
   delimiter: string;
+  alphabet: string;
   [key: string]: string | number | undefined;
 }
 
@@ -177,6 +178,7 @@ function render(
   }
 
   const elements = getInputElements(input, validInput, configValues);
+
   let newElements: string[];
 
   switch (elements.type) {
@@ -364,7 +366,8 @@ function getValidInputRegExp(): TRegExpTemplate {
       '(?:\\|(?:[\\p{L}\\p{M}\\p{Nd}\\p{Pc}\\p{Pd}\\p{Sm}]+)|{{exprStr}})',
     startOwnList:
       '(?:(?:,[\\p{L}\\p{M}\\p{N}\\p{Pc}\\p{Pd}\\p{Ps}\\p{Pe}\\p{Pi}\\p{Pf}\\p{S}\\p{Zs}]+?)+)',
-    startAlpha: '(?:[\\p{L}\\p{M}\\p{Pc}\\p{Pd}]+?)',
+    startAlpha:
+      '(?:[\\p{L}\\p{M}\\p{Pc}][\\p{L}\\p{M}\\p{L}\\p{N}\\p{Pc}\\p{Pd}]*)',
     startNum: '(?:[+-]? (?<lead_char> 0+|\\s+|\\.+){{numeric}})',
     stepDate: '(?:[dwmy] {{signedNum}})',
     start:
@@ -453,6 +456,10 @@ function getConfigValues(): IConfig {
       vscode.workspace.getConfiguration(appName).get('delimiter') ||
       vscode.workspace.getConfiguration('insertnums').get('delimiter') ||
       ' ',
+    alphabet:
+      vscode.workspace.getConfiguration(appName).get('alphabet') ||
+      vscode.workspace.getConfiguration('insertnums').get('alphabet') ||
+      'abcdefghijklmnopqrstuvwxyz',
   };
 }
 
@@ -486,7 +493,7 @@ function getInputElements(
 function getInputType(str: string | undefined): TInputType {
   if (!str) return undefined;
 
-  const regWord = new RegExp(/\p{M}\p{L}/u);
+  const regWord = new RegExp(/^[\p{M}\p{L}]/u);
 
   switch (true) {
     case /^%\d{2,4}/.test(str):
@@ -521,11 +528,11 @@ function getNumSeq(
     )
       return str;
 
-    const formatStr = formatNum(
+    const formattedString = formatNum(
       Number(elements.start) + j * Number(elements['step']),
       elements['format'] || '',
     );
-    str.push(formatStr);
+    str.push(formattedString);
     if (freqCounter === 1) {
       j++;
       freqCounter = freq;
@@ -547,11 +554,11 @@ function getNumSeq(
     !math.evaluate(elements['stop'] as math.MathExpression) &&
     j < maxSteps
   ) {
-    const formatStr = formatNum(
+    const formattedString = formatNum(
       Number(elements.start) + j * Number(elements['step']),
       elements['format'] || '',
     );
-    str.push(formatStr);
+    str.push(formattedString);
     if (freqCounter === 0) {
       j++;
       freqCounter = freq;
@@ -566,11 +573,71 @@ function getNumSeq(
   return str;
 }
 
+// getAlphaSeq(elements, currElements);
 function getAlphaSeq(
   elements: IParameter,
   currElements: ISelectedElement[],
 ): string[] {
-  return [];
+  const str: string[] = [];
+  let j: number = 0;
+  let freq: number = Number(elements.frequency) || 1;
+  let repeat: number = Number(elements.repeat) || 0;
+  let freqCounter: number = freq;
+
+  // elements.start = 'abc';
+  // elements.step = '-1';
+
+  for (let i = 0; i < currElements.length; i++) {
+    if (
+      elements['stopExpr'] &&
+      math.evaluate(elements['stopExpr'] as math.MathExpression)
+    )
+      return str;
+
+    const formattedString = formatStr(
+      successorStr(elements.start || '', j * Number(elements['step'])),
+      elements['format'] || '',
+    );
+
+    str.push(formattedString);
+    if (freqCounter === 1) {
+      j++;
+      freqCounter = freq;
+    } else {
+      freqCounter--;
+    }
+    if (j === repeat) {
+      j = 0;
+    }
+  }
+
+  if (
+    !elements['stopExpr'] ||
+    math.evaluate(elements['stopExpr'] as math.MathExpression)
+  )
+    return str;
+
+  while (
+    !math.evaluate(elements['stop'] as math.MathExpression) &&
+    j < maxSteps
+  ) {
+    const formattedString = formatStr(
+      successorStr(elements.start || '', j * Number(elements['step'])),
+      elements['format'] || '',
+    );
+    str.push(formattedString);
+    if (freqCounter === 0) {
+      j++;
+      freqCounter = freq;
+    } else {
+      freqCounter--;
+    }
+    if (j === repeat) {
+      j = 0;
+    }
+  }
+
+  return str;
 }
 function getDateSeq(
   elements: IParameter,
@@ -592,6 +659,10 @@ function getOwnSeq(
 }
 function formatNum(num: number, formatStr: string): string {
   return num.toString();
+}
+
+function formatStr(str: string, formatStr: string): string {
+  return str;
 }
 
 /*
@@ -1621,3 +1692,65 @@ function quicksort({
   ];
 }
 */
+
+// Function definition to generate the successor of a given string
+function successorStr(
+  str: string,
+  step: number = 1,
+  alphabet: string = 'abcdefghijklmnopqrstuvwxyz',
+  // alphabet: string = 'ab',
+) {
+  if (!str || str.length === 0) return str;
+
+  // str = 'aaa';
+  // step = -1;
+
+  // Define the alphabet and its length
+  let alphaLength = alphabet.length;
+  let result = str.split('');
+  let divi = step;
+  let uebertrag = 0;
+  let isUpperCase = false;
+
+  const summeBisPos = [1n];
+  for (let i = 1; i < result.length; i++) {
+    summeBisPos[i] = summeBisPos[i - 1] + BigInt(alphaLength ** i);
+  }
+
+  for (let currPos = result.length - 1; currPos >= 0; currPos--) {
+    const currChar = result[currPos];
+    isUpperCase =
+      currChar.length > 0 && currChar === currChar.toLocaleUpperCase();
+    const index = alphabet.indexOf(currChar);
+    if (index > -1) {
+      const sum = index + divi - uebertrag;
+      const modu = Math.trunc(sum % alphaLength);
+      if (summeBisPos[currPos] + BigInt(sum) <= 0) {
+        result[currPos] = '';
+      } else {
+        if (modu < 0) {
+          result[currPos] = alphabet[alphaLength + modu];
+          uebertrag = 1;
+        } else {
+          result[currPos] = alphabet[modu];
+          uebertrag = 0;
+        }
+        result[currPos] = isUpperCase
+          ? result[currPos].toLocaleUpperCase()
+          : result[currPos];
+      }
+      divi = Math.trunc(sum / alphaLength);
+    }
+  }
+
+  while (divi > 0) {
+    let modu = Math.trunc((divi - 1) % alphaLength);
+    divi = Math.trunc((divi - 1) / alphaLength);
+    result.unshift(
+      isUpperCase ? alphabet[modu].toLocaleUpperCase() : alphabet[modu],
+    );
+  }
+
+  // Return the resulting string
+  return result.join('');
+}
