@@ -115,6 +115,11 @@
 					"type": "string",
 					"default": " ",
 					"description": "Delimiter, if no newlines should be inserted"
+				},
+				"alphabet": {
+					"type": "string",
+					"default": "abcdefghijklmnopqrstuvwxyz",
+					"description": "Alphabet, for string successors"
 				}
 			}
 		},
