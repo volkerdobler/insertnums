@@ -1,5 +1,5 @@
 {
-	"name": "insertseq",
+	"name": "insertsequence",
 	"version": "0.10.0",
 	"publisher": "volkerdobler",
 	"displayName": "Insert Sequences",
@@ -125,7 +125,7 @@
 		},
 		"commands": [
 			{
-				"command": "extension.insertSeq",
+				"command": "extension.insertSequence",
 				"title": "Insert Sequences"
 			},
 			{
@@ -135,7 +135,7 @@
 		],
 		"keybindings": [
 			{
-				"command": "extension.insertSeq",
+				"command": "extension.insertSequence",
 				"key": "ctrl+alt+.",
 				"mac": "cmd+alt+.",
 				"when": "editorTextFocus"

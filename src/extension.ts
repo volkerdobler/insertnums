@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
   const insertSeqCmd = vscode.commands.registerCommand(
-    'extension.insertSeq',
+    'extension.insertSequence',
     (value: string = '') => {
       InsertSequenceCommand({ context, value, version: 'insertseq' });
     },
@@ -111,7 +111,14 @@ type TRegExpTemplate = {
   [key: string]: string;
 };
 
-type TInputType = 'num' | 'alpha' | 'expr' | 'date' | 'own' | undefined;
+type TInputType =
+  | 'num'
+  | 'alpha'
+  | 'expr'
+  | 'date'
+  | 'time'
+  | 'own'
+  | undefined;
 
 function InsertSequenceCommand({
   context,
@@ -190,6 +197,9 @@ function render(
       break;
     case 'date':
       newElements = getDateSeq(elements, currElements);
+      break;
+    case 'time':
+      newElements = getTimeSeq(elements, currElements);
       break;
     case 'expr':
       newElements = getExprSeq(elements, currElements);
@@ -369,7 +379,7 @@ function getValidInputRegExp(): TRegExpTemplate {
     startAlpha:
       '(?:[\\p{L}\\p{M}\\p{Pc}][\\p{L}\\p{M}\\p{L}\\p{N}\\p{Pc}\\p{Pd}]*)',
     startNum: '(?:[+-]? (?<lead_char> 0+|\\s+|\\.+){{numeric}})',
-    stepDate: '(?:[dwmy] {{signedNum}})',
+    stepDate: '(?:[dwmy]? {{signedNum}})',
     start:
       '^(?<start>(?<startDatum>{{startDate}})|(?<startExpr>{{startExpr}})|(?<startOwnList>{{startOwnList}})|(?<startAlpha>{{startAlpha}})|(?<startNum>{{startNum}}))',
     step: ':(?<step>(?<stepNum>{{signedNum}})|(?<stepDate>{{stepDate}})|(?::(?<stepExpr>{{exprStr}})))',
@@ -377,7 +387,7 @@ function getValidInputRegExp(): TRegExpTemplate {
       '~(?<format>(?:(?<format_align> [<>^=])[\\d\\w]+)|{{doubleQuotedStr}}|{{singleQuotedStr}})',
     frequency: '\\*(?<frequency>\\d+)',
     repeat: '#(?<repeat>\\d+)',
-    stopExpr: '@(?<stopExpr>{{charsInExpr}}|{{exprStr}})',
+    stopExpr: '@(?<stopExpr>{{exprStr}}|{{charsInExpr}})',
     randomMax: 'r(?<randomMax>\\d+)',
     sorted: '\\$[!_]*$',
     inverse: '![\\$_]*$',
@@ -498,6 +508,8 @@ function getInputType(str: string | undefined): TInputType {
   switch (true) {
     case /^%\d{2,4}/.test(str):
       return 'date';
+    case /^%%\d/.test(str):
+      return 'time';
     case /^\|/.test(str):
       return 'expr';
     case /^,/.test(str):
@@ -507,7 +519,7 @@ function getInputType(str: string | undefined): TInputType {
     case regWord.test(str):
       return 'alpha';
     default:
-      return undefined;
+      return 'num';
   }
 }
 
@@ -522,11 +534,16 @@ function getNumSeq(
   let freqCounter: number = freq;
 
   for (let i = 0; i < currElements.length; i++) {
-    if (
-      elements['stopExpr'] &&
-      math.evaluate(elements['stopExpr'] as math.MathExpression)
-    )
-      return str;
+    const stopExpr =
+      (elements['stopExpr'] &&
+        elements['stopExpr'].replace(/i/i, i.toString())) ||
+      false;
+
+    console.log('StopExpr: ' + stopExpr + ', Str: ' + str);
+    if (math.evaluate(stopExpr as math.MathExpression)) {
+      str.push('');
+      continue;
+    }
 
     const formattedString = formatNum(
       Number(elements.start) + j * Number(elements['step']),
@@ -551,7 +568,7 @@ function getNumSeq(
     return str;
 
   while (
-    !math.evaluate(elements['stop'] as math.MathExpression) &&
+    !math.evaluate(elements['stopExpr'] as math.MathExpression) &&
     j < maxSteps
   ) {
     const formattedString = formatNum(
@@ -639,12 +656,86 @@ function getAlphaSeq(
 
   return str;
 }
+
 function getDateSeq(
+  elements: IParameter,
+  currElements: ISelectedElement[],
+): string[] {
+  const str: string[] = [];
+  let j: number = 0;
+  let freq: number = Number(elements.frequency) || 1;
+  let repeat: number = Number(elements.repeat) || 0;
+  let freqCounter: number = freq;
+
+  for (let i = 0; i < currElements.length; i++) {
+    if (
+      elements['stopExpr'] &&
+      math.evaluate(elements['stopExpr'] as math.MathExpression)
+    )
+      return str;
+
+    const formattedString = formatDate(
+      successorDate(
+        typeof elements.startDatum === 'string'
+          ? elements.startDatum.slice(1)
+          : '',
+        j * Number(elements['step']),
+        elements.dateStepUnit || 'd',
+      ),
+      elements['format'] || '',
+    );
+    str.push(formattedString);
+    if (freqCounter === 1) {
+      j++;
+      freqCounter = freq;
+    } else {
+      freqCounter--;
+    }
+    if (j === repeat) {
+      j = 0;
+    }
+  }
+
+  if (
+    !elements['stopExpr'] ||
+    math.evaluate(elements['stopExpr'] as math.MathExpression)
+  )
+    return str;
+
+  while (
+    !math.evaluate(elements['stop'] as math.MathExpression) &&
+    j < maxSteps
+  ) {
+    const formattedString = formatDate(
+      successorDate(
+        elements.start?.toString() || '',
+        j * Number(elements['step']),
+        elements.dateStepUnit || 'd',
+      ),
+      elements['format'] || '',
+    );
+    str.push(formattedString);
+    if (freqCounter === 0) {
+      j++;
+      freqCounter = freq;
+    } else {
+      freqCounter--;
+    }
+    if (j === repeat) {
+      j = 0;
+    }
+  }
+
+  return str;
+}
+
+function getTimeSeq(
   elements: IParameter,
   currElements: ISelectedElement[],
 ): string[] {
   return [];
 }
+
 function getExprSeq(
   elements: IParameter,
   currElements: ISelectedElement[],
@@ -663,6 +754,10 @@ function formatNum(num: number, formatStr: string): string {
 
 function formatStr(str: string, formatStr: string): string {
   return str;
+}
+
+function formatDate(date: Date | undefined, formatStr: string): string {
+  return date?.toString() || '';
 }
 
 /*
@@ -1753,4 +1848,25 @@ function successorStr(
 
   // Return the resulting string
   return result.join('');
+}
+
+function successorDate(
+  str: string,
+  step: number = 1,
+  unit: string | Date,
+): Date | undefined {
+  if (!str || str.length === 0) return undefined;
+
+  const date = datefns.parseISO(str);
+
+  switch (unit) {
+    case 'y':
+      return datefns.add(date, { years: step });
+    case 'm':
+      return datefns.add(date, { months: step });
+    case 'w':
+      return datefns.add(date, { weeks: step });
+    default:
+      return datefns.add(date, { days: step });
+  }
 }
