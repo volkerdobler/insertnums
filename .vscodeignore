@@ -1,7 +1,7 @@
-.vscode/**
+.vscode
 .vscode-test/**
-out/test/**
-src/**
+out/
+src/
 .gitignore
 vsc-extension-quickstart.md
 **/tsconfig.json
@@ -12,3 +12,4 @@ vsc-extension-quickstart.md
 webpack.config.js
 **/*.pdn
 .babelrc
+esbuild.js
