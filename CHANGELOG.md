@@ -2,6 +2,14 @@
 
 All notable changes to this extension (newest on top):
 
+- 0.10.1
+
+  New: underline is a new option for leading characters
+
+  Change: Leading chars can be before any optional negativ sign. After the negativ sign, the numbers are treated like numbers, before, the leading chars will fill the block and negatives are block oriented
+
+  Fixed: leading chars was needed with negativ starting number
+
 - 0.10.0
 
   New: add new formating - you can now format also with leading zeros, blanks or dots

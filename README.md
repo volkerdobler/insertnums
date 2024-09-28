@@ -15,7 +15,7 @@ I implemented an easy way to insert date sequences. The start date has to be in 
 
 Instead of numbers as step, you can decide if you want to add days, weeks, months or years. The format is [:<dwmy>integer]. If you want to add 2 days, you have to type ":d2". If you want to subtract 3 days, use "d-3". The first char has to be the unit (first letter of day, week, month or year).
 
-You can combine date sequences also with frequency and repetitions, but not (in this version) with expressions or stop-expressions!
+You can combine date sequences also with frequency and repetitions, but at the moment not with expressions or stop-expressions!
 
 ## Usage:
 
