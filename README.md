@@ -9,7 +9,7 @@ I used this extension intensively in the past within sublime text and I could no
 
 ---
 
-## New in 0.9.6
+## New in 0.10.0
 
 I implemented an easy way to insert date sequences. The start date has to be in the format <year>[-<month>[-<day>]] (e.g. 2024-4-25 for 25th April 2024). Month and day are optional.
 

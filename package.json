@@ -1,6 +1,6 @@
 {
 	"name": "insertnums",
-	"version": "0.9.7",
+	"version": "0.10.0",
 	"publisher": "volkerdobler",
 	"displayName": "Insert Sequences",
 	"description": "Insert sequences of any kind (numberic, alpha, expressions) to VSCode textdocuments",
@@ -163,12 +163,10 @@
 		"pretest": "npm run compile && npm run lint"
 	},
 	"devDependencies": {
-		"@types/d3-format": "^2.0.2",
-		"@types/node": "^20.9.0",
-		"@types/vscode": "^1.88.0",
-		"date-fns": "^3.6.0",
-		"eslint": "^9.1.0",
-		"luxon": "^3.4.4",
+		"@types/d3-format": "^2.0.5",
+		"@types/node": "^20.12.11",
+		"@types/vscode": "^1.89.0",
+		"eslint": "^9.2.0",
 		"prettier": "^3.2.5"
 	},
 	"icon": "insertnums.png",
@@ -177,6 +175,7 @@
 		"theme": "dark"
 	},
 	"dependencies": {
-		"d3-format": "^2.0.0"
+		"d3-format": "^2.0.0",
+		"date-fns": "^3.6.0"
 	}
 }

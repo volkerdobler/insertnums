@@ -2,11 +2,7 @@
 
 All notable changes to this extension (newest on top):
 
-- 0.9.7
-
-  Last minute fix
-
-- 0.9.6
+- 0.10.0
 
   New: add new formating - you can now format also with leading zeros, blanks or dots
   New: add support for Date expressions (see Readme, still in alpha, without expr and stop-expression)
@@ -15,6 +11,12 @@ All notable changes to this extension (newest on top):
 
   Update: new visible command "Insert Sequence" instead of "Insert Numbers"
   Update: delete history insertnums command from package.json
+
+- 0.9.7
+
+  Last minute fix
+
+- 0.9.6
 
 - 0.9.5
 
