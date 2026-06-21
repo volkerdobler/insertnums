@@ -119,6 +119,7 @@ export function createExpressionSeq(
 			: getFormatExpression(input, parameter, 'format_alpha') ||
 				String(parameter.config.get('stringFormat')) ||
 				'';
+		const centerString = String(parameter.config.get('centerString')) || '';
 
 		return {
 			stringFunction: isNumeric(replacableValues.currentValueStr)
@@ -129,6 +130,7 @@ export function createExpressionSeq(
 				: formatting.formatString(
 						replacableValues.currentValueStr,
 						format,
+						centerString,
 					),
 			stopFunction: stopExprResult,
 		};

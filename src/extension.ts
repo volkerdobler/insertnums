@@ -432,10 +432,12 @@ function insertNewSequence(
 	// check, if output should be sorted or reversed (default: output in selection-order)
 	const sorted =
 		!!(input && input.match(parameter.segments['outputSort'])) !==
-		(parameter.config.get('insertOrder') !== 'cursor' || parameter.config.get('sortedOutput') === true);
+		(parameter.config.get('insertOrder') !== 'cursor' ||
+			parameter.config.get('sortedOutput') === true);
 	const reverse =
 		!!(input && input.match(parameter.segments['outputReverse'])) !==
-		(parameter.config.get('insertOrder') === 'reverse' || parameter.config.get('reversedOutput') === true);
+		(parameter.config.get('insertOrder') === 'reverse' ||
+			parameter.config.get('reversedOutput') === true);
 
 	// get current sequence function based on input type
 	const currSeqFunction = getSequenceFunction(input, parameter);
@@ -467,7 +469,7 @@ function insertNewSequence(
 	if (!previewDecorationType) {
 		previewDecorationType = vscode.window.createTextEditorDecorationType({
 			after: {
-				color: parameter.config.previewColor ?? '#888888',
+				color: parameter.config.get('previewColor') ?? '#888888',
 				margin: '0 0 0 0',
 			},
 		});

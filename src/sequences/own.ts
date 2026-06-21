@@ -47,6 +47,7 @@ export function createOwnSeq(
 	const expr = getExpression(input, parameter);
 
 	const format = getFormatExpression(input, parameter, 'format_alpha') || '';
+	const centerString = String(parameter.config.get('centerString')) || '';
 
 	let ownSeq: string[] = [];
 
@@ -120,6 +121,7 @@ export function createOwnSeq(
 							ownSeq.length
 					] || '',
 					format,
+					centerString,
 				),
 				stopFunction: stopExprResult,
 			};

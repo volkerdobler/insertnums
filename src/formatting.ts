@@ -32,7 +32,11 @@ export function formatNumber(value: number, formatString: string): string {
  * @param template - Format template string (empty string → no-op).
  * @returns The padded/aligned string, or `value` unchanged if the template is invalid.
  */
-export function formatString(value: string, template: string): string {
+export function formatString(
+	value: string,
+	template: string,
+	centerString: string = '',
+): string {
 	// Template syntax: [[fill]align]width[w][lr]
 	// Examples: "#<10" => fill '#' left-align width 10
 	//           ">10w" => right-align width 10, but return only last char when 'w' present
@@ -47,7 +51,7 @@ export function formatString(value: string, template: string): string {
 	let align = m[2] || '>';
 	const width = m[3] ? parseInt(m[3], 10) : 0;
 	const wFlag = m[4]?.toLowerCase() === 'w';
-	const lrFlag = m[5]?.toLowerCase() || '';
+	const lrFlag = m[5]?.toLowerCase() || centerString || '';
 
 	// If the first capture is actually an align char (because fill was omitted),
 	// adjust accordingly. e.g. template "<10" -> m[1] = '<', m[2] = undefined

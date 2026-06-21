@@ -137,6 +137,7 @@ export function createStringSeq(
 		getFormatExpression(input, parameter, 'format_alpha') ||
 		String(parameter.config.get('stringFormat')) ||
 		'';
+	const centerString = String(parameter.config.get('centerString')) || '';
 
 	// determine capitalization, default: preserve original capitalization (from rightmost characters)
 	let capital: string = 'preserve';
@@ -274,7 +275,11 @@ export function createStringSeq(
 		}
 
 		return {
-			stringFunction: formatting.formatString(value, format),
+			stringFunction: formatting.formatString(
+				value,
+				format,
+				centerString,
+			),
 			stopFunction: stopExprResult,
 		};
 	};

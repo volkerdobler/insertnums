@@ -29,6 +29,7 @@ export function createTextSelectedSeq(
 		getFormatExpression(input, parameter, 'format_alpha') ||
 		String(parameter.config.get('stringFormat')) ||
 		'';
+	const centerString = String(parameter.config.get('centerString')) || '';
 
 	const replacableValues: TSpecialReplacementValues = {
 		currentValueStr: '',
@@ -67,7 +68,11 @@ export function createTextSelectedSeq(
 		}
 
 		return {
-			stringFunction: formatting.formatString(value, format),
+			stringFunction: formatting.formatString(
+				value,
+				format,
+				centerString,
+			),
 			stopFunction: i >= parameter.origCursorPos.length,
 		};
 	};

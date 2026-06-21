@@ -2,6 +2,12 @@
 
 All notable changes to this extension (newest first):
 
+# Version 1.1.2 (not released yes)
+
+- Optimized configuration options (using method `.get` instead of direct access)
+
+- Fixed issue where configuration option `centerString` was not used
+
 # Version 1.1.1
 
 - Added configuration option (`insertseq.sortedOutput`) to enable default insertion in sorted order (default: false) — can be changed with the `$` option.

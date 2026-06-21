@@ -1,15 +1,15 @@
 # VS Code Extension: Insert Sequences (InsertSeq formerly Insertnums)
 
-Insert Sequences is a small VS Code extension that helps you generate and insert 
-various kinds of sequences into one or more cursors. It supports numeric sequences, 
-alphabetic sequences, dates, user-defined or predefined lists, and inline JavaScript expressions. 
-The syntax is compact and powerful, allowing repetition, stepping, frequency control, 
+Insert Sequences is a small VS Code extension that helps you generate and insert
+various kinds of sequences into one or more cursors. It supports numeric sequences,
+alphabetic sequences, dates, user-defined or predefined lists, and inline JavaScript expressions.
+The syntax is compact and powerful, allowing repetition, stepping, frequency control,
 custom formats, stop expressions, and more.
 
-All inputs are previewed live (as a decoration) for the current selections, 
+All inputs are previewed live (as a decoration) for the current selections,
 so you can verify the generated sequence before pressing Enter.
 
-## Higlight in version 1.1.0/1.1.1
+## Higlight in version 1.1.0
 
 Added [Quoted Template](#quoted-template-details) and [Backtick Template](#backtick-template-details) sequences.
 
@@ -678,7 +678,7 @@ The extension exposes settings under the `insertseq` namespace. A quick referenc
 | `insertseq.myfunctions`       |   array | see package.json               | Own defined Functions (Array of functions) - function arguments are (i, start, step, frequency, repeat, startover), where i is the zero-based index of the insertion, start is the start value, step is the step value, frequency is the frequency value, repeat is the repetition value, and startover is the startover value (all beside i are optional, if you use them, give default values). |
 | `insertseq.defaultFunctionNr` |  number | `1`                            | Default function index for myfunctions.                                                                                                                                                                                                                                                                                                                                                           |
 | `insertseq.radixPrefix`       | boolean | `false`                        | Emit binary/octal/hex numbers with `0b`, `0o`, `0x` when true.                                                                                                                                                                                                                                                                                                                                    |
-| `insertseq.previewColor`      |  string | `"#888888"`                    | Color used for the preview decoration.                                                                                                                                                                                                                                                                                                                                                          |
+| `insertseq.previewColor`      |  string | `"#888888"`                    | Color used for the preview decoration.                                                                                                                                                                                                                                                                                                                                                            |
 | `insertseq.maxInsertions`     |  number | `10000`                        | Hard limit on the number of insertions to avoid large operations.                                                                                                                                                                                                                                                                                                                                 |
 | `insertseq.maxHistoryItems`   |  number | `100`                          | Maximum number of history items stored.                                                                                                                                                                                                                                                                                                                                                           |
 | `insertseq.debug`             | boolean | `false`                        | Enable debug output.                                                                                                                                                                                                                                                                                                                                                                              |
