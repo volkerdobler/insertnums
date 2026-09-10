@@ -3,7 +3,6 @@ import { TParameter, TSpecialReplacementValues } from '../types';
 import {
 	printToConsole,
 	getExpression,
-	getInputPart,
 	replaceSpecialChars,
 	runExpression,
 	getFormatExpression,

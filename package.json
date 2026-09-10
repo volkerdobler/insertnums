@@ -288,7 +288,8 @@
 		"watch:web": "tsc -watch -project tsconfig.json & node esbuild-web.js --watch",
 		"watch:all": "npm run clean && npm-run-all --parallel watch:desk watch:web",
 		"run-in-browser": "vscode-test-web --browserType=chromium ./dist/extension.js",
-		"vscode:prepublish": "npm run build:all"
+		"vscode:prepublish": "npm run build:all",
+		"test": "npm run compile:desk && node dist/formatting.test.js"
 	},
 	"dependencies": {
 		"d3-format": "^3.1.0",

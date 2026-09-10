@@ -116,7 +116,7 @@ export function activate(context: vscode.ExtensionContext) {
 							'markdown.showPreview',
 							uri,
 						);
-					} catch (err) {
+					} catch {
 						try {
 							const doc =
 								await vscode.workspace.openTextDocument(uri);
@@ -156,7 +156,7 @@ export function activate(context: vscode.ExtensionContext) {
 							'markdown.showPreview',
 							uri,
 						);
-					} catch (err) {
+					} catch {
 						try {
 							const doc =
 								await vscode.workspace.openTextDocument(uri);
@@ -182,7 +182,7 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 				}
 			}
-		} catch (e) {
+		} catch {
 			// silently ignore any errors in the what's-new flow
 		}
 	})();

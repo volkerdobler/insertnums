@@ -2,13 +2,11 @@ import { TParameter, TSpecialReplacementValues } from '../types';
 import * as formatting from '../formatting';
 import {
 	printToConsole,
-	replaceSpecialChars,
 	runExpression,
 	getStepValue,
 	getFrequencyValue,
 	getRepeatValue,
 	getStartOverValue,
-	getInputPart,
 	getStopExpression,
 	checkStopExpression,
 	getExpression,
@@ -47,10 +45,7 @@ export function createDecimalSeq(
 	const leadString = startMatch?.groups?.lead_string;
 	const randomAvailable = startMatch?.groups?.rndAvailable || null;
 
-	const myDelimiter = startMatch?.groups?.seqdelimiter || null;
-
-	// set custom delimiter if given in input
-	parameter.myDelimiter = myDelimiter;
+	parameter.myDelimiter = startMatch?.groups?.seqdelimiter || null;
 
 	// extract steps, repetition, frequency, startover, stop expression and expression
 	const step = getStepValue(input, parameter, 'steps_decimal');
@@ -147,10 +142,17 @@ export function createDecimalSeq(
 		// if expression exists, evaluate expression with current Value and replace newValue with result of expression.
 		// if expression does not lead to a number, the current / new value will not be changed
 		try {
-			let exprResult = runExpression(
-				replaceSpecialChars(expr, replacableValues),
-			);
-			if (Number(exprResult)) {
+			let exprResult = runExpression(expr, {
+				_: replacableValues.currentValueStr,
+				i: replacableValues.currentIndexStr,
+				n: replacableValues.numberOfSelectionsStr,
+				s: replacableValues.stepStr,
+				a: replacableValues.startStr,
+				p: replacableValues.previousValueStr,
+				o: replacableValues.origTextStr,
+				c: replacableValues.valueAfterExpressionStr,
+			});
+			if (exprResult !== null && Number.isFinite(Number(exprResult))) {
 				value = Number(exprResult);
 			}
 		} catch {

@@ -1,7 +1,6 @@
 import { TParameter, TSpecialReplacementValues } from '../types';
 import {
 	printToConsole,
-	replaceSpecialChars,
 	runExpression,
 	getStepValue,
 	getFrequencyValue,
@@ -10,7 +9,9 @@ import {
 	getStopExpression,
 	checkStopExpression,
 	getExpression,
+	getFormatExpression,
 } from '../components/utils';
+import * as formatting from '../formatting';
 
 /**
  * Build the sequence function for predefined item sequences.
@@ -47,9 +48,6 @@ export function createPredefinedSeq(
 			startsWith = false,
 		} = options || {};
 
-		if (x == null) {
-			return -1;
-		}
 		if (x.length === 0 && !emptyMatchesAll) {
 			return -1;
 		}
@@ -94,6 +92,8 @@ export function createPredefinedSeq(
 		fullMatch: sequenceOptions.toLocaleLowerCase().indexOf('f') > -1,
 		startsWith: sequenceOptions.toLocaleLowerCase().indexOf('s') > -1,
 	};
+
+	parameter.myDelimiter = predefinedParameter?.groups?.seqdelimiter || null;
 
 	const parseDigits = sequenceOptions.match(/(\d+)(?:\|(\d+)?)?/);
 
@@ -158,47 +158,81 @@ export function createPredefinedSeq(
 		numberOfSelectionsStr: parameter.origCursorPos.length.toString(),
 	};
 
+	const expr = getExpression(input, parameter);
+	const format =
+		getFormatExpression(input, parameter, 'format_alpha') ||
+		String(parameter.config.get('stringFormat')) ||
+		'';
+	const centerString = String(parameter.config.get('centerString')) || '';
+
 	return (i) => {
 		replacableValues.currentIndexStr = i.toString();
 		replacableValues.origTextStr =
 			i < parameter.origTextSel.length ? parameter.origTextSel[i] : '';
 
-		replacableValues.currentValueStr =
-			ownSeq[
-				(((start +
-					step *
-						Math.trunc(((i % startover) % (freq * repe)) / freq)) %
-					ownSeq.length) +
-					ownSeq.length) %
-					ownSeq.length
-			];
-
-		replacableValues.valueAfterExpressionStr =
-			replacableValues.currentValueStr;
-
-		if (ownSeq.length === 0) {
+		const rawIndex =
+			start + step * Math.trunc(((i % startover) % (freq * repe)) / freq);
+		const len = ownSeq.length;
+		if (len === 0) {
 			return { stringFunction: '', stopFunction: true };
-		} else {
-			// calculate possible stop expression. If stop expression is true, a "\u{0}" char will be returned. If stop expression is invalid or false, the newValue will be returned
-			let stopExprTrigger = i >= parameter.origCursorPos.length;
-			if (stopexpr.length > 0) {
-				stopExprTrigger = checkStopExpression(
-					i,
-					stopexpr,
-					parameter.origCursorPos.length,
-					replacableValues,
-				);
-			} else {
-				stopExprTrigger = i >= parameter.origCursorPos.length;
-			}
-
-			replacableValues.previousValueStr =
-				replacableValues.currentValueStr;
-
-			return {
-				stringFunction: replacableValues.currentValueStr,
-				stopFunction: stopExprTrigger,
-			};
 		}
+		const idx = ((rawIndex % len) + len) % len;
+
+		replacableValues.currentValueStr = ownSeq[idx];
+		replacableValues.valueAfterExpressionStr = '';
+
+		let value = replacableValues.currentValueStr;
+		try {
+			let exprResult = runExpression(expr, {
+				_: replacableValues.currentValueStr,
+				i: replacableValues.currentIndexStr,
+				n: replacableValues.numberOfSelectionsStr,
+				s: replacableValues.stepStr,
+				a: replacableValues.startStr,
+				p: replacableValues.previousValueStr,
+				o: replacableValues.origTextStr,
+				c: replacableValues.valueAfterExpressionStr,
+			});
+			if (
+				typeof exprResult === 'string' ||
+				exprResult instanceof String
+			) {
+				value = String(exprResult);
+			} else if (
+				exprResult !== null &&
+				typeof exprResult !== 'undefined'
+			) {
+				value = String(exprResult);
+			}
+		} catch {
+			printToConsole(
+				'Error evaluating expression for predefined sequence',
+			);
+		}
+
+		replacableValues.valueAfterExpressionStr = value;
+
+		let stopExprResult = i >= parameter.origCursorPos.length;
+		if (stopexpr.length > 0) {
+			stopExprResult = checkStopExpression(
+				i,
+				stopexpr,
+				parameter.origCursorPos.length,
+				replacableValues,
+			);
+		} else {
+			stopExprResult = i >= parameter.origCursorPos.length;
+		}
+
+		replacableValues.previousValueStr = value;
+
+		return {
+			stringFunction: formatting.formatString(
+				value,
+				format,
+				centerString,
+			),
+			stopFunction: stopExprResult,
+		};
 	};
 }

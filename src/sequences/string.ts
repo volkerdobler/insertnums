@@ -2,7 +2,6 @@ import * as formatting from '../formatting';
 import { TParameter, TSpecialReplacementValues } from '../types';
 import {
 	printToConsole,
-	replaceSpecialChars,
 	runExpression,
 	getStepValue,
 	getFrequencyValue,
@@ -11,7 +10,6 @@ import {
 	getStopExpression,
 	checkStopExpression,
 	getExpression,
-	getInputPart,
 	getFormatExpression,
 } from '../components/utils';
 
@@ -54,7 +52,7 @@ export function createStringSeq(
 
 	function indexToString(index: number): string {
 		if (index < 0) {
-			throw new Error('Index below possible values!');
+			return '';
 		}
 
 		let length = 1;
@@ -119,6 +117,8 @@ export function createStringSeq(
 	);
 
 	const start = startMatch?.groups?.start || '';
+
+	parameter.myDelimiter = startMatch?.groups?.seqdelimiter || null;
 
 	// default return if start is empty
 	const defaultReturn = { stringFunction: '', stopFunction: true };
@@ -196,10 +196,16 @@ export function createStringSeq(
 		replacableValues.currentIndexStr = i.toString();
 
 		// calculate current value based on start, step, frequency, repetition and startover
-		let value = indexToString(
+		const targetIndex =
 			currentIndex +
-				step * Math.trunc(((i % startover) % (freq * repe)) / freq),
-		);
+			step * Math.trunc(((i % startover) % (freq * repe)) / freq);
+		if (targetIndex < 0) {
+			return {
+				stringFunction: '',
+				stopFunction: true,
+			};
+		}
+		let value = indexToString(targetIndex);
 
 		replacableValues.valueAfterExpressionStr = '';
 
@@ -208,9 +214,16 @@ export function createStringSeq(
 
 		// if expression does not lead to a string, the current / new value will not be changed
 		try {
-			let tempValue = runExpression(
-				replaceSpecialChars(expr, replacableValues),
-			);
+			let tempValue = runExpression(expr, {
+				_: replacableValues.currentValueStr,
+				i: replacableValues.currentIndexStr,
+				n: replacableValues.numberOfSelectionsStr,
+				s: replacableValues.stepStr,
+				a: replacableValues.startStr,
+				p: replacableValues.previousValueStr,
+				o: replacableValues.origTextStr,
+				c: replacableValues.valueAfterExpressionStr,
+			});
 			if (typeof tempValue === 'string' || tempValue instanceof String) {
 				value = String(tempValue);
 			}

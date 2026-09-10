@@ -7,6 +7,7 @@ All notable changes to this extension (newest first):
 - Optimized configuration options (using method `.get` instead of direct access)
 
 - Fixed issue where configuration option `centerString` was not used
+- Fixed issue where delimiter was not used for some sequences
 
 # Version 1.1.1
 

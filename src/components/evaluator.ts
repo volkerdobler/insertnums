@@ -78,7 +78,7 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.charStartFunction = `^\\s*(?:=|func(?:tion)?:)`;
 	ruleTemplate.charStartAlpha = `^(^\\s*(?:(?:alpha(?:bet)?|string):)?)`;
 	// rules, which are normally not at the beginning of an input (but could be, when <start> is omitted/defaulted)
-	ruleTemplate.charStartSteps = `(?:\\bsteps?:|(?<!:|format|freq|frequency|func|function|rep|repeat|repetition|startat|startagain|startover|expr|expression|stop|stopexpr|stopexpression|option|options):)`;
+	ruleTemplate.charStartSteps = `(?:\\bsteps?:|(?<!:|format|freq|frequency|func|function|rep|repeat|repetition|startat|startagain|startover|expr|expression|stop|stopexpr|stopexpression|option|options|delimiter):)`;
 	ruleTemplate.charStartFormat = `(?:\\bformat:|~)`;
 	ruleTemplate.charStartFrequency = `(?:\\bfreq(?:uency)?:|(?:(?<!\\*)\\*))`;
 	ruleTemplate.charStartRepetition = `(?:\\brep(?:eat|etition)?:|(?<!#)#)`;
@@ -88,10 +88,12 @@ export function getRegExpressions(): RuleTemplate {
 	// optional information after charStartOptions
 	ruleTemplate.charStartOptions = `(?:\\bopt(?:ion(?:s)?)?:|\\?)`;
 	// sub-rules
+	ruleTemplate.myDelimiterOption = `(?:\\bdelimiter:|_)`;
 	ruleTemplate.specialchars = `(?:[_epasni])`;
 	ruleTemplate.dateunits = `(?:[dDwWmMyY])`;
 	ruleTemplate.predefinedoptions = `(?: [ifsIFS]+ )`;
 	ruleTemplate.alphacapitalchars = `(?: [uUlLpP]? )`;
+	ruleTemplate.myDelimiterChars = `(?: [\\s_xo<>-] )`;
 	// all Rules including sub-rules
 	ruleTemplate.doublestring = `(?:"
 									(?<indoublequotes>
@@ -131,8 +133,8 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.delimiter = `(?:\\s*(?:(?= {{delimiterTokens}} ) | $) )`;
 	ruleTemplate.sequencedelimiter = `(?:
 										\\s*
-										_
-										(?<seqdelimiter> .{1,2})
+										{{myDelimiterOption}}
+										(?<seqdelimiter> (?:{{myDelimiterChars}}{1,}|.)?)
 									)`;
 	ruleTemplate.integer = `(?:[1-9]\\d*|0)`;
 	ruleTemplate.pointfloat1 = `(?: (?: [1-9]\\d*|0 )? \\. (?<startDecimals1> \\d+ ) )`;
@@ -257,6 +259,7 @@ export function getRegExpressions(): RuleTemplate {
 											| {{brackets}}
 											| {{easyexpression}}
 										)
+										(?: {{sequencedelimiter}} )?
 										(?= {{delimiter}} )
 									)`;
 	ruleTemplate.start_own = `^(?:
@@ -340,6 +343,7 @@ export function getRegExpressions(): RuleTemplate {
 										(?: \\s* ;
 											\\s* (?<funcStartAt> \\d+ )
 										)?
+										(?: {{sequencedelimiter}} )?
 										(?= {{delimiter}} )
 									)`;
 	ruleTemplate.steps_decimal = `(?:(?<!{{charStartSteps}})(?:{{charStartSteps}}) \\s* (?<steps> {{signedNum}}) (?= {{delimiter}} ))`;
@@ -415,8 +419,8 @@ export function getRegExpressions(): RuleTemplate {
 									)
 									(?= {{delimiter}} )
 								)`;
-	ruleTemplate.outputSort = `\\$!?\\s*$`;
-	ruleTemplate.outputReverse = `!\\$?\\s*$`;
+	ruleTemplate.outputSort = `(?:\\$!|!\\$|\\$)\\s*$`;
+	ruleTemplate.outputReverse = `(?:\\$!|!\\$|!)\\s*$`;
 
 	for (let [key, value] of Object.entries(ruleTemplate)) {
 		while (value.indexOf('{{') > -1) {

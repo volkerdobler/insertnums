@@ -3,7 +3,7 @@ declare const require: any;
 function getVm(): any | null {
 	try {
 		// require dynamically so bundlers / TS don't need to resolve 'vm' at compile time
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		 
 		return require('vm');
 	} catch {
 		return null;
@@ -12,7 +12,7 @@ function getVm(): any | null {
 
 let eval5: any = null;
 try {
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	 
 	eval5 = require('eval5');
 } catch {
 	eval5 = null;
@@ -45,52 +45,6 @@ function tryIfToTernary(code: string): string | null {
 
 	return null;
 }
-
-// -- add: reusable serializer for context values (extracted from eval5 branch) --
-const serializeValue = (v: unknown, seen = new WeakSet()): string => {
-	try {
-		if (v === null) return 'null';
-		if (v === undefined) return 'undefined';
-		const t = typeof v;
-		if (t === 'number' || t === 'boolean') return String(v);
-		if (t === 'string') return JSON.stringify(v);
-		if (t === 'function') {
-			try {
-				return (v as Function).toString();
-			} catch {
-				return 'undefined';
-			}
-		}
-		if (v instanceof Date) return `new Date(${(v as Date).getTime()})`;
-		if (v instanceof RegExp) return (v as RegExp).toString();
-		if (Array.isArray(v)) {
-			if (seen.has(v as object)) return 'null';
-			seen.add(v as object);
-			return (
-				'[' +
-				(v as Array<unknown>)
-					.map((e) => serializeValue(e, seen))
-					.join(',') +
-				']'
-			);
-		}
-		if (t === 'object') {
-			if (seen.has(v as object)) return 'null';
-			seen.add(v as object);
-			const obj = v as Record<string, unknown>;
-			const entries = Object.keys(obj).map((k) => {
-				const key = /^[A-Za-z$_][A-Za-z0-9$_]*$/.test(k)
-					? k
-					: JSON.stringify(k);
-				return `${key}:${serializeValue(obj[k], seen)}`;
-			});
-			return '{' + entries.join(',') + '}';
-		}
-		return JSON.stringify(v);
-	} catch {
-		return 'null';
-	}
-};
 
 function runInVmAssignResult(
 	code: string,
@@ -143,9 +97,9 @@ function runInVmAssignResult(
 		// simple serializer: JSON for primitives/objects, function -> toString, fallback null
 		const serializeValueLocal = (v: unknown): string => {
 			try {
-				if (v === undefined) return 'undefined';
-				if (v === null) return 'null';
-				if (typeof v === 'function') return (v as Function).toString();
+				if (v === undefined) {return 'undefined';}
+				if (v === null) {return 'null';}
+				if (typeof v === 'function') {return (v as Function).toString();}
 				// JSON.stringify may throw on cycles; catch below
 				return JSON.stringify(v);
 			} catch {
@@ -227,7 +181,7 @@ export function safeEvaluate(
 			timeout,
 		);
 		if (typeof exprAssign !== 'undefined')
-			return { ok: true, value: exprAssign };
+			{return { ok: true, value: exprAssign };}
 	} catch (err) {
 		lastErr = err;
 		// continue to other attempts
@@ -236,7 +190,7 @@ export function safeEvaluate(
 	// 2) try direct run (code may set result itself)
 	try {
 		const direct = runInVmAssignResult(code, context, timeout);
-		if (typeof direct !== 'undefined') return { ok: true, value: direct };
+		if (typeof direct !== 'undefined') {return { ok: true, value: direct };}
 	} catch (err) {
 		lastErr = err;
 		// continue
@@ -252,7 +206,7 @@ export function safeEvaluate(
 				timeout,
 			);
 			if (typeof exprRes !== 'undefined')
-				return { ok: true, value: exprRes };
+				{return { ok: true, value: exprRes };}
 		}
 	} catch (err) {
 		lastErr = err;
@@ -263,7 +217,7 @@ export function safeEvaluate(
 	try {
 		const wrapped = `(function(){\n${code}\n})()`;
 		const w = runInVmAssignResult('result = ' + wrapped, context, timeout);
-		if (typeof w !== 'undefined') return { ok: true, value: w };
+		if (typeof w !== 'undefined') {return { ok: true, value: w };}
 	} catch (err) {
 		lastErr = err;
 		// continue

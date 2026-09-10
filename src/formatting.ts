@@ -40,7 +40,7 @@ export function formatString(
 	// Template syntax: [[fill]align]width[w][lr]
 	// Examples: "#<10" => fill '#' left-align width 10
 	//           ">10w" => right-align width 10, but return only last char when 'w' present
-	const re = /^([0x\s\._]?)([<>\=])?(\d+)?([wW]?)([lrLR]?)$/;
+	const re = /^([0x\s\._#\-]?)([<>\=])?(\d+)?([wW]?)([lrLR]?)$/;
 	const m = template.match(re);
 	if (!m) {
 		// Fallback: return template as-is if it doesn't match
@@ -62,7 +62,9 @@ export function formatString(
 	}
 
 	// If fill is empty string (shouldn't happen), default to space
-	if (fill === '') fill = ' ';
+	if (fill === '') {
+		fill = ' ';
+	}
 
 	if (wFlag && value.length > 0) {
 		value = value.slice(-1);
@@ -100,58 +102,6 @@ export function formatString(
 		}
 	}
 
-	return out;
-}
-
-/**
- * Format a date string using a simple token-based template.
- *
- * Supported tokens (case-sensitive):
- * `yyyy`, `yy`, `MMM`, `MM`, `M`, `dd`, `d`, `HH`, `H`, `mm`, `m`, `ss`, `s`
- *
- * Tokens are replaced in a single pass (longest first) to avoid double
- * substitution (e.g. `MMM` is replaced before `M`).
- *
- * @param value - An ISO date string (e.g. `"2025-11-03"`).
- * @param template - Format template (e.g. `"dd.MM.yyyy"`).
- * @returns The formatted date string, or `value` unchanged if it is not a valid date.
- * @deprecated Not used by the date sequence — see {@link formatTemporalDateTime}.
- */
-export function formatDateStr(value: string, template: string): string {
-	const date = new Date(value);
-	if (isNaN(date.getTime())) return value; // fallback if not a valid date
-
-	const year = date.getFullYear();
-	const month = date.getMonth() + 1; // 1-12
-	const day = date.getDate();
-
-	const tokens: { [k: string]: string } = {
-		yyyy: year.toString(),
-		yy: (year % 100).toString().padStart(2, '0'),
-		MMM: new Intl.DateTimeFormat('default', { month: 'short' }).format(
-			date,
-		),
-		MM: month.toString().padStart(2, '0'),
-		M: month.toString(),
-		dd: day.toString().padStart(2, '0'),
-		d: day.toString(),
-		HH: date.getHours().toString().padStart(2, '0'),
-		H: date.getHours().toString(),
-		mm: date.getMinutes().toString().padStart(2, '0'),
-		m: date.getMinutes().toString(),
-		ss: date.getSeconds().toString().padStart(2, '0'),
-		s: date.getSeconds().toString(),
-	};
-
-	// Replace tokens in a single pass using a regex built from the keys.
-	// This avoids replacing characters inside already-inserted replacements
-	// (e.g. MMMM -> 'Mai' later being touched by 'M').
-	const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-	const keys = Object.keys(tokens)
-		.sort((a, b) => b.length - a.length)
-		.map(escapeRegex);
-	const reg = new RegExp('(?:' + keys.join('|') + ')', 'g');
-	const out = template.replace(reg, (m) => tokens[m] ?? m);
 	return out;
 }
 
@@ -205,6 +155,12 @@ export function formatTemporalDateTime(
 		ss: String(temporalDate.second).padStart(2, '0'),
 		s: String(temporalDate.second),
 	};
+
+	// Check if template is just a BCP-47 locale string
+	const localeRegex = /^[a-z]{2,3}(-[a-zA-Z]{2,4})?$/i;
+	if (localeRegex.test(template.trim()) || template.trim() === '') {
+		return temporalDate.toPlainDate().toLocaleString(template || locale);
+	}
 
 	// Replace tokens in a single pass (match longest tokens first in regex)
 	const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

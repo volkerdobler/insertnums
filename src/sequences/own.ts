@@ -2,14 +2,12 @@ import * as formatting from '../formatting';
 import { TParameter, TSpecialReplacementValues } from '../types';
 import {
 	printToConsole,
-	replaceSpecialChars,
 	runExpression,
 	getStepValue,
 	getFrequencyValue,
 	getRepeatValue,
 	getStartOverValue,
 	getStopExpression,
-	getInputPart,
 	checkStopExpression,
 	getExpression,
 	getFormatExpression,
@@ -31,14 +29,11 @@ export function createOwnSeq(
 	input: string,
 	parameter: TParameter,
 ): (i: number) => { stringFunction: string; stopFunction: boolean } {
-	const sequenceSet =
-		input.match(parameter.segments['start_own'])?.groups?.ownseq || '';
+	const ownSequence = input.match(parameter.segments['start_own']);
 
-	const start =
-		parseInt(
-			input.match(parameter.segments['start_own'])?.groups?.startseq ||
-				'1',
-		) || 1;
+	const sequenceSet = ownSequence?.groups?.ownseq || '';
+
+	const start = parseInt(ownSequence?.groups?.startseq || '1') || 1;
 	const step = getStepValue(input, parameter, 'steps_other');
 	const freq = getFrequencyValue(input, parameter);
 	const repe = getRepeatValue(input, parameter);
@@ -48,6 +43,8 @@ export function createOwnSeq(
 
 	const format = getFormatExpression(input, parameter, 'format_alpha') || '';
 	const centerString = String(parameter.config.get('centerString')) || '';
+
+	parameter.myDelimiter = ownSequence?.groups?.seqdelimiter || null;
 
 	let ownSeq: string[] = [];
 
@@ -72,59 +69,69 @@ export function createOwnSeq(
 		replacableValues.currentIndexStr = i.toString();
 		replacableValues.origTextStr =
 			i < parameter.origTextSel.length ? parameter.origTextSel[i] : '';
-		replacableValues.currentValueStr =
-			i < ownSeq.length
-				? ownSeq[
-						(((start -
-							1 +
-							step *
-								Math.trunc(
-									((i % startover) % (freq * repe)) / freq,
-								)) %
-							ownSeq.length) +
-							ownSeq.length) %
-							ownSeq.length
-					]
-				: '';
-
-		replacableValues.valueAfterExpressionStr =
-			replacableValues.currentValueStr;
-
-		if (ownSeq.length === 0) {
+		const rawIndex =
+			start -
+			1 +
+			step * Math.trunc(((i % startover) % (freq * repe)) / freq);
+		const len = ownSeq.length;
+		if (len === 0) {
 			return { stringFunction: '', stopFunction: true };
-		} else {
-			// calculate possible stop expression. If stop expression is true, a "\u{0}" char will be returned. If stop expression is invalid or false, the newValue will be returned
-			let stopExprResult = i >= parameter.origCursorPos.length;
-			if (stopexpr.length > 0) {
-				stopExprResult = checkStopExpression(
-					i,
-					stopexpr,
-					parameter.origCursorPos.length,
-					replacableValues,
-				);
-			} else {
-				stopExprResult = i >= parameter.origCursorPos.length;
-			}
-
-			replacableValues.previousValueStr =
-				replacableValues.currentValueStr;
-
-			return {
-				stringFunction: formatting.formatString(
-					ownSeq[
-						(start -
-							1 +
-							step *
-								Math.trunc(
-									((i % startover) % (freq * repe)) / freq,
-								)) %
-							ownSeq.length
-					] || '',
-					format,
-					centerString,
-				),
-				stopFunction: stopExprResult,
-			};
 		}
+		const idx = ((rawIndex % len) + len) % len;
+
+		replacableValues.currentValueStr = ownSeq[idx];
+		replacableValues.valueAfterExpressionStr = '';
+
+		let value = replacableValues.currentValueStr;
+		try {
+			let exprResult = runExpression(expr, {
+				_: replacableValues.currentValueStr,
+				i: replacableValues.currentIndexStr,
+				n: replacableValues.numberOfSelectionsStr,
+				s: replacableValues.stepStr,
+				a: replacableValues.startStr,
+				p: replacableValues.previousValueStr,
+				o: replacableValues.origTextStr,
+				c: replacableValues.valueAfterExpressionStr,
+			});
+			if (
+				typeof exprResult === 'string' ||
+				exprResult instanceof String
+			) {
+				value = String(exprResult);
+			} else if (
+				exprResult !== null &&
+				typeof exprResult !== 'undefined'
+			) {
+				value = String(exprResult);
+			}
+		} catch {
+			printToConsole('Error evaluating expression for own sequence');
+		}
+
+		replacableValues.valueAfterExpressionStr = value;
+
+		let stopExprResult = i >= parameter.origCursorPos.length;
+		if (stopexpr.length > 0) {
+			stopExprResult = checkStopExpression(
+				i,
+				stopexpr,
+				parameter.origCursorPos.length,
+				replacableValues,
+			);
+		} else {
+			stopExprResult = i >= parameter.origCursorPos.length;
+		}
+
+		replacableValues.previousValueStr = value;
+
+		return {
+			stringFunction: formatting.formatString(
+				value,
+				format,
+				centerString,
+			),
+			stopFunction: stopExprResult,
+		};
 	};
 }

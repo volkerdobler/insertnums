@@ -3,7 +3,6 @@ import * as formatting from '../formatting';
 import { TParameter, TSpecialReplacementValues } from '../types';
 import {
 	printToConsole,
-	replaceSpecialChars,
 	runExpression,
 	getStepValue,
 	getFrequencyValue,
@@ -33,9 +32,13 @@ export function createDateSeq(
 	input: string,
 	parameter: TParameter,
 ): (i: number) => { stringFunction: string; stopFunction: boolean } {
-	// if only "%", without additional digits, is given, use current date as start date
-	if (input.match(/^%(?!\d)/)) {
-		input = '%' + Temporal.Now.plainDateISO().toString() + input.slice(1);
+	// if only "%" or "date:", without additional digits, is given, use current date as start date
+	if (input.match(/^(?:%|date:)(?!\d)/i)) {
+		let prefix = input.match(/^(?:%|date:)/i)?.[0] || '%';
+		input =
+			prefix +
+			Temporal.Now.plainDateISO().toString() +
+			input.slice(prefix.length);
 	}
 	// extract start date
 	let start = input.match(parameter.segments['start_date'])?.groups?.start;
@@ -54,6 +57,8 @@ export function createDateSeq(
 	const startGroups = input.match(parameter.segments['start_date'])?.groups;
 
 	const dateParts = { year: 0, month: 0, day: 0 };
+
+	parameter.myDelimiter = startGroups?.seqdelimiter || null;
 
 	if (startGroups?.datepart) {
 		let yearStr =
@@ -198,9 +203,16 @@ export function createDateSeq(
 
 		// if expression exists, evaluate expression with current Value and replace newValue with result of expression.
 		try {
-			let exprResult = runExpression(
-				replaceSpecialChars(expr, replacableValues),
-			);
+			let exprResult = runExpression(expr, {
+				_: replacableValues.currentValueStr,
+				i: replacableValues.currentIndexStr,
+				n: replacableValues.numberOfSelectionsStr,
+				s: replacableValues.stepStr,
+				a: replacableValues.startStr,
+				p: replacableValues.previousValueStr,
+				o: replacableValues.origTextStr,
+				c: replacableValues.valueAfterExpressionStr,
+			});
 			if (
 				typeof exprResult === 'string' ||
 				exprResult instanceof String

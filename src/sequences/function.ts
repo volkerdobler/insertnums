@@ -3,15 +3,12 @@ import { TParameter, TSpecialReplacementValues, TOwnFunction } from '../types';
 import { safeEvaluate } from '../components/safeEval';
 import {
 	printToConsole,
-	replaceSpecialChars,
-	runExpression,
 	getStepValue,
 	getFrequencyValue,
 	getRepeatValue,
 	getStartOverValue,
 	getStopExpression,
 	checkStopExpression,
-	getExpression,
 } from '../components/utils';
 
 /**
@@ -37,7 +34,7 @@ export function createFunctionSeq(
 		const raw = cfg.get('myfunctions') as any;
 		let res: TOwnFunction[] = [];
 
-		if (!Array.isArray(raw)) return res;
+		if (!Array.isArray(raw)) {return res;}
 
 		for (const item of raw) {
 			try {
@@ -74,7 +71,7 @@ export function createFunctionSeq(
 										: `error: ${fn2.error}`),
 							);
 							if (fn2.ok && typeof fn2.value === 'function')
-								res.push(fn2.value as TOwnFunction);
+								{res.push(fn2.value as TOwnFunction);}
 						}
 					} catch {
 						/* ignore */
@@ -91,7 +88,7 @@ export function createFunctionSeq(
 									: `error: ${fn.error}`),
 						);
 						if (fn.ok && typeof fn.value === 'function')
-							res.push(fn.value as TOwnFunction);
+							{res.push(fn.value as TOwnFunction);}
 					}
 				}
 			} catch (e) {
@@ -107,7 +104,10 @@ export function createFunctionSeq(
 	);
 
 	const functionParameter = input.match(parameter.segments['start_function']);
-	// if start_predefined group exists, extract sequence text (could be within quotes or plain text)
+
+	parameter.myDelimiter = functionParameter?.groups?.seqdelimiter || null;
+
+	// if start_function group exists, extract sequence text (could be within quotes or plain text)
 	const functionNr =
 		Number(functionParameter?.groups?.funcNr) ||
 		parameter.config.get('defaultFunctionNr') ||
@@ -116,7 +116,7 @@ export function createFunctionSeq(
 	const myFunc = functionArray && functionArray.at(functionNr - 1);
 
 	if (!myFunc) {
-		return (i) => ({ stringFunction: '', stopFunction: true });
+		return (_i) => ({ stringFunction: '', stopFunction: true });
 	}
 
 	const functionStartAt = Number(
@@ -128,7 +128,6 @@ export function createFunctionSeq(
 	const repe = getRepeatValue(input, parameter);
 	const startover = getStartOverValue(input, parameter);
 	const stopexpr = getStopExpression(input, parameter);
-	const expr = getExpression(input, parameter);
 
 	const replacableValues: TSpecialReplacementValues = {
 		currentValueStr: '',

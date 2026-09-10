@@ -72,7 +72,7 @@ export async function saveToHistory(
 	ctx: vscode.ExtensionContext,
 	command: string | undefined,
 ): Promise<void> {
-	if (command == null) return;
+	if (command === null || command === undefined) return;
 
 	// ensure non-empty command
 	if (command === '') command = '1';

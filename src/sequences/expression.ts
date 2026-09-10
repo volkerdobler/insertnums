@@ -2,16 +2,9 @@ import { TParameter, TSpecialReplacementValues } from '../types';
 import * as formatting from '../formatting';
 import {
 	printToConsole,
-	replaceSpecialChars,
 	runExpression,
-	getStepValue,
-	getFrequencyValue,
-	getRepeatValue,
-	getStartOverValue,
-	getInputPart,
 	getStopExpression,
 	checkStopExpression,
-	getExpression,
 	isNumeric,
 	getFormatExpression,
 } from '../components/utils';
@@ -61,29 +54,39 @@ export function createExpressionSeq(
 		numberOfSelectionsStr: parameter.origCursorPos.length.toString(),
 	};
 
+	parameter.myDelimiter = expressionMatch?.groups?.seqdelimiter || null;
+
 	// return function for each index/item
 	return (i) => {
 		if (i < parameter.origTextSel.length) {
 			replacableValues.origTextStr = parameter.origTextSel[i];
 			// set current value to original selection text for use in expression
 			replacableValues.currentValueStr = parameter.origTextSel[i];
+		} else {
+			replacableValues.origTextStr = '';
+			replacableValues.currentValueStr = '';
 		}
 
 		replacableValues.valueAfterExpressionStr = '';
 		replacableValues.currentIndexStr = i.toString();
 
 		try {
-			const exprResult = runExpression(
-				replaceSpecialChars(expr, replacableValues),
-			);
-			if (
-				typeof exprResult === 'string' ||
-				exprResult instanceof String
-			) {
+			const exprResult = runExpression(expr, {
+				_: replacableValues.currentValueStr,
+				i: replacableValues.currentIndexStr,
+				n: replacableValues.numberOfSelectionsStr,
+				s: replacableValues.stepStr,
+				a: replacableValues.startStr,
+				p: replacableValues.previousValueStr,
+				o: replacableValues.origTextStr,
+				c: replacableValues.valueAfterExpressionStr,
+			});
+			if (exprResult !== null && typeof exprResult !== 'undefined') {
 				replacableValues.currentValueStr = String(exprResult);
-			} else if (typeof exprResult === 'number') {
-				replacableValues.currentValueStr = exprResult.toString();
-			} else if (parameter.origTextSel[i].length === 0) {
+			} else if (
+				!parameter.origTextSel[i] ||
+				parameter.origTextSel[i].length === 0
+			) {
 				replacableValues.currentValueStr = (i + 1).toString();
 			}
 		} catch {
