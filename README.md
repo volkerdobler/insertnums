@@ -263,6 +263,26 @@ Input: `=2` with 5 selections → output:
 
 As the function can include `start`, `step`, `repeat`, `frequency` and `startover` (in this order!), the start value is passed via `;`. The other values will come from the options you can provide.
 
+### UUID Sequences
+
+Use :uuid to generate Universally Unique Identifiers (UUIDs). By default, standard v4 UUIDs are generated. You can append :v7 to generate time-sortable v7 UUIDs. Formatting options allow you to convert them to uppercase (~u or ~upper) or remove hyphens (~c or ~clean).
+
+Input: :uuid with 3 selections → output:
+
+`	ext
+c5108bb6-52bb-49e0-81f7-e24c538a7c29
+f823dc34-97c7-43f1-b9c1-4fc3a23a31c6
+1f350c3d-d558-450f-93d3-1e5b10c5b369
+`
+
+Input: :uuid:v7~uc (Version 7, Uppercase, Clean) with 3 selections → output:
+
+`	ext
+0192A02E7A5A70F88E91910D83A61690
+0192A02E7A5B796BA53B621F5A132C1B
+0192A02E7A5B79A680C4F7249E34B8C1
+`
+
 ### Quoted Template
 
 Start with `"` or `'` to embed a sequence inside fixed surrounding text. Write `{}` where the value should appear; the sequence definition follows the closing quote. All standard sequence types and options work as the inner sequence.
@@ -569,6 +589,26 @@ Prefixes accepted: `=` (short), `func:`, or `function:` (readable). Functions ma
     - Use the History command (`insertseq.history`) to quickly reuse or adjust previously working function calls.
 
 ---
+
+### UUID Sequences
+
+Use :uuid to generate Universally Unique Identifiers (UUIDs). By default, standard v4 UUIDs are generated. You can append :v7 to generate time-sortable v7 UUIDs. Formatting options allow you to convert them to uppercase (~u or ~upper) or remove hyphens (~c or ~clean).
+
+Input: :uuid with 3 selections → output:
+
+`	ext
+c5108bb6-52bb-49e0-81f7-e24c538a7c29
+f823dc34-97c7-43f1-b9c1-4fc3a23a31c6
+1f350c3d-d558-450f-93d3-1e5b10c5b369
+`
+
+Input: :uuid:v7~uc (Version 7, Uppercase, Clean) with 3 selections → output:
+
+`	ext
+0192A02E7A5A70F88E91910D83A61690
+0192A02E7A5B796BA53B621F5A132C1B
+0192A02E7A5B79A680C4F7249E34B8C1
+`
 
 ### Quoted Template details
 
