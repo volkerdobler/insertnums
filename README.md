@@ -489,31 +489,39 @@ Examples:
 
 ---
 
-### Date sequences details
+### Date and Time sequences details
 
 Most options work like numeric sequences — the parts below differ.
 
 - start
-    - Begins with `%` followed by a date part (yyyy, yy, yyyy-mm, yyyy-mm-dd) or a quoted/parenthesized full date string. `%` alone uses today's date.
+    - Begins with `%` or `date:` followed by a date (`yyyy`, `yyyy-mm`, `yyyy-mm-dd`), time (`HH:mm`, `HH:mm:ss`), full ISO timestamp (`2026-03-09T14:30:00`), `now`, or a quoted/parenthesized date-time string. `%` or `date:` alone uses the current date and time (`now`).
 - steps
-    - Numeric offset with optional unit: `d` (days), `w` (weeks), `m` (months), `y` (years). Default unit is days.
-    - Examples: `%2025-03-02:1`, `%2025-03-02:1w`, `%2025-03-02:-1m`.
+    - Numeric offset with unit: `d` (days, default), `w` (weeks), `m` (months), `y` (years), `h` (hours), `min` / `minute` / `minutes` (minutes), `s` / `sec` / `second` / `seconds` (seconds), `ms` (milliseconds).
+    - Supports **compound duration steps** (for example, `:1d15min`, `:1d2h15m`, `:2h30min`).
+    - Supports decimal/fractional steps (for example, `:24.25h`, `:1.5d`).
+    - Examples: `%2025-03-02:1w`, `%14:00:15min`, `%14:00:1d15min`, `%now:1h`.
 - format
-    - Supports optional `lang:` locale and a quoted format or a short token (for example, `iso`).
-    - Examples: `%2025-03-02~"dd.MM.yyyy"`, `%2025-03-02~lang:de~"dd.MM.yyyy"`.
+    - Format template using tokens (`yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`, `dd`, `d`, `HH`, `H`, `mm`, `m`, `ss`, `s`), locale fallback (`lang:de`), or special format keywords:
+        - `~epoch` / `~timestamp`: Unix timestamp in seconds
+        - `~epochms` / `~timestampms`: Unix timestamp in milliseconds
+        - `~iso`: ISO-8601 string (`2026-03-09T14:30:00`)
+        - `~utc` / `~isoz`: UTC ISO-8601 string (`2026-03-09T14:30:00Z`)
+    - Examples: `%2025-03-02~"dd.MM.yyyy"`, `%14:00:15min~"yyyy-MM-dd HH:mm:ss"`, `%now:10s~epoch`.
 - stopexpression
     - Always put the stop expression in parentheses.
 
 Notes:
 
-- Date arithmetic uses Temporal semantics to handle month lengths and leap years.
+- Date and time arithmetic uses Temporal semantics to handle month lengths, leap years, and accurate time math.
 - Placeholders and stopexpr work as in other sequence types.
 
 Examples:
 
 - `%2025-03-02:1w~lang:de`
+- `%14:00:15min`
+- `%14:00:1d15min`
+- `%now:1h~iso`
 - `%:7` (start = today)
-- `%2025-01-31:1m`
 
 ---
 
