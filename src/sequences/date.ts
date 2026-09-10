@@ -53,11 +53,14 @@ export function createDateSeq(
 	if (!start || start === '' || start.toLowerCase() === 'now') {
 		instant = Temporal.Now.plainDateTimeISO();
 		start = instant.toString();
-	} else if (/^\d{1,2}:\d{2}(?::\d{2})?$/.test(start.trim())) {
-		// Time-only string, e.g. 14:30:15 -> combine with today's date
+	} else if (/^\d{1,2}:\d{1,2}(?::\d{1,2})?$/.test(start.trim())) {
+		// Time-only string, e.g. 3:03 or 14:30:15 -> combine with today's date
 		const todayStr = Temporal.Now.plainDateISO().toString();
-		const timeStr =
-			start.trim().length === 5 ? `${start.trim()}:00` : start.trim();
+		const timeParts = start.trim().split(':');
+		const h = timeParts[0].padStart(2, '0');
+		const m = timeParts[1].padStart(2, '0');
+		const s = (timeParts[2] || '0').padStart(2, '0');
+		const timeStr = `${h}:${m}:${s}`;
 		try {
 			instant = Temporal.PlainDateTime.from(`${todayStr}T${timeStr}`);
 		} catch {
