@@ -70,7 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 			// Candidate file names for this version (include padded MAJOR.MINOR.PATCH)
 			const parts = currentVersion.split('.');
-			while (parts.length < 3) {parts.push('0');}
+			while (parts.length < 3) {
+				parts.push('0');
+			}
 			const padded = parts.slice(0, 3).join('.');
 			const candidates = [
 				`WHATSNEW-${currentVersion}.md`,
@@ -753,6 +755,10 @@ function getInputType(input: string, p: TParameter): TInput | null {
 		):
 			type = 'expression';
 			break;
+		// uuid generator
+		case new RegExp(p.segments['charStartUuid'], 'i').test(input):
+			type = 'uuid';
+			break;
 		// strings (alphabetic)
 		case reAlphabetCharClass.test(input):
 			type = 'alpha';
@@ -774,10 +780,6 @@ function getInputType(input: string, p: TParameter): TInput | null {
 		// predefined functions
 		case new RegExp(p.segments['charStartFunction'], 'i').test(input):
 			type = 'function';
-			break;
-		// uuid generator
-		case new RegExp(p.segments['charStartUuid'], 'i').test(input):
-			type = 'uuid';
 			break;
 
 		// empty input (when input box is empty) - use selected text if available or decimal as default
