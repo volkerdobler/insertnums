@@ -1,5 +1,6 @@
 import { formatString, formatTemporalDateTime } from './formatting';
 import { Temporal } from 'temporal-polyfill';
+import { getRegExpressions } from './components/evaluator';
 
 function assertEqual(a: any, b: any, msg?: string) {
 	if (a !== b) {
@@ -42,9 +43,39 @@ console.log('formatting tests passed');
 
 // Date & Time formatting tests
 const dt = Temporal.PlainDateTime.from('2026-03-09T14:30:15');
-assertEqual(formatTemporalDateTime(dt, 'yyyy-MM-dd HH:mm:ss'), '2026-03-09 14:30:15', 'full datetime token test');
-assertEqual(formatTemporalDateTime(dt, 'iso'), '2026-03-09T14:30:15', 'iso format test');
-assertEqual(formatTemporalDateTime(dt, 'utc'), '2026-03-09T14:30:15Z', 'utc format test');
-assertEqual(formatTemporalDateTime(dt, 'epoch'), '1773066615', 'epoch timestamp test');
+assertEqual(
+	formatTemporalDateTime(dt, 'yyyy-MM-dd HH:mm:ss'),
+	'2026-03-09 14:30:15',
+	'full datetime token test',
+);
+assertEqual(
+	formatTemporalDateTime(dt, 'iso'),
+	'2026-03-09T14:30:15',
+	'iso format test',
+);
+assertEqual(
+	formatTemporalDateTime(dt, 'utc'),
+	'2026-03-09T14:30:15Z',
+	'utc format test',
+);
+assertEqual(
+	formatTemporalDateTime(dt, 'epoch'),
+	'1773066615',
+	'epoch timestamp test',
+);
 
 console.log('date-time formatting tests passed');
+
+// Evaluator date parsing test
+const rules = getRegExpressions();
+const m1 = '%14:00'.match(new RegExp(rules.start_date, 'i'));
+assertEqual(m1?.groups?.start, '14:00', '14:00 start time extracted');
+
+const m2 = '%14:00:15min'.match(new RegExp(rules.start_date, 'i'));
+assertEqual(m2?.groups?.start, '14:00', '14:00 extracted from %14:00:15min');
+
+const s2 = '%14:00:15min'.match(new RegExp(rules.steps_date, 'i'));
+assertEqual(s2?.groups?.steps, '15', 'step 15 extracted');
+assertEqual(s2?.groups?.date_unit, 'min', 'unit min extracted');
+
+console.log('date-time evaluator parsing tests passed');

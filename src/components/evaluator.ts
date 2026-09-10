@@ -229,16 +229,19 @@ export function getRegExpressions(): RuleTemplate {
 									(?: {{charStartDate}} )
 									\\s*
 									(?<start>
+										(?<now> now )
+										|
+										(?<datetimepart>
+											(?<year> \\d{4}|\\d{2} ) - (?<month> 0?[1-9]|10|11|12 ) (?: - (?<day> 0?[1-9]|[12][0-9]|30|31 ) )?
+											(?: [ T] (?<timepart> \\d{1,2} : \\d{2} (?: : \\d{2} )? ) )?
+										)
+										|
+										(?<timeonly>
+											\\d{1,2} : \\d{2} (?: : \\d{2} )?
+										)
+										|
 										(?<datepart>
-											(?<year> \\d{2}|\\d{4} )
-											(?:
-												(?:-
-													(?<month> 0?[1-9]|10|11|12 )
-												)
-												(?:-
-													(?<day> 0?[1-9]|[12][0-9]|30|31 )
-												)?
-											)?
+											(?<year_only> \\d{4} ) (?: - (?<month_only> 0?[1-9]|10|11|12 ) (?: - (?<day_only> 0?[1-9]|[12][0-9]|30|31 ) )? )?
 										)
 										|
 										(?<fulldate>
@@ -247,7 +250,6 @@ export function getRegExpressions(): RuleTemplate {
 											| {{brackets}}
 											| .+?
 										)
-										(?![\\d-])
 									)?
 									(?: {{sequencedelimiter}} )?
 									(?= {{delimiter}} )
