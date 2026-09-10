@@ -23,7 +23,7 @@ export async function migrateOldHistory(
 ): Promise<void> {
 	try {
 		const old = ctx.globalState.get<string[]>(OLD_HISTORY_KEY, []) || [];
-		if (!old.length) return;
+		if (!old.length) {return;}
 
 		const current = getHistory(ctx); // reads HISTORY_KEY
 		const merged: string[] = [];
@@ -32,13 +32,13 @@ export async function migrateOldHistory(
 		const oldMonthInput = new RegExp(/^;/);
 		// preserve order: take old first (assumed most-recent-first), then append current items not already present
 		for (const it of old) {
-			if (it && !oldMonthInput.test(it) && !merged.includes(it)) merged.push(it);
+			if (it && !oldMonthInput.test(it) && !merged.includes(it)) {merged.push(it);}
 		}
 		for (const it of current) {
-			if (it && !merged.includes(it)) merged.push(it);
+			if (it && !merged.includes(it)) {merged.push(it);}
 		}
 
-		if (merged.length > HISTORY_MAX) merged.length = HISTORY_MAX;
+		if (merged.length > HISTORY_MAX) {merged.length = HISTORY_MAX;}
 		await ctx.globalState.update(HISTORY_KEY, merged);
 
 		// clear old history to avoid duplicate future migrations
@@ -72,17 +72,17 @@ export async function saveToHistory(
 	ctx: vscode.ExtensionContext,
 	command: string | undefined,
 ): Promise<void> {
-	if (command === null || command === undefined) return;
+	if (command === null || command === undefined) {return;}
 
 	// ensure non-empty command
-	if (command === '') command = '1';
+	if (command === '') {command = '1';}
 
 	const raw = getHistory(ctx);
 
 	const filtered = raw.filter((e) => e !== command);
 
 	filtered.unshift(command);
-	if (filtered.length > HISTORY_MAX) filtered.length = HISTORY_MAX;
+	if (filtered.length > HISTORY_MAX) {filtered.length = HISTORY_MAX;}
 	await ctx.globalState.update(HISTORY_KEY, filtered);
 }
 
@@ -105,7 +105,7 @@ export async function deleteFromHistory(
 	ctx: vscode.ExtensionContext,
 	item: string,
 ) {
-	if (!item) return;
+	if (!item) {return;}
 	const list = getHistory(ctx).filter((x) => x !== item);
 	await ctx.globalState.update(HISTORY_KEY, list);
 }
