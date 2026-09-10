@@ -1,4 +1,5 @@
-import { formatString } from './formatting';
+import { formatString, formatTemporalDateTime } from './formatting';
+import { Temporal } from 'temporal-polyfill';
 
 function assertEqual(a: any, b: any, msg?: string) {
 	if (a !== b) {
@@ -38,3 +39,12 @@ assertEqual(
 assertEqual(formatString('hi', '#<5w'), 'i####', 'last char with w flag - hi');
 
 console.log('formatting tests passed');
+
+// Date & Time formatting tests
+const dt = Temporal.PlainDateTime.from('2026-03-09T14:30:15');
+assertEqual(formatTemporalDateTime(dt, 'yyyy-MM-dd HH:mm:ss'), '2026-03-09 14:30:15', 'full datetime token test');
+assertEqual(formatTemporalDateTime(dt, 'iso'), '2026-03-09T14:30:15', 'iso format test');
+assertEqual(formatTemporalDateTime(dt, 'utc'), '2026-03-09T14:30:15Z', 'utc format test');
+assertEqual(formatTemporalDateTime(dt, 'epoch'), '1773066615', 'epoch timestamp test');
+
+console.log('date-time formatting tests passed');

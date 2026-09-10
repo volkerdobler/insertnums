@@ -127,6 +127,24 @@ export function formatTemporalDateTime(
 	template: string = '',
 	locale: string | undefined = undefined,
 ): string {
+	const trimmedTpl = template.trim().toLowerCase();
+	if (trimmedTpl === 'epoch' || trimmedTpl === 'timestamp') {
+		return Math.floor(
+			temporalDate.toZonedDateTime('UTC').epochMilliseconds / 1000,
+		).toString();
+	}
+	if (trimmedTpl === 'epochms' || trimmedTpl === 'timestampms') {
+		return temporalDate
+			.toZonedDateTime('UTC')
+			.epochMilliseconds.toString();
+	}
+	if (trimmedTpl === 'iso') {
+		return temporalDate.toString();
+	}
+	if (trimmedTpl === 'isoz' || trimmedTpl === 'utc') {
+		return temporalDate.toString() + 'Z';
+	}
+
 	const year = temporalDate.year;
 	const month = temporalDate.month; // 1..12
 	const day = temporalDate.day;
@@ -156,10 +174,17 @@ export function formatTemporalDateTime(
 		s: String(temporalDate.second),
 	};
 
+	const hasTime =
+		temporalDate.hour !== 0 ||
+		temporalDate.minute !== 0 ||
+		temporalDate.second !== 0;
+
 	// Check if template is just a BCP-47 locale string
 	const localeRegex = /^[a-z]{2,3}(-[a-zA-Z]{2,4})?$/i;
 	if (localeRegex.test(template.trim()) || template.trim() === '') {
-		return temporalDate.toPlainDate().toLocaleString(template || locale);
+		return hasTime
+			? temporalDate.toLocaleString(template || locale)
+			: temporalDate.toPlainDate().toLocaleString(template || locale);
 	}
 
 	// Replace tokens in a single pass (match longest tokens first in regex)
@@ -170,7 +195,9 @@ export function formatTemporalDateTime(
 	const reg = new RegExp('(?:' + keys.join('|') + ')', 'g');
 	const out = template.replace(reg, (m) => tokens[m] ?? m);
 	if (out === template) {
-		return temporalDate.toPlainDate().toLocaleString(locale);
+		return hasTime
+			? temporalDate.toLocaleString(locale)
+			: temporalDate.toPlainDate().toLocaleString(locale);
 	}
 	return out;
 }

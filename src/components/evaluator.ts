@@ -92,7 +92,7 @@ export function getRegExpressions(): RuleTemplate {
 	// sub-rules
 	ruleTemplate.myDelimiterOption = `(?:\\bdelimiter:|_)`;
 	ruleTemplate.specialchars = `(?:[_epasni])`;
-	ruleTemplate.dateunits = `(?:[dDwWmMyY])`;
+	ruleTemplate.dateunits = `(?:min|sec|ms|[dDwWmMyYhHsS])`;
 	ruleTemplate.predefinedoptions = `(?: [ifsIFS]+ )`;
 	ruleTemplate.alphacapitalchars = `(?: [uUlLpP]? )`;
 	ruleTemplate.myDelimiterChars = `(?: [\\s_xo<>-] )`;

@@ -222,3 +222,11 @@ _No completed tasks were found at the time of restructuring._
   - `uuid:v7` für zeitlich sortierbare UUIDs
   - `uuid~upper` für Großbuchstaben, `uuid~clean` ohne Bindestriche
 
+
+### 4.2 Erweiterte Zeit- und Timestamp-Sequenzen
+* **Aktueller Stand:** `date.ts` setzt Zeitwerte fix auf `00:00:00`.
+* **Erweiterung:**
+  - Uhrzeiten mit Schritten in Stunden, Minuten oder Sekunden (`14:00:15m`, `09:30:10s`)
+  - Unix-Timestamps in Sekunden (`%now:1s~epoch`) oder Millisekunden (`~epochms`)
+  - ISO-8601 UTC Timestamps (`2026-03-09T20:00:00Z`)
+

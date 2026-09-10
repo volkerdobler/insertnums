@@ -19,13 +19,6 @@ Dieser Bericht dokumentiert alle identifizierten Probleme, logischen Schwachstel
 
 ## 4. Vorschläge für funktionale Erweiterungen
 
-### 4.2 Erweiterte Zeit- und Timestamp-Sequenzen
-* **Aktueller Stand:** `date.ts` setzt Zeitwerte fix auf `00:00:00`.
-* **Erweiterung:**
-  - Uhrzeiten mit Schritten in Stunden, Minuten oder Sekunden (`14:00:15m`, `09:30:10s`)
-  - Unix-Timestamps in Sekunden (`%now:1s~epoch`) oder Millisekunden (`~epochms`)
-  - ISO-8601 UTC Timestamps (`2026-03-09T20:00:00Z`)
-
 ### 4.3 Römische Ziffern
 * **Nutzen:** Beliebt für Gliederungen in Markdown, HTML-Listen oder Dokumentationen.
 * **Syntax-Idee:** `I` (groß: I, II, III...) oder `i` (klein: i, ii, iii...).

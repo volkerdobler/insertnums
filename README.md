@@ -173,18 +173,29 @@ Input: `a~>10` with 5 selections → output:
 
 Use `~w` to enable wrap behavior (for example, `z~w` yields `z, a, b, ...` if configured).
 
-### Date sequences
+### Date and Time sequences
 
-Date sequences start with `%` followed by a date (for example, `yyyy-mm-dd`) or a quoted date string. Steps support days (default), weeks, months, or years. You can specify a language for formatting with `lang:`.
+Date and time sequences start with `%` or `date:` followed by a date, time, ISO timestamp, or `now` (e.g. `%2025-03-02`, `%14:00:00`, `%now`).
+
+- **Steps**: Support days (`d`, default), weeks (`w`), months (`m`), years (`y`), hours (`h`), minutes (`min`), seconds (`s` or `sec`), and milliseconds (`ms`).
+- **Formatting**: Supports standard tokens (`yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`, `dd`, `d`, `HH`, `H`, `mm`, `m`, `ss`, `s`), locale fallback strings (e.g. `lang:de`), or special keywords (`~epoch`, `~epochms`, `~iso`, `~utc`).
 
 Input: `%2025-03-02:1w~lang:de` with 5 selections → output:
 
-```
+```text
 2.3.2025
 16.3.2025
 30.3.2025
 13.4.2025
 27.4.2025
+```
+
+Input: `%14:00:15min~yyyy-MM-dd HH:mm:ss` with 3 selections → output:
+
+```text
+2026-03-09 14:00:00
+2026-03-09 14:15:00
+2026-03-09 14:30:00
 ```
 
 ### Expressions

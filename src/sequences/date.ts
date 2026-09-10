@@ -32,54 +32,79 @@ export function createDateSeq(
 	input: string,
 	parameter: TParameter,
 ): (i: number) => { stringFunction: string; stopFunction: boolean } {
-	// if only "%" or "date:", without additional digits, is given, use current date as start date
+	// if only "%" or "date:", without additional digits, is given, use current date/time as start
 	if (input.match(/^(?:%|date:)(?!\d)/i)) {
-		let prefix = input.match(/^(?:%|date:)/i)?.[0] || '%';
+		const prefix = input.match(/^(?:%|date:)/i)?.[0] || '%';
 		input =
 			prefix +
-			Temporal.Now.plainDateISO().toString() +
+			Temporal.Now.plainDateTimeISO().toString() +
 			input.slice(prefix.length);
 	}
 	// extract start date
 	let start = input.match(parameter.segments['start_date'])?.groups?.start;
 
-	// if start date is empty, use current date
-	if (start === '') {
-		start = Temporal.Now.plainDateISO().toString();
-	}
-
-	// if no start date found, return empty function
 	const defaultReturn = { stringFunction: '', stopFunction: true };
-	if (!start) {
-		return (_) => defaultReturn;
-	}
 
 	const startGroups = input.match(parameter.segments['start_date'])?.groups;
-
-	const dateParts = { year: 0, month: 0, day: 0 };
-
 	parameter.myDelimiter = startGroups?.seqdelimiter || null;
 
-	if (startGroups?.datepart) {
-		let yearStr =
-			input.match(parameter.segments['start_date'])?.groups?.year ||
-			Temporal.Now.plainDateISO().year.toString();
-		if (yearStr.length === 2) {
-			yearStr = parameter.config.get('century') + yearStr;
+	let instant: Temporal.PlainDateTime;
+
+	if (!start || start === '' || start.toLowerCase() === 'now') {
+		instant = Temporal.Now.plainDateTimeISO();
+		start = instant.toString();
+	} else if (/^\d{1,2}:\d{2}(?::\d{2})?$/.test(start.trim())) {
+		// Time-only string, e.g. 14:30:15 -> combine with today's date
+		const todayStr = Temporal.Now.plainDateISO().toString();
+		const timeStr =
+			start.trim().length === 5 ? `${start.trim()}:00` : start.trim();
+		try {
+			instant = Temporal.PlainDateTime.from(`${todayStr}T${timeStr}`);
+		} catch {
+			instant = Temporal.Now.plainDateTimeISO();
 		}
-		dateParts.year = Number(yearStr) || Temporal.Now.plainDateISO().year;
-		dateParts.month =
-			Number(
-				input.match(parameter.segments['start_date'])?.groups?.month,
-			) || Temporal.Now.plainDateISO().month;
-		dateParts.day =
-			Number(
-				input.match(parameter.segments['start_date'])?.groups?.day,
-			) || Temporal.Now.plainDateISO().day;
 	} else {
-		// currently no valie date input - might change in the future
-		// note: keep user-visible message in extension; printToConsole used for debugging
-		return (_) => defaultReturn;
+		// Try parsing as ISO date-time or date
+		const normalizedStart = start.trim().replace(' ', 'T');
+		try {
+			instant = Temporal.PlainDateTime.from(normalizedStart);
+		} catch {
+			try {
+				const plainDate = Temporal.PlainDate.from(normalizedStart);
+				instant = plainDate.toPlainDateTime({
+					hour: 0,
+					minute: 0,
+					second: 0,
+				});
+			} catch {
+				if (startGroups?.datepart) {
+					let yearStr =
+						startGroups.year ||
+						Temporal.Now.plainDateISO().year.toString();
+					if (yearStr.length === 2) {
+						yearStr = parameter.config.get('century') + yearStr;
+					}
+					const year =
+						Number(yearStr) || Temporal.Now.plainDateISO().year;
+					const month =
+						Number(startGroups.month) ||
+						Temporal.Now.plainDateISO().month;
+					const day =
+						Number(startGroups.day) ||
+						Temporal.Now.plainDateISO().day;
+					instant = Temporal.PlainDateTime.from({
+						year,
+						month,
+						day,
+						hour: 0,
+						minute: 0,
+						second: 0,
+					});
+				} else {
+					return (_) => defaultReturn;
+				}
+			}
+		}
 	}
 
 	const step = getStepValue(input, parameter, 'steps_date');
@@ -111,18 +136,6 @@ export function createDateSeq(
 		parameter.config.get('language') ||
 		undefined;
 
-	const instant = Temporal.PlainDateTime.from({
-		year: dateParts.year,
-		month: dateParts.month,
-		day: dateParts.day,
-		hour: 0,
-		minute: 0,
-		second: 0,
-		millisecond: 0,
-		microsecond: 0,
-		nanosecond: 0,
-	});
-
 	const replacableValues: TSpecialReplacementValues = {
 		currentValueStr: '',
 		valueAfterExpressionStr: '',
@@ -139,52 +152,56 @@ export function createDateSeq(
 			baseDate: Temporal.PlainDateTime,
 			offset: number,
 		): Temporal.PlainDateTime {
-			let idx =
+			const idx =
 				step *
 				Math.trunc(((offset % startover) % (freq * repe)) / freq);
 
-			let value: Temporal.PlainDateTime;
+			const uLower = unit.toLowerCase();
+			const abs = Math.abs(idx);
+
 			if (idx >= 0) {
-				switch (unit.toLowerCase()) {
+				switch (uLower) {
 					case 'w':
-						value = baseDate.add({ weeks: idx });
-						break;
+						return baseDate.add({ weeks: abs });
 					case 'm':
-						value = baseDate.add({ months: idx });
-						break;
+						return baseDate.add({ months: abs });
 					case 'y':
-						value = baseDate.add({ years: idx });
-						break;
+						return baseDate.add({ years: abs });
+					case 'h':
+						return baseDate.add({ hours: abs });
+					case 'min':
+						return baseDate.add({ minutes: abs });
+					case 's':
+					case 'sec':
+						return baseDate.add({ seconds: abs });
+					case 'ms':
+						return baseDate.add({ milliseconds: abs });
+					case 'd':
 					default:
-						value = baseDate.add({ days: idx });
-						break;
+						return baseDate.add({ days: abs });
 				}
 			} else {
-				switch (unit.toLowerCase()) {
+				switch (uLower) {
 					case 'w':
-						value = baseDate.subtract({
-							weeks: Math.abs(idx),
-						});
-						break;
+						return baseDate.subtract({ weeks: abs });
 					case 'm':
-						value = baseDate.subtract({
-							months: Math.abs(idx),
-						});
-						break;
+						return baseDate.subtract({ months: abs });
 					case 'y':
-						value = baseDate.subtract({
-							years: Math.abs(idx),
-						});
-						break;
+						return baseDate.subtract({ years: abs });
+					case 'h':
+						return baseDate.subtract({ hours: abs });
+					case 'min':
+						return baseDate.subtract({ minutes: abs });
+					case 's':
+					case 'sec':
+						return baseDate.subtract({ seconds: abs });
+					case 'ms':
+						return baseDate.subtract({ milliseconds: abs });
+					case 'd':
 					default:
-						value = baseDate.subtract({
-							days: Math.abs(idx),
-						});
-						break;
+						return baseDate.subtract({ days: abs });
 				}
 			}
-
-			return value;
 		}
 
 		if (i < parameter.origTextSel.length) {
@@ -197,13 +214,15 @@ export function createDateSeq(
 		let value = calculateDateOffset(instant, i);
 
 		replacableValues.valueAfterExpressionStr = '';
-		replacableValues.currentValueStr = value
-			.toPlainDate()
-			.toLocaleString(language);
+		replacableValues.currentValueStr = formatting.formatTemporalDateTime(
+			value,
+			format,
+			language,
+		);
 
 		// if expression exists, evaluate expression with current Value and replace newValue with result of expression.
 		try {
-			let exprResult = runExpression(expr, {
+			const exprResult = runExpression(expr, {
 				_: replacableValues.currentValueStr,
 				i: replacableValues.currentIndexStr,
 				n: replacableValues.numberOfSelectionsStr,
@@ -217,25 +236,13 @@ export function createDateSeq(
 				typeof exprResult === 'string' ||
 				exprResult instanceof String
 			) {
-				const tempDate = Temporal.PlainDate.from(String(exprResult));
-				value = Temporal.PlainDateTime.from({
-					year: tempDate.year,
-					month: tempDate.month,
-					day: tempDate.day,
-					hour: 0,
-					minute: 0,
-					second: 0,
-					millisecond: 0,
-					microsecond: 0,
-					nanosecond: 0,
-				});
+				value = Temporal.PlainDateTime.from(String(exprResult));
 			}
 		} catch {
 			printToConsole('Error evaluating expression for date sequence');
 		}
-		replacableValues.valueAfterExpressionStr = value
-			.toPlainDate()
-			.toLocaleString(language);
+		replacableValues.valueAfterExpressionStr =
+			formatting.formatTemporalDateTime(value, format, language);
 
 		let stopExprResult = i >= parameter.origCursorPos.length;
 
@@ -251,9 +258,11 @@ export function createDateSeq(
 			stopExprResult = i >= parameter.origCursorPos.length;
 		}
 
-		replacableValues.previousValueStr = value
-			.toPlainDate()
-			.toLocaleString(language);
+		replacableValues.previousValueStr = formatting.formatTemporalDateTime(
+			value,
+			format,
+			language,
+		);
 
 		return {
 			stringFunction: formatting.formatTemporalDateTime(
