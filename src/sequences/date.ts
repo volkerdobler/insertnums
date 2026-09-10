@@ -155,56 +155,88 @@ export function createDateSeq(
 			baseDate: Temporal.PlainDateTime,
 			offset: number,
 		): Temporal.PlainDateTime {
-			const idx =
+			const rawIdx =
 				step *
 				Math.trunc(((offset % startover) % (freq * repe)) / freq);
 
 			const uLower = unit.toLowerCase();
-			const abs = Math.abs(idx);
+			const abs = Math.abs(rawIdx);
+			const sign = rawIdx >= 0 ? 1 : -1;
 
-			if (idx >= 0) {
+			let duration: {
+				years?: number;
+				months?: number;
+				weeks?: number;
+				days?: number;
+				hours?: number;
+				minutes?: number;
+				seconds?: number;
+				milliseconds?: number;
+			} = {};
+
+			if (Number.isInteger(abs)) {
 				switch (uLower) {
 					case 'w':
-						return baseDate.add({ weeks: abs });
+						duration = { weeks: abs };
+						break;
 					case 'm':
-						return baseDate.add({ months: abs });
+						duration = { months: abs };
+						break;
 					case 'y':
-						return baseDate.add({ years: abs });
+						duration = { years: abs };
+						break;
 					case 'h':
-						return baseDate.add({ hours: abs });
+						duration = { hours: abs };
+						break;
 					case 'min':
-						return baseDate.add({ minutes: abs });
+						duration = { minutes: abs };
+						break;
 					case 's':
 					case 'sec':
-						return baseDate.add({ seconds: abs });
+						duration = { seconds: abs };
+						break;
 					case 'ms':
-						return baseDate.add({ milliseconds: abs });
+						duration = { milliseconds: abs };
+						break;
 					case 'd':
 					default:
-						return baseDate.add({ days: abs });
+						duration = { days: abs };
+						break;
 				}
 			} else {
+				// Convert float steps to smaller integer units
 				switch (uLower) {
 					case 'w':
-						return baseDate.subtract({ weeks: abs });
+						duration = { hours: Math.round(abs * 7 * 24) };
+						break;
 					case 'm':
-						return baseDate.subtract({ months: abs });
+						duration = { days: Math.round(abs * 30) };
+						break;
 					case 'y':
-						return baseDate.subtract({ years: abs });
+						duration = { days: Math.round(abs * 365) };
+						break;
+					case 'd':
+						duration = { minutes: Math.round(abs * 24 * 60) };
+						break;
 					case 'h':
-						return baseDate.subtract({ hours: abs });
+						duration = { minutes: Math.round(abs * 60) };
+						break;
 					case 'min':
-						return baseDate.subtract({ minutes: abs });
+						duration = { seconds: Math.round(abs * 60) };
+						break;
 					case 's':
 					case 'sec':
-						return baseDate.subtract({ seconds: abs });
-					case 'ms':
-						return baseDate.subtract({ milliseconds: abs });
-					case 'd':
+						duration = { milliseconds: Math.round(abs * 1000) };
+						break;
 					default:
-						return baseDate.subtract({ days: abs });
+						duration = { minutes: Math.round(abs * 24 * 60) };
+						break;
 				}
 			}
+
+			return sign >= 0
+				? baseDate.add(duration)
+				: baseDate.subtract(duration);
 		}
 
 		if (i < parameter.origTextSel.length) {
