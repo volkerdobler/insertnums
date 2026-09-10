@@ -214,3 +214,11 @@ _No completed tasks were found at the time of restructuring._
 6. **Kein `npm test`-Skript:** In `package.json` ist kein Testbefehl registriert; Tests werden im normalen Build nach `dist/` mitkompiliert.
 
 
+
+### 4.1 UUID / GUID-Generator (v4, v7)
+* **Nutzen:** Gehört zu den häufigsten Anwendungsfällen bei Multi-Cursor-Arbeiten (Mockdaten, Datenbank-Inserts, JSON-Fixtures).
+* **Syntax-Idee:** 
+  - `uuid` oder `%uuid` für Standard-UUIDs (v4)
+  - `uuid:v7` für zeitlich sortierbare UUIDs
+  - `uuid~upper` für Großbuchstaben, `uuid~clean` ohne Bindestriche
+

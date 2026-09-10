@@ -40,6 +40,7 @@ import { createOwnSeq } from './sequences/own';
 import { createPredefinedSeq } from './sequences/predefined';
 import { createFunctionSeq } from './sequences/function';
 import { createTextSelectedSeq } from './sequences/textSelected';
+import { createUuidSeq } from './sequences/uuid';
 
 /**
  * Extension entry point called by VS Code when the extension is first activated.
@@ -69,7 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 			// Candidate file names for this version (include padded MAJOR.MINOR.PATCH)
 			const parts = currentVersion.split('.');
-			while (parts.length < 3) parts.push('0');
+			while (parts.length < 3) {parts.push('0');}
 			const padded = parts.slice(0, 3).join('.');
 			const candidates = [
 				`WHATSNEW-${currentVersion}.md`,
@@ -366,7 +367,7 @@ async function InsertSeqCommand(
 	) {
 		// insert final sequence (check if canceled will be done in insertNewSequence and in saveToHistory)
 		insertNewSequence(input, parameter, 'final');
-		if (input != null) {
+		if (input !== null) {
 			// save input to local history storage
 			saveToHistory(context, input);
 		}
@@ -570,7 +571,7 @@ function insertNewSequence(
 				}
 
 				const maxIndex =
-					delimiter == null
+					delimiter === null
 						? insertCursorPos.length
 						: insertCursorPos.length - 1;
 
@@ -585,7 +586,7 @@ function insertNewSequence(
 						);
 						builder.replace(currSel, str);
 					} else {
-						if (delimiter == null) {
+						if (delimiter === null) {
 							overflowLines.push(str);
 						} else {
 							addStr += str + delimiter;
@@ -645,7 +646,7 @@ function getSequenceFunction(
 	stopFunction: boolean;
 } {
 	// if input was "undefined" (canceled), return stopFunction true
-	if (input == null) {
+	if (input === null || input === undefined) {
 		const retStr = { stringFunction: '', stopFunction: true };
 		return (_) => retStr;
 	}
@@ -674,7 +675,9 @@ function getSequenceFunction(
 		case 'predefined':
 			return createPredefinedSeq(input, p); // predefined text sequences (predefined lists in configuration)
 		case 'function':
-			return createFunctionSeq(input, p); // predefined functions (predefined functions in configuration)
+			return createFunctionSeq(input, p);
+		case 'uuid':
+			return createUuidSeq(input, p); // predefined functions (predefined functions in configuration)
 		case 'textSelected':
 			return createTextSelectedSeq(input, p); // no input - just use the originally selected text
 		case 'backtick':
@@ -772,6 +775,11 @@ function getInputType(input: string, p: TParameter): TInput | null {
 		case new RegExp(p.segments['charStartFunction'], 'i').test(input):
 			type = 'function';
 			break;
+		// uuid generator
+		case new RegExp(p.segments['charStartUuid'], 'i').test(input):
+			type = 'uuid';
+			break;
+
 		// empty input (when input box is empty) - use selected text if available or decimal as default
 		case /^$/i.test(input):
 		default:

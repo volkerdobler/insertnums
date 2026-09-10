@@ -54,6 +54,7 @@ export function getRegExpressions(): RuleTemplate {
 		charStartExpression: '',
 		charStartStopExpression: '',
 		charStartOptions: '',
+		charStartUuid: '',
 		easyexpression: '',
 	};
 
@@ -421,6 +422,18 @@ export function getRegExpressions(): RuleTemplate {
 								)`;
 	ruleTemplate.outputSort = `(?:\\$!|!\\$|\\$)\\s*$`;
 	ruleTemplate.outputReverse = `(?:\\$!|!\\$|!)\\s*$`;
+
+	ruleTemplate.start_uuid = `^(?:
+									(?: {{charStartUuid}} )
+									\\s*
+									(?<uuidversion> [vV]?[47] )?
+									(?:
+										{{charStartOptions}}
+										(?<uuidformat> [a-zA-Z]+ )
+									)?
+									(?: {{sequencedelimiter}} )?
+									(?= {{delimiter}} )
+								)`;
 
 	for (let [key, value] of Object.entries(ruleTemplate)) {
 		while (value.indexOf('{{') > -1) {

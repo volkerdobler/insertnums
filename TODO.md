@@ -19,13 +19,6 @@ Dieser Bericht dokumentiert alle identifizierten Probleme, logischen Schwachstel
 
 ## 4. Vorschläge für funktionale Erweiterungen
 
-### 4.1 UUID / GUID-Generator (v4, v7)
-* **Nutzen:** Gehört zu den häufigsten Anwendungsfällen bei Multi-Cursor-Arbeiten (Mockdaten, Datenbank-Inserts, JSON-Fixtures).
-* **Syntax-Idee:** 
-  - `uuid` oder `%uuid` für Standard-UUIDs (v4)
-  - `uuid:v7` für zeitlich sortierbare UUIDs
-  - `uuid~upper` für Großbuchstaben, `uuid~clean` ohne Bindestriche
-
 ### 4.2 Erweiterte Zeit- und Timestamp-Sequenzen
 * **Aktueller Stand:** `date.ts` setzt Zeitwerte fix auf `00:00:00`.
 * **Erweiterung:**
