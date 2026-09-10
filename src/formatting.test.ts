@@ -74,4 +74,7 @@ assertEqual(m1?.groups?.start, '14:00', '14:00 start time extracted');
 const m3 = '%3:03 :15min'.match(new RegExp(rules.start_date, 'i'));
 assertEqual(m3?.groups?.start, '3:03', '3:03 extracted from %3:03 :15min');
 
+const s3 = '%14:00:1d15min'.match(new RegExp(rules.steps_date, 'i'));
+assertEqual(s3?.groups?.step_expr, '1d15min', '1d15min step_expr extracted');
+
 console.log('date-time evaluator parsing tests passed');

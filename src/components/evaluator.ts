@@ -92,7 +92,7 @@ export function getRegExpressions(): RuleTemplate {
 	// sub-rules
 	ruleTemplate.myDelimiterOption = `(?:\\bdelimiter:|_)`;
 	ruleTemplate.specialchars = `(?:[_epasni])`;
-	ruleTemplate.dateunits = `(?:min|sec|ms|[dDwWmMyYhHsS])`;
+	ruleTemplate.dateunits = `(?:minute|minutes|second|seconds|hour|hours|day|days|week|weeks|month|months|year|years|min|sec|ms|[dDwWmMyYhHsS])`;
 	ruleTemplate.predefinedoptions = `(?: [ifsIFS]+ )`;
 	ruleTemplate.alphacapitalchars = `(?: [uUlLpP]? )`;
 	ruleTemplate.myDelimiterChars = `(?: [\\s_xo<>-] )`;
@@ -354,9 +354,13 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.steps_date = `(?:
 									(?<!{{charStartSteps}})
 									(?:{{charStartSteps}})
-									(?<steps> {{signedNum}})?
-									\\s*
-									(?<date_unit> {{dateunits}} )?
+									(?<step_expr>
+										(?:
+											[+-]? \\d+(?:\\.\\d+)? \\s* {{dateunits}} \\s*
+										)+
+										|
+										(?<steps> {{signedNum}} )? \\s* (?<date_unit> {{dateunits}} )?
+									)
 									(?= {{delimiter}} )
 								)`;
 	ruleTemplate.steps_other = `(?:(?<!{{charStartSteps}})(?:{{charStartSteps}}) \\s* (?<steps> {{signedInt}}) (?= {{delimiter}} ))`;

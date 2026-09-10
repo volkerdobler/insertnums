@@ -110,12 +110,24 @@ export function createDateSeq(
 		}
 	}
 
+	const stepsMatch = input.match(parameter.segments['steps_date']);
+	const stepExpr = stepsMatch?.groups?.step_expr || '';
 	const step = getStepValue(input, parameter, 'steps_date');
-
 	const unit =
-		input.match(parameter.segments['steps_date'])?.groups?.date_unit ||
+		stepsMatch?.groups?.date_unit ||
 		parameter.config.get('dateStepUnit') ||
 		'd';
+
+	const compoundSteps: Array<{ amount: number; unit: string }> = [];
+	const compoundRe =
+		/([+-]?\d+(?:\.\d+)?)\s*(minute|minutes|second|seconds|hour|hours|day|days|week|weeks|month|months|year|years|min|sec|ms|[dDwWmMyYhHsS])/gi;
+	let cMatch: RegExpExecArray | null;
+	while ((cMatch = compoundRe.exec(stepExpr)) !== null) {
+		const amt = parseFloat(cMatch[1]);
+		if (!isNaN(amt)) {
+			compoundSteps.push({ amount: amt, unit: cMatch[2] });
+		}
+	}
 
 	const freq = getFrequencyValue(input, parameter);
 	const repe = getRepeatValue(input, parameter);
@@ -151,15 +163,12 @@ export function createDateSeq(
 	};
 
 	return (i) => {
-		function calculateDateOffset(
+		function addSingleUnit(
 			baseDate: Temporal.PlainDateTime,
-			offset: number,
+			u: string,
+			rawIdx: number,
 		): Temporal.PlainDateTime {
-			const rawIdx =
-				step *
-				Math.trunc(((offset % startover) % (freq * repe)) / freq);
-
-			const uLower = unit.toLowerCase();
+			const uLower = u.toLowerCase();
 			const abs = Math.abs(rawIdx);
 			const sign = rawIdx >= 0 ? 1 : -1;
 
@@ -177,28 +186,44 @@ export function createDateSeq(
 			if (Number.isInteger(abs)) {
 				switch (uLower) {
 					case 'w':
+					case 'week':
+					case 'weeks':
 						duration = { weeks: abs };
 						break;
 					case 'm':
+					case 'month':
+					case 'months':
 						duration = { months: abs };
 						break;
 					case 'y':
+					case 'year':
+					case 'years':
 						duration = { years: abs };
 						break;
 					case 'h':
+					case 'hour':
+					case 'hours':
 						duration = { hours: abs };
 						break;
 					case 'min':
+					case 'minute':
+					case 'minutes':
 						duration = { minutes: abs };
 						break;
 					case 's':
 					case 'sec':
+					case 'second':
+					case 'seconds':
 						duration = { seconds: abs };
 						break;
 					case 'ms':
+					case 'millisecond':
+					case 'milliseconds':
 						duration = { milliseconds: abs };
 						break;
 					case 'd':
+					case 'day':
+					case 'days':
 					default:
 						duration = { days: abs };
 						break;
@@ -207,25 +232,39 @@ export function createDateSeq(
 				// Convert float steps to smaller integer units
 				switch (uLower) {
 					case 'w':
+					case 'week':
+					case 'weeks':
 						duration = { hours: Math.round(abs * 7 * 24) };
 						break;
 					case 'm':
+					case 'month':
+					case 'months':
 						duration = { days: Math.round(abs * 30) };
 						break;
 					case 'y':
+					case 'year':
+					case 'years':
 						duration = { days: Math.round(abs * 365) };
 						break;
 					case 'd':
+					case 'day':
+					case 'days':
 						duration = { minutes: Math.round(abs * 24 * 60) };
 						break;
 					case 'h':
+					case 'hour':
+					case 'hours':
 						duration = { minutes: Math.round(abs * 60) };
 						break;
 					case 'min':
+					case 'minute':
+					case 'minutes':
 						duration = { seconds: Math.round(abs * 60) };
 						break;
 					case 's':
 					case 'sec':
+					case 'second':
+					case 'seconds':
 						duration = { milliseconds: Math.round(abs * 1000) };
 						break;
 					default:
@@ -237,6 +276,27 @@ export function createDateSeq(
 			return sign >= 0
 				? baseDate.add(duration)
 				: baseDate.subtract(duration);
+		}
+
+		function calculateDateOffset(
+			baseDate: Temporal.PlainDateTime,
+			offset: number,
+		): Temporal.PlainDateTime {
+			const iterMultiplier = Math.trunc(
+				((offset % startover) % (freq * repe)) / freq,
+			);
+
+			if (compoundSteps.length > 0) {
+				let resultDate = baseDate;
+				for (const cs of compoundSteps) {
+					const totalAmt = cs.amount * step * iterMultiplier;
+					resultDate = addSingleUnit(resultDate, cs.unit, totalAmt);
+				}
+				return resultDate;
+			}
+
+			const rawIdx = step * iterMultiplier;
+			return addSingleUnit(baseDate, unit, rawIdx);
 		}
 
 		if (i < parameter.origTextSel.length) {
