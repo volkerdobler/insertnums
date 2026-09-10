@@ -2,12 +2,18 @@
 
 All notable changes to this extension (newest first):
 
-# Version 1.1.2 (not released yes)
+# Version 1.1.2
 
-- Optimized configuration options (using method `.get` instead of direct access)
-
+- Fixed several bugs regarding string-wrapping and `0` evaluation in expressions
+- Fixed formatting with `#` as fill character and locale fallbacks for dates
+- Fixed missing support for negative steps or overflow in custom predefined arrays
+- Fixed an issue where the sort (`$!`) and reverse (`!$`) flags were mutually exclusive
+- Fixed trailing characters when multi-character delimiters are used
+- Removed dead code and addressed all linter warnings
+- Added test scripts in `package.json` to properly test the extension build
 - Fixed issue where configuration option `centerString` was not used
 - Fixed issue where delimiter was not used for some sequences
+- Optimized configuration options (using method `.get` instead of direct access)
 
 # Version 1.1.1
 
