@@ -77,7 +77,7 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.charStartPredefinedSequence = `^\\s*(?:;|predef(?:ined)?(?:seq(?:uence)?)?:)`;
 	ruleTemplate.charStartExpressionfunction = `^\\s*(?:\\||expr(?:ession)?:)`;
 	ruleTemplate.charStartFunction = `^\\s*(?:=|func(?:tion)?:)`;
-	ruleTemplate.charStartUuid = `^\\s*(?:%?uuid:|%?uuid|:uuid)`;
+	ruleTemplate.charStartUuid = `^\\s*(?::uuid)`;
 	ruleTemplate.charStartAlpha = `^(^\\s*(?:(?:alpha(?:bet)?|string):)?)`;
 	// rules, which are normally not at the beginning of an input (but could be, when <start> is omitted/defaulted)
 	ruleTemplate.charStartSteps = `(?:\\bsteps?:|(?<!:|format|freq|frequency|func|function|rep|repeat|repetition|startat|startagain|startover|expr|expression|stop|stopexpr|stopexpression|option|options|delimiter):)`;
