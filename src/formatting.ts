@@ -134,9 +134,7 @@ export function formatTemporalDateTime(
 		).toString();
 	}
 	if (trimmedTpl === 'epochms' || trimmedTpl === 'timestampms') {
-		return temporalDate
-			.toZonedDateTime('UTC')
-			.epochMilliseconds.toString();
+		return temporalDate.toZonedDateTime('UTC').epochMilliseconds.toString();
 	}
 	if (trimmedTpl === 'iso') {
 		return temporalDate.toString();
