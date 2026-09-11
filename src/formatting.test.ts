@@ -372,7 +372,15 @@ assertEqual(customIpSeq(1).stringFunction, '10.10.0.2', 'customIpSeq 1');
 	return undefined;
 };
 const customCidrSeq = createIpSeq(':ip:1', customParam);
-assertEqual(customCidrSeq(0).stringFunction, '172.16.0.1/16', 'customCidrSeq 0');
-assertEqual(customCidrSeq(1).stringFunction, '172.16.0.2/16', 'customCidrSeq 1');
+assertEqual(
+	customCidrSeq(0).stringFunction,
+	'172.16.0.1/16',
+	'customCidrSeq 0',
+);
+assertEqual(
+	customCidrSeq(1).stringFunction,
+	'172.16.0.2/16',
+	'customCidrSeq 1',
+);
 
 console.log('IPv4 sequence tests passed');

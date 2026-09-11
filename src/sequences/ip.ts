@@ -63,7 +63,7 @@ export function createIpSeq(
 	}
 
 	const startIp = rawIp || defaultIp;
-	const cidr = rawIp ? inputCidr : (inputCidr || defaultCidr);
+	const cidr = rawIp ? inputCidr : inputCidr || defaultCidr;
 
 	// Check if input IP octets were zero-padded (e.g. 192.168.001.001)
 	const isInputZeroPadded = rawIp
