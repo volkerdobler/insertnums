@@ -1,4 +1,9 @@
-import { formatString, formatTemporalDateTime } from './formatting';
+import {
+	formatString,
+	formatTemporalDateTime,
+	formatNumber,
+	toRoman,
+} from './formatting';
 import { Temporal } from 'temporal-polyfill';
 import { getRegExpressions } from './components/evaluator';
 
@@ -106,13 +111,46 @@ assertEqual(decRndNoToken, null, '1r5 does not match start_randomToken');
 
 // 2. Plain words "rnd" and "hex" without colon MUST match start_alpha and NOT start_randomToken
 const plainRndNoToken = 'rnd'.match(new RegExp(rules.start_randomToken, 'i'));
-assertEqual(plainRndNoToken, null, 'plain rnd does not match start_randomToken');
+assertEqual(
+	plainRndNoToken,
+	null,
+	'plain rnd does not match start_randomToken',
+);
 
 const plainHexNoToken = 'hex'.match(new RegExp(rules.start_randomToken, 'i'));
-assertEqual(plainHexNoToken, null, 'plain hex does not match start_randomToken');
+assertEqual(
+	plainHexNoToken,
+	null,
+	'plain hex does not match start_randomToken',
+);
 
 // 3. Hex numbers (0x1A) must NOT match start_randomToken
 const hexNumNoToken = '0x1A'.match(new RegExp(rules.start_randomToken, 'i'));
 assertEqual(hexNumNoToken, null, '0x1A does not match start_randomToken');
 
 console.log('random token tests passed');
+
+// Roman numeral formatting tests
+assertEqual(toRoman(1), 'I', '1 is I');
+assertEqual(toRoman(4), 'IV', '4 is IV');
+assertEqual(toRoman(9), 'IX', '9 is IX');
+assertEqual(toRoman(14), 'XIV', '14 is XIV');
+assertEqual(toRoman(40), 'XL', '40 is XL');
+assertEqual(toRoman(90), 'XC', '90 is XC');
+assertEqual(toRoman(1999), 'MCMXCIX', '1999 is MCMXCIX');
+assertEqual(toRoman(2026), 'MMXXVI', '2026 is MMXXVI');
+assertEqual(toRoman(14, true), 'xiv', '14 is xiv in lowercase');
+assertEqual(toRoman(4, true), 'iv', '4 is iv in lowercase');
+
+assertEqual(formatNumber(14, 'R'), 'XIV', 'formatNumber 14 R');
+assertEqual(formatNumber(14, 'r'), 'xiv', 'formatNumber 14 r');
+assertEqual(formatNumber(14, 'roman'), 'XIV', 'formatNumber 14 roman');
+assertEqual(formatNumber(4, '>5R'), '   IV', 'formatNumber 4 >5R with padding');
+
+const formatRomanMatch = '1~R'.match(new RegExp(rules.format_decimal, 'i'));
+assertEqual(formatRomanMatch?.groups?.type, 'R', '1~R matches format_decimal type R');
+
+const formatRomanLowerMatch = '1~r'.match(new RegExp(rules.format_decimal, 'i'));
+assertEqual(formatRomanLowerMatch?.groups?.type, 'r', '1~r matches format_decimal type r');
+
+console.log('roman numeral tests passed');

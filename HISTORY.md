@@ -235,3 +235,8 @@ _No completed tasks were found at the time of restructuring._
 * **Nutzen:** Schnelles Generieren von Dummy-Passwörtern oder Test-Hashes.
 * **Syntax-Idee:** `rnd:12` (12-stelliger alphanumerischer Zufallsstring) oder `hex:16` (16 Bytes hexadezimal).
 
+
+### 4.3 Römische Ziffern
+* **Nutzen:** Beliebt für Gliederungen in Markdown, HTML-Listen oder Dokumentationen.
+* **Syntax-Idee:** `I` (groß: I, II, III...) oder `i` (klein: i, ii, iii...).
+

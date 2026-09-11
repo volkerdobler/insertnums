@@ -2,15 +2,81 @@ import { format } from 'd3-format';
 import { Temporal } from 'temporal-polyfill';
 
 /**
- * Format a number using a d3-format specifier string.
+ * Convert an integer to a Roman numeral.
+ * Standard form supports numbers from 1 to 3999.
+ * For numbers outside this range or zero, falls back to numeric string.
+ * Negative numbers are prefixed with '-'.
+ *
+ * @param num - The number to convert.
+ * @param lowercase - Whether to return lowercase Roman numerals (e.g. `iv`).
+ * @returns The formatted Roman numeral string.
+ */
+export function toRoman(num: number, lowercase = false): string {
+	const intVal = Math.trunc(num);
+	if (intVal === 0) {
+		return '0';
+	}
+	if (intVal < 0) {
+		return '-' + toRoman(-intVal, lowercase);
+	}
+	if (intVal >= 4000) {
+		return intVal.toString();
+	}
+
+	const romanNumerals: Array<[number, string]> = [
+		[1000, 'M'],
+		[900, 'CM'],
+		[500, 'D'],
+		[400, 'CD'],
+		[100, 'C'],
+		[90, 'XC'],
+		[50, 'L'],
+		[40, 'XL'],
+		[10, 'X'],
+		[9, 'IX'],
+		[5, 'V'],
+		[4, 'IV'],
+		[1, 'I'],
+	];
+
+	let result = '';
+	let remaining = intVal;
+	for (const [val, sym] of romanNumerals) {
+		while (remaining >= val) {
+			result += sym;
+			remaining -= val;
+		}
+	}
+
+	return lowercase ? result.toLowerCase() : result;
+}
+
+/**
+ * Format a number using a d3-format specifier string or a Roman numeral specifier (`R`, `r`, `roman`).
  *
  * @param value - The number to format.
- * @param formatString - A d3-format specifier (e.g. `".2f"`, `"#x"`, `"08d"`).
+ * @param formatSpec - A format specifier (e.g. `".2f"`, `"#x"`, `"08d"`, `"R"`, `"r"`, `">5R"`).
  * @returns The formatted string.
  * @see https://d3js.org/d3-format
  */
-export function formatNumber(value: number, formatString: string): string {
-	return format(formatString)(value);
+export function formatNumber(value: number, formatSpec: string): string {
+	if (!formatSpec) {
+		return value.toString();
+	}
+
+	const romanMatch = formatSpec.match(/^(.*?)((?:roman)|r|R)$/i);
+	if (romanMatch) {
+		const prefixTemplate = romanMatch[1];
+		const typeToken = romanMatch[2];
+		const isLower = typeToken === 'r';
+		const romanStr = toRoman(value, isLower);
+		if (prefixTemplate) {
+			return formatString(romanStr, prefixTemplate);
+		}
+		return romanStr;
+	}
+
+	return format(formatSpec)(value);
 }
 
 /**

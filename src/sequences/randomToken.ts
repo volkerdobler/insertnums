@@ -36,7 +36,11 @@ function getRandomChars(charset: string, len: number): string {
 /**
  * Generate a cryptographically secure random password with guaranteed mixed character classes.
  */
-function generatePassword(len: number, isUpper = false, isLower = false): string {
+function generatePassword(
+	len: number,
+	isUpper = false,
+	isLower = false,
+): string {
 	const lower = 'abcdefghijklmnopqrstuvwxyz';
 	const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 	const digits = '0123456789';
@@ -116,7 +120,9 @@ export function createRandomTokenSeq(
 					: 16;
 
 	const lenMatch = startMatch?.groups?.tokenLength;
-	const length = lenMatch ? Math.max(1, parseInt(lenMatch, 10)) : defaultLength;
+	const length = lenMatch
+		? Math.max(1, parseInt(lenMatch, 10))
+		: defaultLength;
 
 	const formatMatch = input.match(/[~?]([a-zA-Z0-9_-]+)/);
 	const formatStr = (formatMatch ? formatMatch[1] : '').toLowerCase();
@@ -140,7 +146,9 @@ export function createRandomTokenSeq(
 			return generatePassword(length, isUpper, isLower);
 		}
 		if (rawType === 'hex' || rawType === 'hash') {
-			const hexCharset = isUpper ? '0123456789ABCDEF' : '0123456789abcdef';
+			const hexCharset = isUpper
+				? '0123456789ABCDEF'
+				: '0123456789abcdef';
 			return getRandomChars(hexCharset, length);
 		}
 		if (rawType === 'token') {
@@ -166,10 +174,16 @@ export function createRandomTokenSeq(
 			);
 		}
 		if (isUpper) {
-			return getRandomChars('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', length);
+			return getRandomChars(
+				'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+				length,
+			);
 		}
 		if (isLower) {
-			return getRandomChars('abcdefghijklmnopqrstuvwxyz0123456789', length);
+			return getRandomChars(
+				'abcdefghijklmnopqrstuvwxyz0123456789',
+				length,
+			);
 		}
 		return getRandomChars(
 			'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',

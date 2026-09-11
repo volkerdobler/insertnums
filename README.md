@@ -123,7 +123,7 @@ Input: `1 rep:2 freq:3 startover:7` (short: `1#2*3##7`) with 13 selections → o
 
 ### Formatting numbers
 
-Formatting uses d3-format style. Example: zero-pad to width 3 with `~03d`.
+Formatting uses d3-format style (e.g. `~03d` for zero-padding) or Roman numeral specifiers (`~R` or `~roman` for uppercase Roman numerals, `~r` for lowercase Roman numerals).
 
 Input: `1~03d` with 5 selections → output:
 
@@ -133,6 +133,25 @@ Input: `1~03d` with 5 selections → output:
 003
 004
 005
+```
+
+Input: `1~R` with 5 selections → output:
+
+```
+I
+II
+III
+IV
+V
+```
+
+Input: `9~r` with 4 selections → output:
+
+```
+ix
+x
+xi
+xii
 ```
 
 ### Stop expression
@@ -305,6 +324,7 @@ Generate cryptographically secure random tokens, hexadecimal hashes, and strong 
 - `:hash[:length]` (or `hash:<length>`): Random hex hash (default length: 32).
 
 **Modifiers (`~` or `?`):**
+
 - `~d` (or `~digits`): Digits only (e.g. `:rnd:6~d` generates 6-digit PIN / OTP codes like `840291`).
 - `~u` (or `~upper`): Uppercase only (e.g. `:rnd:12~u` or `:hex:16~u`).
 - `~l` (or `~lower`): Lowercase only.
@@ -464,8 +484,8 @@ The syntax is built from segments. Each input type has a specific starting marke
 - format
     - Formatting template for output values. Uses a compact format compatible with the project's formatting helper (based on d3/mini-Python style).
     - Syntax: `~<format>` or `format:<format>`.
-    - Subparts: padding / lead characters, alignment `< > ^ =`, sign, alternate `#`, width/zero flag, thousands separator `,`, precision `.2`, output type specifier (for example, `b e E o x X %`).
-    - Examples: `~03d` → zero-padded width 3, `~>8` → right align in width 8.
+    - Subparts: padding / lead characters, alignment `< > ^ =`, sign, alternate `#`, width/zero flag, thousands separator `,`, precision `.2`, output type specifier (for example, `b e E o x X %`, `R` or `roman` for uppercase Roman numerals, `r` for lowercase Roman numerals).
+    - Examples: `~03d` → zero-padded width 3, `~>8` → right align in width 8, `1~R` → `I, II, III...`, `1~r` → `i, ii, iii...`, `1~>5R` → right-aligned Roman numeral.
 
 - expression
     - Inline JavaScript expression that can compute or transform the current value before formatting.

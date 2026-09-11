@@ -384,7 +384,7 @@ export function getRegExpressions(): RuleTemplate {
 										)?
 										(?<thousands> , )?
 										(?<precision>\\.\\d+ )?
-										(?<type> [bcdeEfFgGnoxX%] )?
+										(?<type> roman | ROMAN | [bcdeEfFgGnoxX%rR] )?
 									)
 									(?= {{delimiter}} )
 								)`;

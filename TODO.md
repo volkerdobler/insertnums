@@ -19,10 +19,6 @@ Dieser Bericht dokumentiert alle identifizierten Probleme, logischen Schwachstel
 
 ## 4. Vorschläge für funktionale Erweiterungen
 
-### 4.3 Römische Ziffern
-* **Nutzen:** Beliebt für Gliederungen in Markdown, HTML-Listen oder Dokumentationen.
-* **Syntax-Idee:** `I` (groß: I, II, III...) oder `i` (klein: i, ii, iii...).
-
 ### 4.5 Netzwerk- & IP-Adressen
 * **Nutzen:** DevOps- und Netzwerk-Konfigurationen (Subnetze, Host-Listen).
 * **Syntax-Idee:** `192.168.1.1:1` -> zählt das letzte Oktett hoch (`192.168.1.1`, `.2`, `.3`, ...).
