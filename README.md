@@ -9,32 +9,43 @@ custom formats, stop expressions, and more.
 All inputs are previewed live (as a decoration) for the current selections,
 so you can verify the generated sequence before pressing Enter.
 
-## Higlight in version 1.1.0
+## Feature Overview (Agenda)
 
-Added [Quoted Template](#quoted-template-details) and [Backtick Template](#backtick-template-details) sequences.
+At a glance — what InsertSeq can do:
+
+| Category | Key Capabilities & Quick Examples |
+| :--- | :--- |
+| **🔢 Numbers & Radices** | • Decimal integers and floating-point numbers (`1`, `0.5`, `-10`)<br>• Radix systems: Hexadecimal (`0x10`), Octal (`0o10`), Binary (`0b10`)<br>• Random number ranges (`1r10` = random numbers between 1 and 10)<br>• Roman numerals: uppercase (`1~R`, `1~roman`) and lowercase (`1~r`) |
+| **🔤 Strings & Lists** | • Alphabetic sequences (`a`, `b`, `c`, ...) with case options (`?u`, `?l`, `?p`)<br>• Custom inline lists and circular arrays (`["red","green","blue"]`)<br>• Predefined lists from configuration settings (`;Jan`, `;?1`)<br>• Re-insert or transform previously selected text |
+| **📅 Date & Time** | • Calendar dates (`%2025-01-01`, `%now`, `%date:`)<br>• Clock times & timestamps (`%14:00`, `%14:00:15min`)<br>• Compound duration steps (`:1d15min`, `:2h30min`, `:1.5d`)<br>• Format tokens (`yyyy-MM-dd HH:mm:ss`), locales (`lang:de`), and timestamps (`~epoch`, `~epochms`, `~iso`, `~utc`) |
+| **🛠️ DevOps & Utilities** | • **UUIDs**: standard v4 (`:uuid`) and time-sortable v7 (`:uuid:v7`), uppercase (`~u`), clean (`~c`)<br>• **Random Tokens & Passwords**: alphanumeric (`:rnd:16`), passwords (`:pwd:16`), hex hashes (`:hex:32`), URL tokens (`:token:24`), PIN codes (`:rnd:6~d`)<br>• **IPv4 Addresses**: host sequences (`192.168.1.1:1`), subnet boundary rollover (`192.168.1.255:1` → `.2.0`), CIDR retention (`10.0.0.1/24:1`), negative steps, binary/hex/int formats (`~bin`, `~hex`, `~int`), and configurable default (`insertseq.ipStart`) |
+| **📝 Templates & Wrapping** | • **Quoted templates**: embed sequences into surrounding text (`"Item {}":1` → `Item 1`, `Item 2`)<br>• **Backtick templates**: multiple independent sequences in one line (`` `Row {1}: Col {a}` ``) |
+| **⚡ Custom Logic & Functions** | • Inline JavaScript expressions (`|"item_" + (i*2)`)<br>• User-defined reusable functions from configuration settings (`=1`, `=2;5`) |
+| **🎛️ Sequence Controls** | • Custom step sizes (`:2`, `:-1`, `step:5`)<br>• Frequency (`*2` / `freq:2` — repeat each value N times)<br>• Repetition (`#5` / `rep:5` — cycle length over values)<br>• Startover (`##10` / `startover:10` — restart stream every N items)<br>• Formatting (`~03d`, `~>10`, padding, alignment)<br>• Stop expressions (`@i>5` / `stopif:(i>5)`)<br>• Document order sorting (`$`) and reverse order (`!`) |
+| **💡 Productivity & UX** | • **Live preview decoration** directly in the active editor before pressing Enter<br>• **Command history** (`insertseq.history`, `Ctrl+Alt+,`) to view, repeat, or edit previous insertions |
 
 ## Usage
 
 See [CHANGELOG.md](./CHANGELOG.md) for all version history and changes from version to version.
 
-## Note about insertion order
+### Note about insertion order
 
 - By default, the mapping from sequence items to your cursors follows the order in which you created the selections (click order). That order might not match the document order (top → bottom).
 - Use `$` to force top→bottom (document) insertion order regardless of click order.
 - Use `!` to invert the insertion order. Without `$`, this reverses the click order; when combined with `$` it results in bottom→top document order.
   See the "Syntax details" section for more information.
 
-## Starting the extension
+### Starting the extension
 
 You can start the extension from the Command Palette by searching for `insertseq`, or use the default key binding `Ctrl+Alt+.` (CTRL-ALT or COMMAND-OPTION + DOT - this can be changed in settings).
 
 If you have used this extension before, you can reuse previous inputs with the command `insertseq.history` (default key binding `Ctrl+Alt+,` CTRL+ALT or COMMAND-OPTION + COMMA). This shows your previous insertions; you can run them again or edit them. If no history entries exist, the normal input box is shown. See the [History](#history) section for details.
 
-# Examples (simple → advanced)
+### Examples (simple → advanced)
 
-## If you want to see the examples as "live" GIF film [click here](./EXAMPLES.md).
+#### If you want to see the examples as "live" GIF film [click here](./EXAMPLES.md).
 
-### Multi-cursor example (5 cursors)
+### Decimal sequence (5 cursors)
 
 With five empty cursors, start `insertseq` and you will see a preview of numbers 1 to 5 (the default start is 1).
 
@@ -48,7 +59,7 @@ If you type `3`, the preview updates to 3–7. Pressing Enter inserts those numb
 7
 ```
 
-### Change the step
+#### ___Change the step___
 
 Use `:<number>` or `step:<number>` to set the increment. The `step:` form requires a word boundary (space or comma) before it (for example, `10 step:2` works; `10step:2` does not).
 
@@ -62,7 +73,7 @@ Input: `10:2` (or `10 step:2`) with 5 selections → output:
 18
 ```
 
-### Repeat sequence after a fixed number of insertions
+#### ___Repeat sequence after a fixed number of insertions___
 
 Use `#` or `rep:` / `repeat:` / `repetition:` to define the cycle length.
 
@@ -81,7 +92,7 @@ Input: `1#5` with 10 selections → output:
 5
 ```
 
-### Repeat each value multiple times (frequency)
+#### ___Repeat each value multiple times (frequency)___
 
 Use `*` or `freq:` / `frequency:` to repeat each logical value several times.
 
@@ -100,7 +111,7 @@ Input: `1 freq:2` with 10 selections → output:
 5
 ```
 
-### Startover (overall cycle length)
+#### ___Startover (overall cycle length)___
 
 Use `##` or `startover:` / `startagain:` to restart the entire emitted stream after N emitted items.
 
@@ -121,7 +132,7 @@ Input: `1 rep:2 freq:3 startover:7` (short: `1#2*3##7`) with 13 selections → o
 2
 ```
 
-### Formatting numbers
+#### ___Formatting numbers___
 
 Formatting uses d3-format style (e.g. `~03d` for zero-padding) or Roman numeral specifiers (`~R` or `~roman` for uppercase Roman numerals, `~r` for lowercase Roman numerals).
 
@@ -154,7 +165,7 @@ xi
 xii
 ```
 
-### Stop expression
+#### ___Stop expression___
 
 Use `@` or `stopif:` / `stopexpr:` / `stopexpression:` to stop insertion based on a boolean expression. Use placeholders such as `i` for the current index (0-based).
 
@@ -176,7 +187,7 @@ d
 e
 ```
 
-### Formatting alphabetic sequences
+#### ___Formatting alphabetic sequences___
 
 String formatting supports padding and alignment. Example: right-align in width 10 with `~>10`.
 
@@ -453,14 +464,16 @@ Col A	Col B	Col C
 
 ## Content of full syntax description
 
-- [Numbers](#numeric-sequences-details)
-- [Alphabetical/Strings](#alphabetic--string-sequences-details)
+- [Numbers (Decimal, Hex, Octal, Binary, Roman)](#numeric-sequences-details)
+- [Alphabetical / Strings](#alphabetic--string-sequences-details)
 - [Dates & Time](#date-and-time-sequences-details)
-- [Own](#own-sequences-details)
-- [Predefined](#predefined-sequences-details)
-- [Function](#function-sequences-details)
+- [Expressions](#expression-sequences-details)
+- [Own Lists](#own-sequences-details)
+- [Predefined Lists](#predefined-sequences-details)
+- [Functions](#function-sequences-details)
 - [UUIDs](#uuid-sequences-details)
 - [Random Tokens, Passwords & Hashes](#random-tokens-passwords--hashes-details)
+- [IPv4 Addresses](#ipv4-address-sequences-details)
 - [Quoted Template](#quoted-template-details)
 - [Backtick Template](#backtick-template-details)
 
@@ -887,6 +900,7 @@ The extension exposes settings under the `insertseq` namespace. A quick referenc
 | `insertseq.stringFormat`      |  string | `""`                           | Default format template for string outputs.                                                                                                                                                                                                                                                                                                                                                       |
 | `insertseq.numberFormat`      |  string | `""`                           | Default format template for numeric outputs (d3-format).                                                                                                                                                                                                                                                                                                                                          |
 | `insertseq.dateFormat`        |  string | `""`                           | Default date output format.                                                                                                                                                                                                                                                                                                                                                                       |
+| `insertseq.ipStart`           |  string | `"192.168.1.1"`                | Default start address for IPv4 sequences if omitted.                                                                                                                                                                                                                                                                                                                                              |
 | `insertseq.alphaCapital`      |  string | `"preserve"`                   | Case handling for alpha sequences: `preserve`, `upper`, `lower`, `pascal`.                                                                                                                                                                                                                                                                                                                        |
 | `insertseq.language`          |  string | `""`                           | Default locale/language for date formatting.                                                                                                                                                                                                                                                                                                                                                      |
 | `insertseq.sortedOuput`       | boolean | `false`                        | Default insertion order: false (default) in multi cursor click order; true in cursor order                                                                                                                                                                                                                                                                                                        |

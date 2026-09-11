@@ -2,6 +2,16 @@
 
 All notable changes to this extension (newest first):
 
+# Version 1.2.0
+
+- Added **UUID Generator** (`:uuid` for v4, `:uuid:v7` for time-sortable v7, with uppercase `~u` and clean `~c` modifiers)
+- Added **Random Tokens, Passwords & Hashes** (`:rnd:16`, `:pwd:16`, `:hex:32`, `:token:24`, `:hash:32`, and numeric PIN codes with `~d`)
+- Added **Roman Numerals** formatting for numeric sequences (`~R` / `~roman` for uppercase, `~r` for lowercase)
+- Added **Extended Date & Time Sequences** (clock times `%14:00`, compound steps `:1d15min` / `:2h30min`, and timestamps `~epoch`, `~epochms`, `~iso`, `~utc`)
+- Added **IPv4 Network & Host Address Sequences** (`192.168.1.1:1`, automatic subnet rollover `192.168.1.255:1` → `192.168.2.0`, CIDR retention `10.0.0.1/24:1`, formats `~0`, `~hex`, `~bin`, `~int`, and setting `insertseq.ipStart`)
+- Added **Feature Overview (Agenda)** table in `README.md` for a complete at-a-glance summary of all extension features
+- Added `npm test` unit-test suite checking formatting, conversions, and regex safety
+
 # Version 1.1.2
 
 - Fixed several bugs regarding string-wrapping and `0` evaluation in expressions
