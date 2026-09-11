@@ -240,3 +240,9 @@ _No completed tasks were found at the time of restructuring._
 * **Nutzen:** Beliebt für Gliederungen in Markdown, HTML-Listen oder Dokumentationen.
 * **Syntax-Idee:** `I` (groß: I, II, III...) oder `i` (klein: i, ii, iii...).
 
+
+### 4.5 Netzwerk- & IP-Adressen
+* **Nutzen:** DevOps- und Netzwerk-Konfigurationen (Subnetze, Host-Listen).
+* **Syntax:** `192.168.1.1:1` -> zählt das letzte Oktett hoch (`192.168.1.1`, `.2`, `.3`, ...), inklusive Subnetz-Übertrag (`192.168.1.255:1` -> `192.168.2.0`), CIDR-Erhalt (`10.0.0.1/24:1`), negativer Schritte (`10.0.1.0:-1`), Format-Optionen (`~0`, `~hex`, `~bin`, `~int`) und Default-Präfix (`:ip:1`).
+
+

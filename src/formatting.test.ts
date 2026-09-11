@@ -1,11 +1,36 @@
+// Mock vscode for standalone Node test runner
+declare const require: any;
+const Module = require('module');
+const origRequire = Module.prototype.require;
+Module.prototype.require = function (id: string) {
+	if (id === 'vscode') {
+		return {
+			window: {
+				createOutputChannel: () => ({
+					appendLine: () => {},
+					dispose: () => {},
+				}),
+			},
+		};
+	}
+	return origRequire.apply(this, arguments);
+};
+
 import {
 	formatString,
 	formatTemporalDateTime,
 	formatNumber,
 	toRoman,
+	ipToNumber,
+	numberToIp,
+	numberToBinaryIp,
+	numberToHexIp,
 } from './formatting';
 import { Temporal } from 'temporal-polyfill';
 import { getRegExpressions } from './components/evaluator';
+import { RuleTemplate, TParameter } from './types';
+
+const { createIpSeq } = require('./sequences/ip');
 
 function assertEqual(a: any, b: any, msg?: string) {
 	if (a !== b) {
@@ -164,3 +189,165 @@ assertEqual(
 );
 
 console.log('roman numeral tests passed');
+
+// IPv4 conversion tests
+assertEqual(ipToNumber('192.168.1.1'), 3232235777, 'ipToNumber 192.168.1.1');
+assertEqual(numberToIp(3232235777), '192.168.1.1', 'numberToIp 3232235777');
+assertEqual(
+	numberToIp(3232235777, true),
+	'192.168.001.001',
+	'numberToIp padded',
+);
+assertEqual(numberToHexIp(3232235777), 'c0a80101', 'numberToHexIp lower');
+assertEqual(numberToHexIp(3232235777, true), 'C0A80101', 'numberToHexIp upper');
+assertEqual(
+	numberToBinaryIp(3232235777),
+	'11000000.10101000.00000001.00000001',
+	'numberToBinaryIp',
+);
+
+// IPv4 regex matching tests
+const ip1 = '192.168.1.1:1'.match(new RegExp(rules.start_ip, 'i'));
+assertEqual(ip1?.groups?.ipAddress, '192.168.1.1', 'ip1 ipAddress');
+assertEqual(ip1?.groups?.cidr, undefined, 'ip1 cidr is undefined');
+
+const ipCidr = '10.0.0.1/24:1'.match(new RegExp(rules.start_ip, 'i'));
+assertEqual(ipCidr?.groups?.ipAddress, '10.0.0.1', 'ipCidr ipAddress');
+assertEqual(ipCidr?.groups?.cidr, '/24', 'ipCidr cidr /24');
+
+const ipPrefixTest = ':ip:1'.match(new RegExp(rules.start_ip, 'i'));
+assertEqual(ipPrefixTest?.groups?.ipPrefix, ':ip', ':ip:1 ipPrefix');
+
+const ipPrefixWithIp = ':ip:10.0.0.1'.match(new RegExp(rules.start_ip, 'i'));
+assertEqual(ipPrefixWithIp?.groups?.ipPrefix, ':ip:', ':ip:10.0.0.1 ipPrefix');
+assertEqual(
+	ipPrefixWithIp?.groups?.ipAddress,
+	'10.0.0.1',
+	':ip:10.0.0.1 ipAddress',
+);
+
+// Collision safety:
+// Decimals (3.14, 192.168), words (rnd, ip without colon), and hex (0x1A) MUST NOT match charStartIp
+assertEqual(
+	new RegExp(rules.charStartIp, 'i').test('3.14'),
+	false,
+	'3.14 does not match charStartIp',
+);
+assertEqual(
+	new RegExp(rules.charStartIp, 'i').test('192.168'),
+	false,
+	'192.168 does not match charStartIp',
+);
+assertEqual(
+	new RegExp(rules.charStartIp, 'i').test('0x1A'),
+	false,
+	'0x1A does not match charStartIp',
+);
+assertEqual(
+	new RegExp(rules.charStartIp, 'i').test('rnd'),
+	false,
+	'rnd does not match charStartIp',
+);
+assertEqual(
+	new RegExp(rules.charStartIp, 'i').test('ip'),
+	false,
+	'plain word "ip" does not match charStartIp',
+);
+assertEqual(
+	new RegExp(rules.charStartIp, 'i').test(':ip'),
+	true,
+	':ip matches charStartIp',
+);
+assertEqual(
+	new RegExp(rules.charStartIp, 'i').test('192.168.1.1'),
+	true,
+	'192.168.1.1 matches charStartIp',
+);
+
+// createIpSeq sequence evaluation tests
+function createMockParam(r: RuleTemplate): TParameter {
+	return {
+		editor: {} as any,
+		origCursorPos: [
+			{} as any,
+			{} as any,
+			{} as any,
+			{} as any,
+			{} as any,
+		],
+		origTextSel: ['', '', '', '', ''],
+		segments: r,
+		config: {
+			get: (key: string) => {
+				if (key === 'frequency') {
+					return 1;
+				}
+				if (key === 'repetition') {
+					return Number.MAX_SAFE_INTEGER;
+				}
+				if (key === 'startover') {
+					return Number.MAX_SAFE_INTEGER;
+				}
+				return undefined;
+			},
+		} as any,
+		myDelimiter: null,
+	};
+}
+
+const mockParam = createMockParam(rules);
+
+// Host increment
+const hostSeq = createIpSeq('192.168.1.1:1', mockParam);
+assertEqual(hostSeq(0).stringFunction, '192.168.1.1', 'hostSeq 0');
+assertEqual(hostSeq(1).stringFunction, '192.168.1.2', 'hostSeq 1');
+assertEqual(hostSeq(2).stringFunction, '192.168.1.3', 'hostSeq 2');
+
+// Rollover across subnet boundary
+const rolloverSeq = createIpSeq('192.168.1.255:1', mockParam);
+assertEqual(rolloverSeq(0).stringFunction, '192.168.1.255', 'rolloverSeq 0');
+assertEqual(rolloverSeq(1).stringFunction, '192.168.2.0', 'rolloverSeq 1');
+assertEqual(rolloverSeq(2).stringFunction, '192.168.2.1', 'rolloverSeq 2');
+
+// Negative step across boundary
+const negStepSeq = createIpSeq('10.0.1.0:-1', mockParam);
+assertEqual(negStepSeq(0).stringFunction, '10.0.1.0', 'negStepSeq 0');
+assertEqual(negStepSeq(1).stringFunction, '10.0.0.255', 'negStepSeq 1');
+
+// CIDR retention
+const cidrSeq = createIpSeq('10.0.0.1/24:1', mockParam);
+assertEqual(cidrSeq(0).stringFunction, '10.0.0.1/24', 'cidrSeq 0');
+assertEqual(cidrSeq(1).stringFunction, '10.0.0.2/24', 'cidrSeq 1');
+
+// Zero padding format ~0
+const padSeq = createIpSeq('192.168.1.1:1~0', mockParam);
+assertEqual(padSeq(0).stringFunction, '192.168.001.001', 'padSeq 0');
+assertEqual(padSeq(1).stringFunction, '192.168.001.002', 'padSeq 1');
+
+// Hex format ~hex / ~HEX
+const hexSeq = createIpSeq('192.168.1.1:1~hex', mockParam);
+assertEqual(hexSeq(0).stringFunction, 'c0a80101', 'hexSeq 0');
+assertEqual(hexSeq(1).stringFunction, 'c0a80102', 'hexSeq 1');
+const hexUpperSeq = createIpSeq('192.168.1.1:1~HEX', mockParam);
+assertEqual(hexUpperSeq(0).stringFunction, 'C0A80101', 'hexUpperSeq 0');
+
+// Binary format ~bin
+const binSeq = createIpSeq('192.168.1.1:1~bin', mockParam);
+assertEqual(
+	binSeq(0).stringFunction,
+	'11000000.10101000.00000001.00000001',
+	'binSeq 0',
+);
+
+// Int format ~int
+const intSeq = createIpSeq('192.168.1.1:1~int', mockParam);
+assertEqual(intSeq(0).stringFunction, '3232235777', 'intSeq 0');
+assertEqual(intSeq(1).stringFunction, '3232235778', 'intSeq 1');
+
+// Default start with :ip:1
+const defaultIpSeq = createIpSeq(':ip:1', mockParam);
+assertEqual(defaultIpSeq(0).stringFunction, '192.168.1.1', 'defaultIpSeq 0');
+assertEqual(defaultIpSeq(1).stringFunction, '192.168.1.2', 'defaultIpSeq 1');
+
+console.log('IPv4 sequence tests passed');
+

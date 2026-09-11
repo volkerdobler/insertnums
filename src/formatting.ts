@@ -265,3 +265,50 @@ export function formatTemporalDateTime(
 	}
 	return out;
 }
+
+/**
+ * Parse an IPv4 string into a 32-bit unsigned integer.
+ */
+export function ipToNumber(ip: string): number {
+	const octets = ip.split('.').map((o) => parseInt(o, 10));
+	return (
+		((octets[0] << 24) >>> 0) +
+		((octets[1] << 16) | (octets[2] << 8) | octets[3])
+	);
+}
+
+/**
+ * Convert a 32-bit unsigned integer into an IPv4 dotted-decimal string.
+ * Optionally zero-pad each octet to 3 digits (e.g. 192.168.001.001).
+ */
+export function numberToIp(num: number, zeroPad: boolean = false): string {
+	const a = (num >>> 24) & 255;
+	const b = (num >>> 16) & 255;
+	const c = (num >>> 8) & 255;
+	const d = num & 255;
+	if (zeroPad) {
+		return `${String(a).padStart(3, '0')}.${String(b).padStart(3, '0')}.${String(c).padStart(3, '0')}.${String(d).padStart(3, '0')}`;
+	}
+	return `${a}.${b}.${c}.${d}`;
+}
+
+/**
+ * Format a 32-bit unsigned integer into binary dot notation:
+ * 11000000.10101000.00000001.00000001
+ */
+export function numberToBinaryIp(num: number): string {
+	const a = ((num >>> 24) & 255).toString(2).padStart(8, '0');
+	const b = ((num >>> 16) & 255).toString(2).padStart(8, '0');
+	const c = ((num >>> 8) & 255).toString(2).padStart(8, '0');
+	const d = (num & 255).toString(2).padStart(8, '0');
+	return `${a}.${b}.${c}.${d}`;
+}
+
+/**
+ * Format a 32-bit unsigned integer into an 8-character hex string.
+ */
+export function numberToHexIp(num: number, uppercase: boolean = false): string {
+	const hex = (num >>> 0).toString(16).padStart(8, '0');
+	return uppercase ? hex.toUpperCase() : hex.toLowerCase();
+}
+

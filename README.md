@@ -361,6 +361,40 @@ Input: `:hex:16~u` with 2 selections → output:
 E92D8B10A4C73F62
 ```
 
+### IPv4 Network & Host Address Sequences
+
+Generate sequential IPv4 network and host addresses with automatic 32-bit subnet boundary rollover and CIDR prefix preservation:
+
+- `192.168.1.1:1`: Increments the host address (`192.168.1.1`, `192.168.1.2`, ...).
+- `192.168.1.255:1`: Automatically rolls over subnet octet boundaries into `192.168.2.0`.
+- `10.0.0.1/24:1`: Preserves CIDR notation (`10.0.0.1/24`, `10.0.0.2/24`, ...).
+- `10.0.1.0:-1`: Negative steps decrement addresses across octet boundaries (`10.0.0.255`).
+- `:ip` (or `:ip:1`): Defaults to start address `192.168.1.1`.
+
+**Formatting Modifiers (`~` or `format:`):**
+
+- `~0` (or `~pad`): Zero-padded 3-digit octets (`192.168.001.001`). Also automatically enabled when input starts with padded octets.
+- `~hex` (or `~x`): 8-character lowercase hexadecimal string (`c0a80101`).
+- `~HEX` (or `~X`): 8-character uppercase hexadecimal string (`C0A80101`).
+- `~bin` (or `~b`): Dotted 8-bit binary representation (`11000000.10101000.00000001.00000001`).
+- `~int` (or `~d`): Unsigned 32-bit integer (`3232235777`).
+
+Input: `192.168.1.254:1` with 3 selections → output:
+
+```text
+192.168.1.254
+192.168.1.255
+192.168.2.0
+```
+
+Input: `10.0.0.1/24:1` with 3 selections → output:
+
+```text
+10.0.0.1/24
+10.0.0.2/24
+10.0.0.3/24
+```
+
 ### Quoted Template
 
 Start with `"` or `'` to embed a sequence inside fixed surrounding text. Write `{}` where the value should appear; the sequence definition follows the closing quote. All standard sequence types and options work as the inner sequence.
@@ -726,6 +760,37 @@ Examples:
 - `:hex:16~u`
 - `:pwd:20`
 - `:token:32`
+
+---
+
+### IPv4 Address sequences details
+
+- **Syntax**: `[<prefix>][<start_ip>[/<cidr>]][:<step>][*<freq>][#<repeat>][##<startover>][~<format>][::<expr>][@<stopexpr>]`
+- **Prefixes (optional)**: `:ip`, `:ipv4`, `ip:`, `ipv4:`. Can be used alone (`:ip:1` starts at `192.168.1.1`) or before an address (`:ip:10.0.0.1`).
+- **Direct Start**: Any valid IPv4 address (e.g. `192.168.1.1` or `10.0.0.1/24`) is recognized directly without prefix.
+- **Arithmetic**:
+    - Full 32-bit unsigned arithmetic.
+    - Positive and negative increments correctly cross octet boundaries (e.g. `192.168.1.255 + 1` → `192.168.2.0`, `10.0.1.0 - 1` → `10.0.0.255`).
+    - CIDR notation (e.g. `/24`) is preserved across increments.
+- **Formatting options (`~` or `format:`)**:
+    - `~0` / `~pad`: Pad each octet to 3 digits (e.g. `192.168.001.001`). Also enabled automatically when start IP has zero-padded octets.
+    - `~hex` / `~x`: 8-digit lowercase hexadecimal representation (`c0a80101`).
+    - `~HEX` / `~X`: 8-digit uppercase hexadecimal representation (`C0A80101`).
+    - `~bin` / `~b`: Dotted binary representation (`11000000.10101000.00000001.00000001`).
+    - `~int` / `~d`: Unsigned 32-bit integer (`3232235777`).
+    - Alignment and width templates (e.g. `~<18`) are also supported.
+- **Standard Sequence Controls**:
+    - Frequency (`*n`), repetition (`#n`), startover (`##n`), expressions (`::expr`), and stop expressions (`@expr`) are fully supported.
+
+Examples:
+
+- `192.168.1.1:1`
+- `192.168.1.255:1`
+- `10.0.0.1/24:1`
+- `10.0.1.0:-1`
+- `192.168.1.1~0`
+- `192.168.1.1~hex`
+- `:ip:1`
 
 ### Quoted Template details
 

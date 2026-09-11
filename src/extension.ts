@@ -42,6 +42,7 @@ import { createFunctionSeq } from './sequences/function';
 import { createTextSelectedSeq } from './sequences/textSelected';
 import { createUuidSeq } from './sequences/uuid';
 import { createRandomTokenSeq } from './sequences/randomToken';
+import { createIpSeq } from './sequences/ip';
 
 /**
  * Extension entry point called by VS Code when the extension is first activated.
@@ -683,6 +684,8 @@ function getSequenceFunction(
 			return createUuidSeq(input, p);
 		case 'randomToken':
 			return createRandomTokenSeq(input, p);
+		case 'ip':
+			return createIpSeq(input, p);
 		case 'textSelected':
 			return createTextSelectedSeq(input, p); // no input - just use the originally selected text
 		case 'backtick':
@@ -747,6 +750,10 @@ function getInputType(input: string, p: TParameter): TInput | null {
 		// binary numbers
 		case /^(?:([x0\\s\\._])\1*)?[+-]?0b[01]+/i.test(input):
 			type = 'binary';
+			break;
+		// network / IP addresses (must precede decimal numbers so 192.168.1.1 is not matched as decimal float)
+		case new RegExp(p.segments['charStartIp'], 'i').test(input):
+			type = 'ip';
 			break;
 		// numbers (decimal)
 		case /^(?:([x0\\s\\._])\1*)?[+-]?\d/i.test(input):

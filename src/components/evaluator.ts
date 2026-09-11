@@ -28,12 +28,14 @@ export function getRegExpressions(): RuleTemplate {
 		start_function: '', // Start-Wert bei Funktionen
 		start_uuid: '',
 		start_randomToken: '',
+		start_ip: '',
 		steps_decimal: '', // Schritte bei Zahlen (auch mit Nachkommastellen möglich)
 		steps_date: '', // Schritte bei einem Datum (es wird d, w, m oder y nach einer Zahl geschrieben, um zu sagen, welche Einheit die Steps sind)
 		steps_other: '', // Schritte bei anderen Typen (nur Ganzzahl-Schritte)
 		format_decimal: '', // Formatierung der Zahlen
 		format_alpha: '',
 		format_date: '',
+		format_ip: '',
 		language: '',
 		repetition: '',
 		frequency: '',
@@ -58,6 +60,7 @@ export function getRegExpressions(): RuleTemplate {
 		charStartOptions: '',
 		charStartUuid: '',
 		charStartRandomToken: '',
+		charStartIp: '',
 		easyexpression: '',
 	};
 
@@ -82,6 +85,9 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.charStartFunction = `^\\s*(?:=|func(?:tion)?:)`;
 	ruleTemplate.charStartUuid = `^\\s*(?::uuid)`;
 	ruleTemplate.charStartRandomToken = `^\\s*(?::(?:rnd|random|hex|pwd|password|token|hash)|(?:rnd|hex|pwd|password|token|hash):)`;
+	ruleTemplate.ipv4Octet = `(?:25[0-5]|2[0-4]\\d|1\\d\\d|0?\\d?\\d)`;
+	ruleTemplate.ipv4Address = `(?:{{ipv4Octet}}\\.{{ipv4Octet}}\\.{{ipv4Octet}}\\.{{ipv4Octet}}(?!\\d))`;
+	ruleTemplate.charStartIp = `^\\s*(?::(?:ip|ipv4)|(?:ip|ipv4):|{{ipv4Address}})`;
 	ruleTemplate.charStartAlpha = `^(^\\s*(?:(?:alpha(?:bet)?|string):)?)`;
 	// rules, which are normally not at the beginning of an input (but could be, when <start> is omitted/defaulted)
 	ruleTemplate.charStartSteps = `(?:\\bsteps?:|(?<!:|format|freq|frequency|func|function|rep|repeat|repetition|startat|startagain|startover|expr|expression|stop|stopexpr|stopexpression|option|options|delimiter):)`;
@@ -413,6 +419,16 @@ export function getRegExpressions(): RuleTemplate {
 									)?
 									(?= {{delimiter}} )
 								)`;
+	ruleTemplate.format_ip = `(?:
+									{{charStartFormat}}
+									(?<format_ip>
+										{{doublestring}}
+										| {{singlestring}}
+										| {{brackets}}
+										| [^\\s:]+
+									)
+									(?= {{delimiter}} )
+								)`;
 	ruleTemplate.expression = `(?: {{charStartExpression}} \\s*
 								(?<expr>
 									{{doublestring}}
@@ -463,6 +479,21 @@ export function getRegExpressions(): RuleTemplate {
 										(?: {{sequencedelimiter}} )?
 										(?= {{delimiter}} )
 									)`;
+
+	ruleTemplate.start_ip = `^\\s*(?:
+									(?<ipPrefix>
+										:(?:ip|ipv4)(?::(?={{ipv4Address}}))?
+										|
+										(?:ip|ipv4):
+									)?
+									\\s*
+									(?<start>
+										(?<ipAddress> {{ipv4Address}} )
+										(?<cidr> /\\d{1,2} )?
+									)?
+									(?: {{sequencedelimiter}} )?
+									(?= {{delimiter}} )
+								)`;
 
 	for (let [key, value] of Object.entries(ruleTemplate)) {
 		while (value.indexOf('{{') > -1) {
