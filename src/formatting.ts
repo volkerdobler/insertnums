@@ -311,4 +311,3 @@ export function numberToHexIp(num: number, uppercase: boolean = false): string {
 	const hex = (num >>> 0).toString(16).padStart(8, '0');
 	return uppercase ? hex.toUpperCase() : hex.toLowerCase();
 }
-

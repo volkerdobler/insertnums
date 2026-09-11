@@ -19,7 +19,7 @@ Dieser Bericht dokumentiert alle identifizierten Probleme, logischen Schwachstel
 
 ## 4. Vorschläge für funktionale Erweiterungen
 
-*(Alle Punkte 4.1–4.5 erledigt und nach HISTORY.md verschoben)*
+_(Alle Punkte 4.1–4.5 erledigt und nach HISTORY.md verschoben)_
 
 ---
 

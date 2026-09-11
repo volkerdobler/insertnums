@@ -268,13 +268,7 @@ assertEqual(
 function createMockParam(r: RuleTemplate): TParameter {
 	return {
 		editor: {} as any,
-		origCursorPos: [
-			{} as any,
-			{} as any,
-			{} as any,
-			{} as any,
-			{} as any,
-		],
+		origCursorPos: [{} as any, {} as any, {} as any, {} as any, {} as any],
 		origTextSel: ['', '', '', '', ''],
 		segments: r,
 		config: {
@@ -349,5 +343,36 @@ const defaultIpSeq = createIpSeq(':ip:1', mockParam);
 assertEqual(defaultIpSeq(0).stringFunction, '192.168.1.1', 'defaultIpSeq 0');
 assertEqual(defaultIpSeq(1).stringFunction, '192.168.1.2', 'defaultIpSeq 1');
 
-console.log('IPv4 sequence tests passed');
+// Custom ipStart setting
+const customParam = createMockParam(rules);
+(customParam.config as any).get = (key: string) => {
+	if (key === 'frequency') {
+		return 1;
+	}
+	if (key === 'repetition') {
+		return Number.MAX_SAFE_INTEGER;
+	}
+	if (key === 'startover') {
+		return Number.MAX_SAFE_INTEGER;
+	}
+	if (key === 'ipStart') {
+		return '10.10.0.1';
+	}
+	return undefined;
+};
+const customIpSeq = createIpSeq(':ip:1', customParam);
+assertEqual(customIpSeq(0).stringFunction, '10.10.0.1', 'customIpSeq 0');
+assertEqual(customIpSeq(1).stringFunction, '10.10.0.2', 'customIpSeq 1');
 
+// Custom ipStart with CIDR
+(customParam.config as any).get = (key: string) => {
+	if (key === 'ipStart') {
+		return '172.16.0.1/16';
+	}
+	return undefined;
+};
+const customCidrSeq = createIpSeq(':ip:1', customParam);
+assertEqual(customCidrSeq(0).stringFunction, '172.16.0.1/16', 'customCidrSeq 0');
+assertEqual(customCidrSeq(1).stringFunction, '172.16.0.2/16', 'customCidrSeq 1');
+
+console.log('IPv4 sequence tests passed');

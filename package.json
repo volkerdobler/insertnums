@@ -87,6 +87,11 @@
 					"default": "",
 					"description": "Default output format for dates"
 				},
+				"insertseq.ipStart": {
+					"type": "string",
+					"default": "192.168.1.1",
+					"description": "Default start address for IPv4 sequences if omitted"
+				},
 				"insertseq.alphaCapital": {
 					"type": "string",
 					"default": "preserve",

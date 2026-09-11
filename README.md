@@ -369,7 +369,7 @@ Generate sequential IPv4 network and host addresses with automatic 32-bit subnet
 - `192.168.1.255:1`: Automatically rolls over subnet octet boundaries into `192.168.2.0`.
 - `10.0.0.1/24:1`: Preserves CIDR notation (`10.0.0.1/24`, `10.0.0.2/24`, ...).
 - `10.0.1.0:-1`: Negative steps decrement addresses across octet boundaries (`10.0.0.255`).
-- `:ip` (or `:ip:1`): Defaults to start address `192.168.1.1`.
+- `:ip` (or `:ip:1`): Defaults to start address configured via `insertseq.ipStart` (default: `192.168.1.1`).
 
 **Formatting Modifiers (`~` or `format:`):**
 
@@ -766,7 +766,7 @@ Examples:
 ### IPv4 Address sequences details
 
 - **Syntax**: `[<prefix>][<start_ip>[/<cidr>]][:<step>][*<freq>][#<repeat>][##<startover>][~<format>][::<expr>][@<stopexpr>]`
-- **Prefixes (optional)**: `:ip`, `:ipv4`, `ip:`, `ipv4:`. Can be used alone (`:ip:1` starts at `192.168.1.1`) or before an address (`:ip:10.0.0.1`).
+- **Prefixes (optional)**: `:ip`, `:ipv4`, `ip:`, `ipv4:`. Can be used alone (`:ip:1` starts at the default address configured in `insertseq.ipStart`, default: `192.168.1.1`) or before an address (`:ip:10.0.0.1`).
 - **Direct Start**: Any valid IPv4 address (e.g. `192.168.1.1` or `10.0.0.1/24`) is recognized directly without prefix.
 - **Arithmetic**:
     - Full 32-bit unsigned arithmetic.

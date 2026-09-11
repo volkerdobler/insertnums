@@ -48,11 +48,22 @@ export function createIpSeq(
 	parameter.myDelimiter = startMatch?.groups?.seqdelimiter || null;
 
 	const rawIp = startMatch?.groups?.ipAddress;
-	const cidr = startMatch?.groups?.cidr || '';
+	const inputCidr = startMatch?.groups?.cidr || '';
 
-	// Default start IP if omitted (e.g. user just entered `:ip` or `:ip:1`)
-	const defaultIp = '192.168.1.1';
+	// Default start IP from settings if omitted (e.g. user entered `:ip` or `:ip:1`)
+	const configIpStart =
+		String(parameter.config.get('ipStart') || '192.168.1.1').trim() ||
+		'192.168.1.1';
+	let defaultIp = configIpStart;
+	let defaultCidr = '';
+	if (configIpStart.includes('/')) {
+		const slashIndex = configIpStart.indexOf('/');
+		defaultIp = configIpStart.slice(0, slashIndex);
+		defaultCidr = configIpStart.slice(slashIndex);
+	}
+
 	const startIp = rawIp || defaultIp;
+	const cidr = rawIp ? inputCidr : (inputCidr || defaultCidr);
 
 	// Check if input IP octets were zero-padded (e.g. 192.168.001.001)
 	const isInputZeroPadded = rawIp
