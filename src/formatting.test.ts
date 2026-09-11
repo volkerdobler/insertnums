@@ -148,9 +148,19 @@ assertEqual(formatNumber(14, 'roman'), 'XIV', 'formatNumber 14 roman');
 assertEqual(formatNumber(4, '>5R'), '   IV', 'formatNumber 4 >5R with padding');
 
 const formatRomanMatch = '1~R'.match(new RegExp(rules.format_decimal, 'i'));
-assertEqual(formatRomanMatch?.groups?.type, 'R', '1~R matches format_decimal type R');
+assertEqual(
+	formatRomanMatch?.groups?.type,
+	'R',
+	'1~R matches format_decimal type R',
+);
 
-const formatRomanLowerMatch = '1~r'.match(new RegExp(rules.format_decimal, 'i'));
-assertEqual(formatRomanLowerMatch?.groups?.type, 'r', '1~r matches format_decimal type r');
+const formatRomanLowerMatch = '1~r'.match(
+	new RegExp(rules.format_decimal, 'i'),
+);
+assertEqual(
+	formatRomanLowerMatch?.groups?.type,
+	'r',
+	'1~r matches format_decimal type r',
+);
 
 console.log('roman numeral tests passed');
