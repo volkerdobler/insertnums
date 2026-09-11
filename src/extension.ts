@@ -41,6 +41,7 @@ import { createPredefinedSeq } from './sequences/predefined';
 import { createFunctionSeq } from './sequences/function';
 import { createTextSelectedSeq } from './sequences/textSelected';
 import { createUuidSeq } from './sequences/uuid';
+import { createRandomTokenSeq } from './sequences/randomToken';
 
 /**
  * Extension entry point called by VS Code when the extension is first activated.
@@ -679,7 +680,9 @@ function getSequenceFunction(
 		case 'function':
 			return createFunctionSeq(input, p);
 		case 'uuid':
-			return createUuidSeq(input, p); // predefined functions (predefined functions in configuration)
+			return createUuidSeq(input, p);
+		case 'randomToken':
+			return createRandomTokenSeq(input, p);
 		case 'textSelected':
 			return createTextSelectedSeq(input, p); // no input - just use the originally selected text
 		case 'backtick':
@@ -758,6 +761,10 @@ function getInputType(input: string, p: TParameter): TInput | null {
 		// uuid generator
 		case new RegExp(p.segments['charStartUuid'], 'i').test(input):
 			type = 'uuid';
+			break;
+		// random token / password / hash generator
+		case new RegExp(p.segments['charStartRandomToken'], 'i').test(input):
+			type = 'randomToken';
 			break;
 		// strings (alphabetic)
 		case reAlphabetCharClass.test(input):

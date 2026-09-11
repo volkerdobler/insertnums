@@ -23,10 +23,6 @@ Dieser Bericht dokumentiert alle identifizierten Probleme, logischen Schwachstel
 * **Nutzen:** Beliebt für Gliederungen in Markdown, HTML-Listen oder Dokumentationen.
 * **Syntax-Idee:** `I` (groß: I, II, III...) oder `i` (klein: i, ii, iii...).
 
-### 4.4 Zufalls-Token, Passwörter & Hash-Strings
-* **Nutzen:** Schnelles Generieren von Dummy-Passwörtern oder Test-Hashes.
-* **Syntax-Idee:** `rnd:12` (12-stelliger alphanumerischer Zufallsstring) oder `hex:16` (16 Bytes hexadezimal).
-
 ### 4.5 Netzwerk- & IP-Adressen
 * **Nutzen:** DevOps- und Netzwerk-Konfigurationen (Subnetze, Host-Listen).
 * **Syntax-Idee:** `192.168.1.1:1` -> zählt das letzte Oktett hoch (`192.168.1.1`, `.2`, `.3`, ...).

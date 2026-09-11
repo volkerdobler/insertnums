@@ -26,6 +26,8 @@ export function getRegExpressions(): RuleTemplate {
 		start_predefined: '', // Start-Wert in der Configuration vordefinierte Listen (string)
 		start_expression: '', // Start-Wert bei Ausdrücken
 		start_function: '', // Start-Wert bei Funktionen
+		start_uuid: '',
+		start_randomToken: '',
 		steps_decimal: '', // Schritte bei Zahlen (auch mit Nachkommastellen möglich)
 		steps_date: '', // Schritte bei einem Datum (es wird d, w, m oder y nach einer Zahl geschrieben, um zu sagen, welche Einheit die Steps sind)
 		steps_other: '', // Schritte bei anderen Typen (nur Ganzzahl-Schritte)
@@ -55,6 +57,7 @@ export function getRegExpressions(): RuleTemplate {
 		charStartStopExpression: '',
 		charStartOptions: '',
 		charStartUuid: '',
+		charStartRandomToken: '',
 		easyexpression: '',
 	};
 
@@ -78,6 +81,7 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.charStartExpressionfunction = `^\\s*(?:\\||expr(?:ession)?:)`;
 	ruleTemplate.charStartFunction = `^\\s*(?:=|func(?:tion)?:)`;
 	ruleTemplate.charStartUuid = `^\\s*(?::uuid)`;
+	ruleTemplate.charStartRandomToken = `^\\s*(?::(?:rnd|random|hex|pwd|password|token|hash)|(?:rnd|hex|pwd|password|token|hash):)`;
 	ruleTemplate.charStartAlpha = `^(^\\s*(?:(?:alpha(?:bet)?|string):)?)`;
 	// rules, which are normally not at the beginning of an input (but could be, when <start> is omitted/defaulted)
 	ruleTemplate.charStartSteps = `(?:\\bsteps?:|(?<!:|format|freq|frequency|func|function|rep|repeat|repetition|startat|startagain|startover|expr|expression|stop|stopexpr|stopexpression|option|options|delimiter):)`;
@@ -441,6 +445,24 @@ export function getRegExpressions(): RuleTemplate {
 									(?: {{sequencedelimiter}} )?
 									(?= {{delimiter}} )
 								)`;
+
+	ruleTemplate.start_randomToken = `^(?:
+										(?<tokenType>
+											:(?:rnd|random|hex|pwd|password|token|hash)
+											|
+											(?:rnd|hex|pwd|password|token|hash):
+										)
+										(?:
+											:?
+											(?<tokenLength> \\d+ )
+										)?
+										(?:
+											{{charStartOptions}}
+											(?<tokenOptions> [a-zA-Z0-9_-]+ )
+										)?
+										(?: {{sequencedelimiter}} )?
+										(?= {{delimiter}} )
+									)`;
 
 	for (let [key, value] of Object.entries(ruleTemplate)) {
 		while (value.indexOf('{{') > -1) {

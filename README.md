@@ -278,21 +278,68 @@ As the function can include `start`, `step`, `repeat`, `frequency` and `startove
 
 Use :uuid to generate Universally Unique Identifiers (UUIDs). By default, standard v4 UUIDs are generated. You can append :v7 to generate time-sortable v7 UUIDs. Formatting options allow you to convert them to uppercase (~u or ~upper) or remove hyphens (~c or ~clean).
 
-Input: :uuid with 3 selections → output:
+Input: `:uuid` with 3 selections → output:
 
-`	ext
+```text
 c5108bb6-52bb-49e0-81f7-e24c538a7c29
 f823dc34-97c7-43f1-b9c1-4fc3a23a31c6
 1f350c3d-d558-450f-93d3-1e5b10c5b369
-`
+```
 
-Input: :uuid:v7~uc (Version 7, Uppercase, Clean) with 3 selections → output:
+Input: `:uuid:v7~uc` (Version 7, Uppercase, Clean) with 3 selections → output:
 
-`	ext
+```text
 0192A02E7A5A70F88E91910D83A61690
 0192A02E7A5B796BA53B621F5A132C1B
 0192A02E7A5B79A680C4F7249E34B8C1
-`
+```
+
+### Random Tokens, Passwords & Hashes
+
+Generate cryptographically secure random tokens, hexadecimal hashes, and strong passwords:
+
+- `:rnd[:length]` (or `rnd:<length>`): Alphanumeric random string (default length: 16).
+- `:hex[:length]` (or `hex:<length>`): Hexadecimal random string (default length: 32).
+- `:pwd[:length]` (or `pwd:<length>`): Strong password with uppercase, lowercase, digits, and special characters (default length: 16).
+- `:token[:length]` (or `token:<length>`): URL-safe random token (`A-Za-z0-9_-`, default length: 24).
+- `:hash[:length]` (or `hash:<length>`): Random hex hash (default length: 32).
+
+**Modifiers (`~` or `?`):**
+- `~d` (or `~digits`): Digits only (e.g. `:rnd:6~d` generates 6-digit PIN / OTP codes like `840291`).
+- `~u` (or `~upper`): Uppercase only (e.g. `:rnd:12~u` or `:hex:16~u`).
+- `~l` (or `~lower`): Lowercase only.
+- `~a` (or `~alpha`): Letters only.
+- `~s` (or `~special`): Include special characters.
+
+Input: `:rnd:12` with 3 selections → output:
+
+```text
+aK9zP2mQx7L1
+8dF3vR0bW6yN
+5tG8hJ2pM4kL
+```
+
+Input: `:rnd:6~d` (6-digit PIN) with 3 selections → output:
+
+```text
+492015
+837492
+109583
+```
+
+Input: `:pwd:16` with 2 selections → output:
+
+```text
+k#8Mx!2P$qW9@vL4
+Z@7p#K1r&vM5!qX8
+```
+
+Input: `:hex:16~u` with 2 selections → output:
+
+```text
+3F8A1C90B2D4E571
+E92D8B10A4C73F62
+```
 
 ### Quoted Template
 
@@ -354,10 +401,12 @@ Col A	Col B	Col C
 
 - [Numbers](#numeric-sequences-details)
 - [Alphabetical/Strings](#alphabetic--string-sequences-details)
-- [Dates](#date-sequences-details)
+- [Dates & Time](#date-and-time-sequences-details)
 - [Own](#own-sequences-details)
 - [Predefined](#predefined-sequences-details)
 - [Function](#function-sequences-details)
+- [UUIDs](#uuid-sequences-details)
+- [Random Tokens, Passwords & Hashes](#random-tokens-passwords--hashes-details)
 - [Quoted Template](#quoted-template-details)
 - [Backtick Template](#backtick-template-details)
 
@@ -609,25 +658,54 @@ Prefixes accepted: `=` (short), `func:`, or `function:` (readable). Functions ma
 
 ---
 
-### UUID Sequences
+### UUID Sequences details
 
-Use :uuid to generate Universally Unique Identifiers (UUIDs). By default, standard v4 UUIDs are generated. You can append :v7 to generate time-sortable v7 UUIDs. Formatting options allow you to convert them to uppercase (~u or ~upper) or remove hyphens (~c or ~clean).
+Use `:uuid` to generate Universally Unique Identifiers (UUIDs). By default, standard v4 UUIDs are generated. You can append `:v7` to generate time-sortable v7 UUIDs. Formatting options allow you to convert them to uppercase (`~u` or `~upper`) or remove hyphens (`~c` or `~clean`).
 
-Input: :uuid with 3 selections → output:
+Input: `:uuid` with 3 selections → output:
 
-`	ext
+```text
 c5108bb6-52bb-49e0-81f7-e24c538a7c29
 f823dc34-97c7-43f1-b9c1-4fc3a23a31c6
 1f350c3d-d558-450f-93d3-1e5b10c5b369
-`
+```
 
-Input: :uuid:v7~uc (Version 7, Uppercase, Clean) with 3 selections → output:
+Input: `:uuid:v7~uc` (Version 7, Uppercase, Clean) with 3 selections → output:
 
-`	ext
+```text
 0192A02E7A5A70F88E91910D83A61690
 0192A02E7A5B796BA53B621F5A132C1B
 0192A02E7A5B79A680C4F7249E34B8C1
-`
+```
+
+---
+
+### Random Tokens, Passwords & Hashes details
+
+- **Syntax**: `:<type>[:<length>][~<format>]` or `<type>:<length>[~<format>]`
+- **Types**:
+    - `rnd` / `random`: Alphanumeric random string (default length: 16)
+    - `hex`: Random hex string (default length: 32)
+    - `pwd` / `password`: Cryptographically secure password with upper, lower, digits, and special characters (default length: 16)
+    - `token`: URL-safe token with characters `A-Za-z0-9_-` (default length: 24)
+    - `hash`: Random hex hash (default length: 32)
+- **Modifiers (`~` or `?`)**:
+    - `~d` (digits only) — ideal for PIN and OTP numeric codes
+    - `~u` (uppercase only)
+    - `~l` (lowercase only)
+    - `~a` (letters only)
+    - `~s` (include special characters)
+- **Standard Sequence Controls**:
+    - Frequency (`*n`), repetition (`#n`), startover (`##n`), stop expressions (`@expr`), and expressions (`::expr`) are fully supported.
+    - Preserves normal decimal random ranges (e.g. `1r10`) and normal string sequences (e.g. `rnd` or `hex` without colon).
+
+Examples:
+
+- `:rnd:12`
+- `:rnd:6~d`
+- `:hex:16~u`
+- `:pwd:20`
+- `:token:32`
 
 ### Quoted Template details
 

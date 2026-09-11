@@ -78,3 +78,41 @@ const s3 = '%14:00:1d15min'.match(new RegExp(rules.steps_date, 'i'));
 assertEqual(s3?.groups?.step_expr, '1d15min', '1d15min step_expr extracted');
 
 console.log('date-time evaluator parsing tests passed');
+
+// Random token regex parsing tests
+const rnd1 = ':rnd:12'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(rnd1?.groups?.tokenType, ':rnd', ':rnd tokenType matched');
+assertEqual(rnd1?.groups?.tokenLength, '12', '12 length matched');
+
+const rnd2 = 'rnd:16'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(rnd2?.groups?.tokenType, 'rnd:', 'rnd: tokenType matched');
+assertEqual(rnd2?.groups?.tokenLength, '16', '16 length matched');
+
+const hex1 = ':hex:32'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(hex1?.groups?.tokenType, ':hex', ':hex tokenType matched');
+assertEqual(hex1?.groups?.tokenLength, '32', '32 length matched');
+
+const pwd1 = ':pwd:20'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(pwd1?.groups?.tokenType, ':pwd', ':pwd tokenType matched');
+assertEqual(pwd1?.groups?.tokenLength, '20', '20 length matched');
+
+// Collision safety tests!
+// 1. Decimal random numbers (e.g. 1r5) MUST match start_decimal and NOT start_randomToken
+const decRnd = '1r5'.match(new RegExp(rules.start_decimal, 'i'));
+assertEqual(decRnd?.groups?.start, '1', '1r5 start is 1');
+assertEqual(decRnd?.groups?.rndNumber, '5', '1r5 rndNumber is 5');
+const decRndNoToken = '1r5'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(decRndNoToken, null, '1r5 does not match start_randomToken');
+
+// 2. Plain words "rnd" and "hex" without colon MUST match start_alpha and NOT start_randomToken
+const plainRndNoToken = 'rnd'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(plainRndNoToken, null, 'plain rnd does not match start_randomToken');
+
+const plainHexNoToken = 'hex'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(plainHexNoToken, null, 'plain hex does not match start_randomToken');
+
+// 3. Hex numbers (0x1A) must NOT match start_randomToken
+const hexNumNoToken = '0x1A'.match(new RegExp(rules.start_randomToken, 'i'));
+assertEqual(hexNumNoToken, null, '0x1A does not match start_randomToken');
+
+console.log('random token tests passed');

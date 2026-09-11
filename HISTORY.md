@@ -230,3 +230,8 @@ _No completed tasks were found at the time of restructuring._
   - Unix-Timestamps in Sekunden (`%now:1s~epoch`) oder Millisekunden (`~epochms`)
   - ISO-8601 UTC Timestamps (`2026-03-09T20:00:00Z`)
 
+
+### 4.4 Zufalls-Token, Passwörter & Hash-Strings
+* **Nutzen:** Schnelles Generieren von Dummy-Passwörtern oder Test-Hashes.
+* **Syntax-Idee:** `rnd:12` (12-stelliger alphanumerischer Zufallsstring) oder `hex:16` (16 Bytes hexadezimal).
+
