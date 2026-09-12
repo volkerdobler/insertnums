@@ -384,3 +384,42 @@ assertEqual(
 );
 
 console.log('IPv4 sequence tests passed');
+
+// UUID sequence tests
+const { createUuidSeq } = require('./sequences/uuid');
+const uuidParam = createMockParam(rules);
+
+// Test :uuid (v4 default)
+const uuidV4Seq = createUuidSeq(':uuid', uuidParam);
+const v4_1 = uuidV4Seq(0).stringFunction;
+const v4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+assertEqual(v4Regex.test(v4_1), true, `:uuid produces valid UUIDv4 (${v4_1})`);
+
+// Test :uuid:v7
+const uuidV7Seq = createUuidSeq(':uuid:v7', uuidParam);
+const v7_1 = uuidV7Seq(0).stringFunction;
+const v7_2 = uuidV7Seq(1).stringFunction;
+const v7Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+assertEqual(v7Regex.test(v7_1), true, `:uuid:v7 produces valid UUIDv7 (${v7_1})`);
+assertEqual(v7Regex.test(v7_2), true, `:uuid:v7 second item produces valid UUIDv7 (${v7_2})`);
+
+// Test :uuid:v7~uc (clean + uppercase)
+const uuidV7UcSeq = createUuidSeq(':uuid:v7~uc', uuidParam);
+const v7uc = uuidV7UcSeq(0).stringFunction;
+const v7ucRegex = /^[0-9A-F]{12}7[0-9A-F]{3}[89AB][0-9A-F]{15}$/;
+assertEqual(v7uc.length, 32, ':uuid:v7~uc length 32');
+assertEqual(v7ucRegex.test(v7uc), true, `:uuid:v7~uc valid uppercase clean v7 (${v7uc})`);
+
+// Test :uuid~clean
+const uuidCleanSeq = createUuidSeq(':uuid~clean', uuidParam);
+const v4clean = uuidCleanSeq(0).stringFunction;
+assertEqual(v4clean.includes('-'), false, ':uuid~clean has no hyphens');
+assertEqual(v4clean.length, 32, ':uuid~clean length 32');
+
+// Test :uuid:v7~upper
+const uuidV7UpperSeq = createUuidSeq(':uuid:v7~upper', uuidParam);
+const v7upper = uuidV7UpperSeq(0).stringFunction;
+assertEqual(v7upper, v7upper.toUpperCase(), ':uuid:v7~upper is uppercase');
+assertEqual(v7upper.includes('-'), true, ':uuid:v7~upper retains hyphens');
+
+console.log('UUID sequence tests passed');
