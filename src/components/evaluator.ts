@@ -26,12 +26,16 @@ export function getRegExpressions(): RuleTemplate {
 		start_predefined: '', // Start-Wert in der Configuration vordefinierte Listen (string)
 		start_expression: '', // Start-Wert bei Ausdrücken
 		start_function: '', // Start-Wert bei Funktionen
+		start_uuid: '',
+		start_randomToken: '',
+		start_ip: '',
 		steps_decimal: '', // Schritte bei Zahlen (auch mit Nachkommastellen möglich)
 		steps_date: '', // Schritte bei einem Datum (es wird d, w, m oder y nach einer Zahl geschrieben, um zu sagen, welche Einheit die Steps sind)
 		steps_other: '', // Schritte bei anderen Typen (nur Ganzzahl-Schritte)
 		format_decimal: '', // Formatierung der Zahlen
 		format_alpha: '',
 		format_date: '',
+		format_ip: '',
 		language: '',
 		repetition: '',
 		frequency: '',
@@ -54,6 +58,9 @@ export function getRegExpressions(): RuleTemplate {
 		charStartExpression: '',
 		charStartStopExpression: '',
 		charStartOptions: '',
+		charStartUuid: '',
+		charStartRandomToken: '',
+		charStartIp: '',
 		easyexpression: '',
 	};
 
@@ -76,6 +83,11 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.charStartPredefinedSequence = `^\\s*(?:;|predef(?:ined)?(?:seq(?:uence)?)?:)`;
 	ruleTemplate.charStartExpressionfunction = `^\\s*(?:\\||expr(?:ession)?:)`;
 	ruleTemplate.charStartFunction = `^\\s*(?:=|func(?:tion)?:)`;
+	ruleTemplate.charStartUuid = `^\\s*(?::uuid)`;
+	ruleTemplate.charStartRandomToken = `^\\s*(?::(?:rnd|random|hex|pwd|password|token|hash)|(?:rnd|hex|pwd|password|token|hash):)`;
+	ruleTemplate.ipv4Octet = `(?:25[0-5]|2[0-4]\\d|1\\d\\d|0?\\d?\\d)`;
+	ruleTemplate.ipv4Address = `(?:{{ipv4Octet}}\\.{{ipv4Octet}}\\.{{ipv4Octet}}\\.{{ipv4Octet}}(?!\\d))`;
+	ruleTemplate.charStartIp = `^\\s*(?::(?:ip|ipv4)|(?:ip|ipv4):|{{ipv4Address}})`;
 	ruleTemplate.charStartAlpha = `^(^\\s*(?:(?:alpha(?:bet)?|string):)?)`;
 	// rules, which are normally not at the beginning of an input (but could be, when <start> is omitted/defaulted)
 	ruleTemplate.charStartSteps = `(?:\\bsteps?:|(?<!:|format|freq|frequency|func|function|rep|repeat|repetition|startat|startagain|startover|expr|expression|stop|stopexpr|stopexpression|option|options|delimiter):)`;
@@ -90,7 +102,7 @@ export function getRegExpressions(): RuleTemplate {
 	// sub-rules
 	ruleTemplate.myDelimiterOption = `(?:\\bdelimiter:|_)`;
 	ruleTemplate.specialchars = `(?:[_epasni])`;
-	ruleTemplate.dateunits = `(?:[dDwWmMyY])`;
+	ruleTemplate.dateunits = `(?:minute|minutes|second|seconds|hour|hours|day|days|week|weeks|month|months|year|years|min|sec|ms|[dDwWmMyYhHsS])`;
 	ruleTemplate.predefinedoptions = `(?: [ifsIFS]+ )`;
 	ruleTemplate.alphacapitalchars = `(?: [uUlLpP]? )`;
 	ruleTemplate.myDelimiterChars = `(?: [\\s_xo<>-] )`;
@@ -227,16 +239,19 @@ export function getRegExpressions(): RuleTemplate {
 									(?: {{charStartDate}} )
 									\\s*
 									(?<start>
+										(?<now> now )
+										|
+										(?<datetimepart>
+											(?<year> \\d{4}|\\d{2} ) - (?<month> 0?[1-9]|10|11|12 ) (?: - (?<day> 0?[1-9]|[12][0-9]|30|31 ) )?
+											(?: [ T] (?<timepart> \\d{1,2} : \\d{2} (?: : \\d{2} )? ) )?
+										)
+										|
+										(?<timeonly>
+											\\d{1,2} : \\d{2} (?: : \\d{2} )?
+										)
+										|
 										(?<datepart>
-											(?<year> \\d{2}|\\d{4} )
-											(?:
-												(?:-
-													(?<month> 0?[1-9]|10|11|12 )
-												)
-												(?:-
-													(?<day> 0?[1-9]|[12][0-9]|30|31 )
-												)?
-											)?
+											(?<year_only> \\d{4} ) (?: - (?<month_only> 0?[1-9]|10|11|12 ) (?: - (?<day_only> 0?[1-9]|[12][0-9]|30|31 ) )? )?
 										)
 										|
 										(?<fulldate>
@@ -245,7 +260,6 @@ export function getRegExpressions(): RuleTemplate {
 											| {{brackets}}
 											| .+?
 										)
-										(?![\\d-])
 									)?
 									(?: {{sequencedelimiter}} )?
 									(?= {{delimiter}} )
@@ -350,9 +364,13 @@ export function getRegExpressions(): RuleTemplate {
 	ruleTemplate.steps_date = `(?:
 									(?<!{{charStartSteps}})
 									(?:{{charStartSteps}})
-									(?<steps> {{signedNum}})?
-									\\s*
-									(?<date_unit> {{dateunits}} )?
+									(?<step_expr>
+										(?:
+											[+-]? \\d+(?:\\.\\d+)? \\s* {{dateunits}} \\s*
+										)+
+										|
+										(?<steps> {{signedNum}} )? \\s* (?<date_unit> {{dateunits}} )?
+									)
 									(?= {{delimiter}} )
 								)`;
 	ruleTemplate.steps_other = `(?:(?<!{{charStartSteps}})(?:{{charStartSteps}}) \\s* (?<steps> {{signedInt}}) (?= {{delimiter}} ))`;
@@ -372,7 +390,7 @@ export function getRegExpressions(): RuleTemplate {
 										)?
 										(?<thousands> , )?
 										(?<precision>\\.\\d+ )?
-										(?<type> [bcdeEfFgGnoxX%] )?
+										(?<type> roman | ROMAN | [bcdeEfFgGnoxX%rR] )?
 									)
 									(?= {{delimiter}} )
 								)`;
@@ -401,6 +419,16 @@ export function getRegExpressions(): RuleTemplate {
 									)?
 									(?= {{delimiter}} )
 								)`;
+	ruleTemplate.format_ip = `(?:
+									{{charStartFormat}}
+									(?<format_ip>
+										{{doublestring}}
+										| {{singlestring}}
+										| {{brackets}}
+										| [^\\s:]+
+									)
+									(?= {{delimiter}} )
+								)`;
 	ruleTemplate.expression = `(?: {{charStartExpression}} \\s*
 								(?<expr>
 									{{doublestring}}
@@ -421,6 +449,57 @@ export function getRegExpressions(): RuleTemplate {
 								)`;
 	ruleTemplate.outputSort = `(?:\\$!|!\\$|\\$)\\s*$`;
 	ruleTemplate.outputReverse = `(?:\\$!|!\\$|!)\\s*$`;
+
+	ruleTemplate.start_uuid = `^(?:
+									(?: {{charStartUuid}} )
+									(?:
+										\\s*
+										:?
+										\\s*
+										(?<uuidversion> [vV]?[47] )
+									)?
+									(?:
+										\\s*
+										(?: {{charStartFormat}} | {{charStartOptions}} )
+										\\s*
+										(?<uuidformat> [a-zA-Z]+ )
+									)?
+									(?: {{sequencedelimiter}} )?
+									(?= {{delimiter}} )
+								)`;
+
+	ruleTemplate.start_randomToken = `^(?:
+										(?<tokenType>
+											:(?:rnd|random|hex|pwd|password|token|hash)
+											|
+											(?:rnd|hex|pwd|password|token|hash):
+										)
+										(?:
+											:?
+											(?<tokenLength> \\d+ )
+										)?
+										(?:
+											{{charStartOptions}}
+											(?<tokenOptions> [a-zA-Z0-9_-]+ )
+										)?
+										(?: {{sequencedelimiter}} )?
+										(?= {{delimiter}} )
+									)`;
+
+	ruleTemplate.start_ip = `^\\s*(?:
+									(?<ipPrefix>
+										:(?:ip|ipv4)(?::(?={{ipv4Address}}))?
+										|
+										(?:ip|ipv4):
+									)?
+									\\s*
+									(?<start>
+										(?<ipAddress> {{ipv4Address}} )
+										(?<cidr> /\\d{1,2} )?
+									)?
+									(?: {{sequencedelimiter}} )?
+									(?= {{delimiter}} )
+								)`;
 
 	for (let [key, value] of Object.entries(ruleTemplate)) {
 		while (value.indexOf('{{') > -1) {

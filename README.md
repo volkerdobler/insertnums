@@ -9,32 +9,43 @@ custom formats, stop expressions, and more.
 All inputs are previewed live (as a decoration) for the current selections,
 so you can verify the generated sequence before pressing Enter.
 
-## Higlight in version 1.1.0
+## Feature Overview (Agenda)
 
-Added [Quoted Template](#quoted-template-details) and [Backtick Template](#backtick-template-details) sequences.
+At a glance — what InsertSeq can do:
+
+| Category | Key Capabilities & Quick Examples |
+| :--- | :--- |
+| **🔢 Numbers & Radices** | • Decimal integers and floating-point numbers (`1`, `0.5`, `-10`)<br>• Radix systems: Hexadecimal (`0x10`), Octal (`0o10`), Binary (`0b10`)<br>• Random number ranges (`1r10` = random numbers between 1 and 10)<br>• Roman numerals: uppercase (`1~R`, `1~roman`) and lowercase (`1~r`) |
+| **🔤 Strings & Lists** | • Alphabetic sequences (`a`, `b`, `c`, ...) with case options (`?u`, `?l`, `?p`)<br>• Custom inline lists and circular arrays (`["red","green","blue"]`)<br>• Predefined lists from configuration settings (`;Jan`, `;?1`)<br>• Re-insert or transform previously selected text |
+| **📅 Date & Time** | • Calendar dates (`%2025-01-01`, `%now`, `%date:`)<br>• Clock times & timestamps (`%14:00`, `%14:00:15min`)<br>• Compound duration steps (`:1d15min`, `:2h30min`, `:1.5d`)<br>• Format tokens (`yyyy-MM-dd HH:mm:ss`), locales (`lang:de`), and timestamps (`~epoch`, `~epochms`, `~iso`, `~utc`) |
+| **🛠️ DevOps & Utilities** | • **UUIDs**: standard v4 (`:uuid`) and time-sortable v7 (`:uuid:v7`), uppercase (`~u`), clean (`~c`)<br>• **Random Tokens & Passwords**: alphanumeric (`:rnd:16`), passwords (`:pwd:16`), hex hashes (`:hex:32`), URL tokens (`:token:24`), PIN codes (`:rnd:6~d`)<br>• **IPv4 Addresses**: host sequences (`192.168.1.1:1`), subnet boundary rollover (`192.168.1.255:1` → `.2.0`), CIDR retention (`10.0.0.1/24:1`), negative steps, binary/hex/int formats (`~bin`, `~hex`, `~int`), and configurable default (`insertseq.ipStart`) |
+| **📝 Templates & Wrapping** | • **Quoted templates**: embed sequences into surrounding text (`"Item {}":1` → `Item 1`, `Item 2`)<br>• **Backtick templates**: multiple independent sequences in one line (`` `Row {1}: Col {a}` ``) |
+| **⚡ Custom Logic & Functions** | • Inline JavaScript expressions (`|"item_" + (i*2)`)<br>• User-defined reusable functions from configuration settings (`=1`, `=2;5`) |
+| **🎛️ Sequence Controls** | • Custom step sizes (`:2`, `:-1`, `step:5`)<br>• Frequency (`*2` / `freq:2` — repeat each value N times)<br>• Repetition (`#5` / `rep:5` — cycle length over values)<br>• Startover (`##10` / `startover:10` — restart stream every N items)<br>• Formatting (`~03d`, `~>10`, padding, alignment)<br>• Stop expressions (`@i>5` / `stopif:(i>5)`)<br>• Document order sorting (`$`) and reverse order (`!`) |
+| **💡 Productivity & UX** | • **Live preview decoration** directly in the active editor before pressing Enter<br>• **Command history** (`insertseq.history`, `Ctrl+Alt+,`) to view, repeat, or edit previous insertions |
 
 ## Usage
 
 See [CHANGELOG.md](./CHANGELOG.md) for all version history and changes from version to version.
 
-## Note about insertion order
+### Note about insertion order
 
 - By default, the mapping from sequence items to your cursors follows the order in which you created the selections (click order). That order might not match the document order (top → bottom).
 - Use `$` to force top→bottom (document) insertion order regardless of click order.
 - Use `!` to invert the insertion order. Without `$`, this reverses the click order; when combined with `$` it results in bottom→top document order.
   See the "Syntax details" section for more information.
 
-## Starting the extension
+### Starting the extension
 
 You can start the extension from the Command Palette by searching for `insertseq`, or use the default key binding `Ctrl+Alt+.` (CTRL-ALT or COMMAND-OPTION + DOT - this can be changed in settings).
 
 If you have used this extension before, you can reuse previous inputs with the command `insertseq.history` (default key binding `Ctrl+Alt+,` CTRL+ALT or COMMAND-OPTION + COMMA). This shows your previous insertions; you can run them again or edit them. If no history entries exist, the normal input box is shown. See the [History](#history) section for details.
 
-# Examples (simple → advanced)
+### Examples (simple → advanced)
 
-## If you want to see the examples as "live" GIF film [click here](./EXAMPLES.md).
+#### If you want to see the examples as "live" GIF film [click here](./EXAMPLES.md).
 
-### Multi-cursor example (5 cursors)
+### Decimal sequence (5 cursors)
 
 With five empty cursors, start `insertseq` and you will see a preview of numbers 1 to 5 (the default start is 1).
 
@@ -48,7 +59,7 @@ If you type `3`, the preview updates to 3–7. Pressing Enter inserts those numb
 7
 ```
 
-### Change the step
+#### ___Change the step___
 
 Use `:<number>` or `step:<number>` to set the increment. The `step:` form requires a word boundary (space or comma) before it (for example, `10 step:2` works; `10step:2` does not).
 
@@ -62,7 +73,7 @@ Input: `10:2` (or `10 step:2`) with 5 selections → output:
 18
 ```
 
-### Repeat sequence after a fixed number of insertions
+#### ___Repeat sequence after a fixed number of insertions___
 
 Use `#` or `rep:` / `repeat:` / `repetition:` to define the cycle length.
 
@@ -81,7 +92,7 @@ Input: `1#5` with 10 selections → output:
 5
 ```
 
-### Repeat each value multiple times (frequency)
+#### ___Repeat each value multiple times (frequency)___
 
 Use `*` or `freq:` / `frequency:` to repeat each logical value several times.
 
@@ -100,7 +111,7 @@ Input: `1 freq:2` with 10 selections → output:
 5
 ```
 
-### Startover (overall cycle length)
+#### ___Startover (overall cycle length)___
 
 Use `##` or `startover:` / `startagain:` to restart the entire emitted stream after N emitted items.
 
@@ -121,9 +132,9 @@ Input: `1 rep:2 freq:3 startover:7` (short: `1#2*3##7`) with 13 selections → o
 2
 ```
 
-### Formatting numbers
+#### ___Formatting numbers___
 
-Formatting uses d3-format style. Example: zero-pad to width 3 with `~03d`.
+Formatting uses d3-format style (e.g. `~03d` for zero-padding) or Roman numeral specifiers (`~R` or `~roman` for uppercase Roman numerals, `~r` for lowercase Roman numerals).
 
 Input: `1~03d` with 5 selections → output:
 
@@ -135,7 +146,26 @@ Input: `1~03d` with 5 selections → output:
 005
 ```
 
-### Stop expression
+Input: `1~R` with 5 selections → output:
+
+```
+I
+II
+III
+IV
+V
+```
+
+Input: `9~r` with 4 selections → output:
+
+```
+ix
+x
+xi
+xii
+```
+
+#### ___Stop expression___
 
 Use `@` or `stopif:` / `stopexpr:` / `stopexpression:` to stop insertion based on a boolean expression. Use placeholders such as `i` for the current index (0-based).
 
@@ -157,7 +187,7 @@ d
 e
 ```
 
-### Formatting alphabetic sequences
+#### ___Formatting alphabetic sequences___
 
 String formatting supports padding and alignment. Example: right-align in width 10 with `~>10`.
 
@@ -173,18 +203,29 @@ Input: `a~>10` with 5 selections → output:
 
 Use `~w` to enable wrap behavior (for example, `z~w` yields `z, a, b, ...` if configured).
 
-### Date sequences
+### Date and Time sequences
 
-Date sequences start with `%` followed by a date (for example, `yyyy-mm-dd`) or a quoted date string. Steps support days (default), weeks, months, or years. You can specify a language for formatting with `lang:`.
+Date and time sequences start with `%` or `date:` followed by a date, time, ISO timestamp, or `now` (e.g. `%2025-03-02`, `%14:00:00`, `%now`).
+
+- **Steps**: Support days (`d`, default), weeks (`w`), months (`m`), years (`y`), hours (`h`), minutes (`min`), seconds (`s` or `sec`), and milliseconds (`ms`).
+- **Formatting**: Supports standard tokens (`yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`, `dd`, `d`, `HH`, `H`, `mm`, `m`, `ss`, `s`), locale fallback strings (e.g. `lang:de`), or special keywords (`~epoch`, `~epochms`, `~iso`, `~utc`).
 
 Input: `%2025-03-02:1w~lang:de` with 5 selections → output:
 
-```
+```text
 2.3.2025
 16.3.2025
 30.3.2025
 13.4.2025
 27.4.2025
+```
+
+Input: `%14:00:15min~yyyy-MM-dd HH:mm:ss` with 3 selections → output:
+
+```text
+2026-03-09 14:00:00
+2026-03-09 14:15:00
+2026-03-09 14:30:00
 ```
 
 ### Expressions
@@ -263,6 +304,108 @@ Input: `=2` with 5 selections → output:
 
 As the function can include `start`, `step`, `repeat`, `frequency` and `startover` (in this order!), the start value is passed via `;`. The other values will come from the options you can provide.
 
+### UUID Sequences
+
+Use :uuid to generate Universally Unique Identifiers (UUIDs). By default, standard v4 UUIDs are generated. You can append :v7 to generate time-sortable v7 UUIDs. Formatting options allow you to convert them to uppercase (~u or ~upper) or remove hyphens (~c or ~clean).
+
+Input: `:uuid` with 3 selections → output:
+
+```text
+c5108bb6-52bb-49e0-81f7-e24c538a7c29
+f823dc34-97c7-43f1-b9c1-4fc3a23a31c6
+1f350c3d-d558-450f-93d3-1e5b10c5b369
+```
+
+Input: `:uuid:v7~uc` (Version 7, Uppercase, Clean) with 3 selections → output:
+
+```text
+0192A02E7A5A70F88E91910D83A61690
+0192A02E7A5B796BA53B621F5A132C1B
+0192A02E7A5B79A680C4F7249E34B8C1
+```
+
+### Random Tokens, Passwords & Hashes
+
+Generate cryptographically secure random tokens, hexadecimal hashes, and strong passwords:
+
+- `:rnd[:length]` (or `rnd:<length>`): Alphanumeric random string (default length: 16).
+- `:hex[:length]` (or `hex:<length>`): Hexadecimal random string (default length: 32).
+- `:pwd[:length]` (or `pwd:<length>`): Strong password with uppercase, lowercase, digits, and special characters (default length: 16).
+- `:token[:length]` (or `token:<length>`): URL-safe random token (`A-Za-z0-9_-`, default length: 24).
+- `:hash[:length]` (or `hash:<length>`): Random hex hash (default length: 32).
+
+**Modifiers (`~` or `?`):**
+
+- `~d` (or `~digits`): Digits only (e.g. `:rnd:6~d` generates 6-digit PIN / OTP codes like `840291`).
+- `~u` (or `~upper`): Uppercase only (e.g. `:rnd:12~u` or `:hex:16~u`).
+- `~l` (or `~lower`): Lowercase only.
+- `~a` (or `~alpha`): Letters only.
+- `~s` (or `~special`): Include special characters.
+
+Input: `:rnd:12` with 3 selections → output:
+
+```text
+aK9zP2mQx7L1
+8dF3vR0bW6yN
+5tG8hJ2pM4kL
+```
+
+Input: `:rnd:6~d` (6-digit PIN) with 3 selections → output:
+
+```text
+492015
+837492
+109583
+```
+
+Input: `:pwd:16` with 2 selections → output:
+
+```text
+k#8Mx!2P$qW9@vL4
+Z@7p#K1r&vM5!qX8
+```
+
+Input: `:hex:16~u` with 2 selections → output:
+
+```text
+3F8A1C90B2D4E571
+E92D8B10A4C73F62
+```
+
+### IPv4 Network & Host Address Sequences
+
+Generate sequential IPv4 network and host addresses with automatic 32-bit subnet boundary rollover and CIDR prefix preservation:
+
+- `192.168.1.1:1`: Increments the host address (`192.168.1.1`, `192.168.1.2`, ...).
+- `192.168.1.255:1`: Automatically rolls over subnet octet boundaries into `192.168.2.0`.
+- `10.0.0.1/24:1`: Preserves CIDR notation (`10.0.0.1/24`, `10.0.0.2/24`, ...).
+- `10.0.1.0:-1`: Negative steps decrement addresses across octet boundaries (`10.0.0.255`).
+- `:ip` (or `:ip:1`): Defaults to start address configured via `insertseq.ipStart` (default: `192.168.1.1`).
+
+**Formatting Modifiers (`~` or `format:`):**
+
+- `~0` (or `~pad`): Zero-padded 3-digit octets (`192.168.001.001`). Also automatically enabled when input starts with padded octets.
+- `~hex` (or `~x`): 8-character lowercase hexadecimal string (`c0a80101`).
+- `~HEX` (or `~X`): 8-character uppercase hexadecimal string (`C0A80101`).
+- `~bin` (or `~b`): Dotted 8-bit binary representation (`11000000.10101000.00000001.00000001`).
+- `~int` (or `~d`): Unsigned 32-bit integer (`3232235777`).
+
+Input: `192.168.1.254:1` with 3 selections → output:
+
+```text
+192.168.1.254
+192.168.1.255
+192.168.2.0
+```
+
+Input: `10.0.0.1/24:1` with 3 selections → output:
+
+```text
+10.0.0.1/24
+10.0.0.2/24
+10.0.0.3/24
+```
+
 ### Quoted Template
 
 Start with `"` or `'` to embed a sequence inside fixed surrounding text. Write `{}` where the value should appear; the sequence definition follows the closing quote. All standard sequence types and options work as the inner sequence.
@@ -321,12 +464,16 @@ Col A	Col B	Col C
 
 ## Content of full syntax description
 
-- [Numbers](#numeric-sequences-details)
-- [Alphabetical/Strings](#alphabetic--string-sequences-details)
-- [Dates](#date-sequences-details)
-- [Own](#own-sequences-details)
-- [Predefined](#predefined-sequences-details)
-- [Function](#function-sequences-details)
+- [Numbers (Decimal, Hex, Octal, Binary, Roman)](#numeric-sequences-details)
+- [Alphabetical / Strings](#alphabetic--string-sequences-details)
+- [Dates & Time](#date-and-time-sequences-details)
+- [Expressions](#expression-sequences-details)
+- [Own Lists](#own-sequences-details)
+- [Predefined Lists](#predefined-sequences-details)
+- [Functions](#function-sequences-details)
+- [UUIDs](#uuid-sequences-details)
+- [Random Tokens, Passwords & Hashes](#random-tokens-passwords--hashes-details)
+- [IPv4 Addresses](#ipv4-address-sequences-details)
 - [Quoted Template](#quoted-template-details)
 - [Backtick Template](#backtick-template-details)
 
@@ -384,8 +531,8 @@ The syntax is built from segments. Each input type has a specific starting marke
 - format
     - Formatting template for output values. Uses a compact format compatible with the project's formatting helper (based on d3/mini-Python style).
     - Syntax: `~<format>` or `format:<format>`.
-    - Subparts: padding / lead characters, alignment `< > ^ =`, sign, alternate `#`, width/zero flag, thousands separator `,`, precision `.2`, output type specifier (for example, `b e E o x X %`).
-    - Examples: `~03d` → zero-padded width 3, `~>8` → right align in width 8.
+    - Subparts: padding / lead characters, alignment `< > ^ =`, sign, alternate `#`, width/zero flag, thousands separator `,`, precision `.2`, output type specifier (for example, `b e E o x X %`, `R` or `roman` for uppercase Roman numerals, `r` for lowercase Roman numerals).
+    - Examples: `~03d` → zero-padded width 3, `~>8` → right align in width 8, `1~R` → `I, II, III...`, `1~r` → `i, ii, iii...`, `1~>5R` → right-aligned Roman numeral.
 
 - expression
     - Inline JavaScript expression that can compute or transform the current value before formatting.
@@ -458,31 +605,39 @@ Examples:
 
 ---
 
-### Date sequences details
+### Date and Time sequences details
 
 Most options work like numeric sequences — the parts below differ.
 
 - start
-    - Begins with `%` followed by a date part (yyyy, yy, yyyy-mm, yyyy-mm-dd) or a quoted/parenthesized full date string. `%` alone uses today's date.
+    - Begins with `%` or `date:` followed by a date (`yyyy`, `yyyy-mm`, `yyyy-mm-dd`), time (`HH:mm`, `HH:mm:ss`), full ISO timestamp (`2026-03-09T14:30:00`), `now`, or a quoted/parenthesized date-time string. `%` or `date:` alone uses the current date and time (`now`).
 - steps
-    - Numeric offset with optional unit: `d` (days), `w` (weeks), `m` (months), `y` (years). Default unit is days.
-    - Examples: `%2025-03-02:1`, `%2025-03-02:1w`, `%2025-03-02:-1m`.
+    - Numeric offset with unit: `d` (days, default), `w` (weeks), `m` (months), `y` (years), `h` (hours), `min` / `minute` / `minutes` (minutes), `s` / `sec` / `second` / `seconds` (seconds), `ms` (milliseconds).
+    - Supports **compound duration steps** (for example, `:1d15min`, `:1d2h15m`, `:2h30min`).
+    - Supports decimal/fractional steps (for example, `:24.25h`, `:1.5d`).
+    - Examples: `%2025-03-02:1w`, `%14:00:15min`, `%14:00:1d15min`, `%now:1h`.
 - format
-    - Supports optional `lang:` locale and a quoted format or a short token (for example, `iso`).
-    - Examples: `%2025-03-02~"dd.MM.yyyy"`, `%2025-03-02~lang:de~"dd.MM.yyyy"`.
+    - Format template using tokens (`yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`, `dd`, `d`, `HH`, `H`, `mm`, `m`, `ss`, `s`), locale fallback (`lang:de`), or special format keywords:
+        - `~epoch` / `~timestamp`: Unix timestamp in seconds
+        - `~epochms` / `~timestampms`: Unix timestamp in milliseconds
+        - `~iso`: ISO-8601 string (`2026-03-09T14:30:00`)
+        - `~utc` / `~isoz`: UTC ISO-8601 string (`2026-03-09T14:30:00Z`)
+    - Examples: `%2025-03-02~"dd.MM.yyyy"`, `%14:00:15min~"yyyy-MM-dd HH:mm:ss"`, `%now:10s~epoch`.
 - stopexpression
     - Always put the stop expression in parentheses.
 
 Notes:
 
-- Date arithmetic uses Temporal semantics to handle month lengths and leap years.
+- Date and time arithmetic uses Temporal semantics to handle month lengths, leap years, and accurate time math.
 - Placeholders and stopexpr work as in other sequence types.
 
 Examples:
 
 - `%2025-03-02:1w~lang:de`
+- `%14:00:15min`
+- `%14:00:1d15min`
+- `%now:1h~iso`
 - `%:7` (start = today)
-- `%2025-01-31:1m`
 
 ---
 
@@ -569,6 +724,86 @@ Prefixes accepted: `=` (short), `func:`, or `function:` (readable). Functions ma
     - Use the History command (`insertseq.history`) to quickly reuse or adjust previously working function calls.
 
 ---
+
+### UUID Sequences details
+
+Use `:uuid` to generate Universally Unique Identifiers (UUIDs). By default, standard v4 UUIDs are generated. You can append `:v7` to generate time-sortable v7 UUIDs. Formatting options allow you to convert them to uppercase (`~u` or `~upper`) or remove hyphens (`~c` or `~clean`).
+
+Input: `:uuid` with 3 selections → output:
+
+```text
+c5108bb6-52bb-49e0-81f7-e24c538a7c29
+f823dc34-97c7-43f1-b9c1-4fc3a23a31c6
+1f350c3d-d558-450f-93d3-1e5b10c5b369
+```
+
+Input: `:uuid:v7~uc` (Version 7, Uppercase, Clean) with 3 selections → output:
+
+```text
+0192A02E7A5A70F88E91910D83A61690
+0192A02E7A5B796BA53B621F5A132C1B
+0192A02E7A5B79A680C4F7249E34B8C1
+```
+
+---
+
+### Random Tokens, Passwords & Hashes details
+
+- **Syntax**: `:<type>[:<length>][~<format>]` or `<type>:<length>[~<format>]`
+- **Types**:
+    - `rnd` / `random`: Alphanumeric random string (default length: 16)
+    - `hex`: Random hex string (default length: 32)
+    - `pwd` / `password`: Cryptographically secure password with upper, lower, digits, and special characters (default length: 16)
+    - `token`: URL-safe token with characters `A-Za-z0-9_-` (default length: 24)
+    - `hash`: Random hex hash (default length: 32)
+- **Modifiers (`~` or `?`)**:
+    - `~d` (digits only) — ideal for PIN and OTP numeric codes
+    - `~u` (uppercase only)
+    - `~l` (lowercase only)
+    - `~a` (letters only)
+    - `~s` (include special characters)
+- **Standard Sequence Controls**:
+    - Frequency (`*n`), repetition (`#n`), startover (`##n`), stop expressions (`@expr`), and expressions (`::expr`) are fully supported.
+    - Preserves normal decimal random ranges (e.g. `1r10`) and normal string sequences (e.g. `rnd` or `hex` without colon).
+
+Examples:
+
+- `:rnd:12`
+- `:rnd:6~d`
+- `:hex:16~u`
+- `:pwd:20`
+- `:token:32`
+
+---
+
+### IPv4 Address sequences details
+
+- **Syntax**: `[<prefix>][<start_ip>[/<cidr>]][:<step>][*<freq>][#<repeat>][##<startover>][~<format>][::<expr>][@<stopexpr>]`
+- **Prefixes (optional)**: `:ip`, `:ipv4`, `ip:`, `ipv4:`. Can be used alone (`:ip:1` starts at the default address configured in `insertseq.ipStart`, default: `192.168.1.1`) or before an address (`:ip:10.0.0.1`).
+- **Direct Start**: Any valid IPv4 address (e.g. `192.168.1.1` or `10.0.0.1/24`) is recognized directly without prefix.
+- **Arithmetic**:
+    - Full 32-bit unsigned arithmetic.
+    - Positive and negative increments correctly cross octet boundaries (e.g. `192.168.1.255 + 1` → `192.168.2.0`, `10.0.1.0 - 1` → `10.0.0.255`).
+    - CIDR notation (e.g. `/24`) is preserved across increments.
+- **Formatting options (`~` or `format:`)**:
+    - `~0` / `~pad`: Pad each octet to 3 digits (e.g. `192.168.001.001`). Also enabled automatically when start IP has zero-padded octets.
+    - `~hex` / `~x`: 8-digit lowercase hexadecimal representation (`c0a80101`).
+    - `~HEX` / `~X`: 8-digit uppercase hexadecimal representation (`C0A80101`).
+    - `~bin` / `~b`: Dotted binary representation (`11000000.10101000.00000001.00000001`).
+    - `~int` / `~d`: Unsigned 32-bit integer (`3232235777`).
+    - Alignment and width templates (e.g. `~<18`) are also supported.
+- **Standard Sequence Controls**:
+    - Frequency (`*n`), repetition (`#n`), startover (`##n`), expressions (`::expr`), and stop expressions (`@expr`) are fully supported.
+
+Examples:
+
+- `192.168.1.1:1`
+- `192.168.1.255:1`
+- `10.0.0.1/24:1`
+- `10.0.1.0:-1`
+- `192.168.1.1~0`
+- `192.168.1.1~hex`
+- `:ip:1`
 
 ### Quoted Template details
 
@@ -665,6 +900,7 @@ The extension exposes settings under the `insertseq` namespace. A quick referenc
 | `insertseq.stringFormat`      |  string | `""`                           | Default format template for string outputs.                                                                                                                                                                                                                                                                                                                                                       |
 | `insertseq.numberFormat`      |  string | `""`                           | Default format template for numeric outputs (d3-format).                                                                                                                                                                                                                                                                                                                                          |
 | `insertseq.dateFormat`        |  string | `""`                           | Default date output format.                                                                                                                                                                                                                                                                                                                                                                       |
+| `insertseq.ipStart`           |  string | `"192.168.1.1"`                | Default start address for IPv4 sequences if omitted.                                                                                                                                                                                                                                                                                                                                              |
 | `insertseq.alphaCapital`      |  string | `"preserve"`                   | Case handling for alpha sequences: `preserve`, `upper`, `lower`, `pascal`.                                                                                                                                                                                                                                                                                                                        |
 | `insertseq.language`          |  string | `""`                           | Default locale/language for date formatting.                                                                                                                                                                                                                                                                                                                                                      |
 | `insertseq.sortedOuput`       | boolean | `false`                        | Default insertion order: false (default) in multi cursor click order; true in cursor order                                                                                                                                                                                                                                                                                                        |

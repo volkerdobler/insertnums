@@ -1,6 +1,6 @@
 {
 	"name": "insertnums",
-	"version": "1.1.2",
+	"version": "1.2.0",
 	"publisher": "volkerdobler",
 	"displayName": "Insert Sequences",
 	"description": "Insert sequences of any kind (numberic, alpha, expressions, etc.) to VSCode textdocuments",
@@ -86,6 +86,11 @@
 					"type": "string",
 					"default": "",
 					"description": "Default output format for dates"
+				},
+				"insertseq.ipStart": {
+					"type": "string",
+					"default": "192.168.1.1",
+					"description": "Default start address for IPv4 sequences if omitted"
 				},
 				"insertseq.alphaCapital": {
 					"type": "string",

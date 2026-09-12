@@ -2,15 +2,81 @@ import { format } from 'd3-format';
 import { Temporal } from 'temporal-polyfill';
 
 /**
- * Format a number using a d3-format specifier string.
+ * Convert an integer to a Roman numeral.
+ * Standard form supports numbers from 1 to 3999.
+ * For numbers outside this range or zero, falls back to numeric string.
+ * Negative numbers are prefixed with '-'.
+ *
+ * @param num - The number to convert.
+ * @param lowercase - Whether to return lowercase Roman numerals (e.g. `iv`).
+ * @returns The formatted Roman numeral string.
+ */
+export function toRoman(num: number, lowercase = false): string {
+	const intVal = Math.trunc(num);
+	if (intVal === 0) {
+		return '0';
+	}
+	if (intVal < 0) {
+		return '-' + toRoman(-intVal, lowercase);
+	}
+	if (intVal >= 4000) {
+		return intVal.toString();
+	}
+
+	const romanNumerals: Array<[number, string]> = [
+		[1000, 'M'],
+		[900, 'CM'],
+		[500, 'D'],
+		[400, 'CD'],
+		[100, 'C'],
+		[90, 'XC'],
+		[50, 'L'],
+		[40, 'XL'],
+		[10, 'X'],
+		[9, 'IX'],
+		[5, 'V'],
+		[4, 'IV'],
+		[1, 'I'],
+	];
+
+	let result = '';
+	let remaining = intVal;
+	for (const [val, sym] of romanNumerals) {
+		while (remaining >= val) {
+			result += sym;
+			remaining -= val;
+		}
+	}
+
+	return lowercase ? result.toLowerCase() : result;
+}
+
+/**
+ * Format a number using a d3-format specifier string or a Roman numeral specifier (`R`, `r`, `roman`).
  *
  * @param value - The number to format.
- * @param formatString - A d3-format specifier (e.g. `".2f"`, `"#x"`, `"08d"`).
+ * @param formatSpec - A format specifier (e.g. `".2f"`, `"#x"`, `"08d"`, `"R"`, `"r"`, `">5R"`).
  * @returns The formatted string.
  * @see https://d3js.org/d3-format
  */
-export function formatNumber(value: number, formatString: string): string {
-	return format(formatString)(value);
+export function formatNumber(value: number, formatSpec: string): string {
+	if (!formatSpec) {
+		return value.toString();
+	}
+
+	const romanMatch = formatSpec.match(/^(.*?)((?:roman)|r|R)$/i);
+	if (romanMatch) {
+		const prefixTemplate = romanMatch[1];
+		const typeToken = romanMatch[2];
+		const isLower = typeToken === 'r';
+		const romanStr = toRoman(value, isLower);
+		if (prefixTemplate) {
+			return formatString(romanStr, prefixTemplate);
+		}
+		return romanStr;
+	}
+
+	return format(formatSpec)(value);
 }
 
 /**
@@ -127,6 +193,22 @@ export function formatTemporalDateTime(
 	template: string = '',
 	locale: string | undefined = undefined,
 ): string {
+	const trimmedTpl = template.trim().toLowerCase();
+	if (trimmedTpl === 'epoch' || trimmedTpl === 'timestamp') {
+		return Math.floor(
+			temporalDate.toZonedDateTime('UTC').epochMilliseconds / 1000,
+		).toString();
+	}
+	if (trimmedTpl === 'epochms' || trimmedTpl === 'timestampms') {
+		return temporalDate.toZonedDateTime('UTC').epochMilliseconds.toString();
+	}
+	if (trimmedTpl === 'iso') {
+		return temporalDate.toString();
+	}
+	if (trimmedTpl === 'isoz' || trimmedTpl === 'utc') {
+		return temporalDate.toString() + 'Z';
+	}
+
 	const year = temporalDate.year;
 	const month = temporalDate.month; // 1..12
 	const day = temporalDate.day;
@@ -156,10 +238,17 @@ export function formatTemporalDateTime(
 		s: String(temporalDate.second),
 	};
 
+	const hasTime =
+		temporalDate.hour !== 0 ||
+		temporalDate.minute !== 0 ||
+		temporalDate.second !== 0;
+
 	// Check if template is just a BCP-47 locale string
 	const localeRegex = /^[a-z]{2,3}(-[a-zA-Z]{2,4})?$/i;
 	if (localeRegex.test(template.trim()) || template.trim() === '') {
-		return temporalDate.toPlainDate().toLocaleString(template || locale);
+		return hasTime
+			? temporalDate.toLocaleString(template || locale)
+			: temporalDate.toPlainDate().toLocaleString(template || locale);
 	}
 
 	// Replace tokens in a single pass (match longest tokens first in regex)
@@ -170,7 +259,55 @@ export function formatTemporalDateTime(
 	const reg = new RegExp('(?:' + keys.join('|') + ')', 'g');
 	const out = template.replace(reg, (m) => tokens[m] ?? m);
 	if (out === template) {
-		return temporalDate.toPlainDate().toLocaleString(locale);
+		return hasTime
+			? temporalDate.toLocaleString(locale)
+			: temporalDate.toPlainDate().toLocaleString(locale);
 	}
 	return out;
+}
+
+/**
+ * Parse an IPv4 string into a 32-bit unsigned integer.
+ */
+export function ipToNumber(ip: string): number {
+	const octets = ip.split('.').map((o) => parseInt(o, 10));
+	return (
+		((octets[0] << 24) >>> 0) +
+		((octets[1] << 16) | (octets[2] << 8) | octets[3])
+	);
+}
+
+/**
+ * Convert a 32-bit unsigned integer into an IPv4 dotted-decimal string.
+ * Optionally zero-pad each octet to 3 digits (e.g. 192.168.001.001).
+ */
+export function numberToIp(num: number, zeroPad: boolean = false): string {
+	const a = (num >>> 24) & 255;
+	const b = (num >>> 16) & 255;
+	const c = (num >>> 8) & 255;
+	const d = num & 255;
+	if (zeroPad) {
+		return `${String(a).padStart(3, '0')}.${String(b).padStart(3, '0')}.${String(c).padStart(3, '0')}.${String(d).padStart(3, '0')}`;
+	}
+	return `${a}.${b}.${c}.${d}`;
+}
+
+/**
+ * Format a 32-bit unsigned integer into binary dot notation:
+ * 11000000.10101000.00000001.00000001
+ */
+export function numberToBinaryIp(num: number): string {
+	const a = ((num >>> 24) & 255).toString(2).padStart(8, '0');
+	const b = ((num >>> 16) & 255).toString(2).padStart(8, '0');
+	const c = ((num >>> 8) & 255).toString(2).padStart(8, '0');
+	const d = (num & 255).toString(2).padStart(8, '0');
+	return `${a}.${b}.${c}.${d}`;
+}
+
+/**
+ * Format a 32-bit unsigned integer into an 8-character hex string.
+ */
+export function numberToHexIp(num: number, uppercase: boolean = false): string {
+	const hex = (num >>> 0).toString(16).padStart(8, '0');
+	return uppercase ? hex.toUpperCase() : hex.toLowerCase();
 }

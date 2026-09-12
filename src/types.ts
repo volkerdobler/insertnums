@@ -20,6 +20,9 @@ export type TInput =
 	| 'own' // custom item sequences defined as [...] arrays
 	| 'predefined' // sequences from the mysequences configuration list
 	| 'function' // user-defined functions from the myfunctions configuration list
+	| 'uuid' // uuid generator (v4, v7)
+	| 'randomToken' // random tokens, passwords, and hash strings
+	| 'ip' // IPv4 network addresses
 	| 'textSelected' // no sequence — re-insert originally selected text
 	| 'template' // quoted template string with {} placeholder replaced by the sequence value
 	| 'backtick' // backtick template: `prefix text {sequence-def} suffix text`
